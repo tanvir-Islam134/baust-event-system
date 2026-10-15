@@ -33,9 +33,35 @@ export const CreateEventSchema = EventSchema.omit({
   updatedAt: true,
 });
 
+export const CreateEventInputSchema = EventSchema.omit({
+  registeredCount: true,
+  status: true,
+  rejectionReason: true,
+  createdBy: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const UpdateEventSchema = EventSchema.partial().omit({
   registeredCount: true, // Only updated atomically inside transactions
   createdBy: true,
   createdAt: true,
 });
 
+export const UpdateEventStatusSchema = z
+  .object({
+    status: z.enum(['approved', 'rejected', 'completed']),
+    rejectionReason: z.string().trim().nullable().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.status === 'rejected') {
+        return !!data.rejectionReason && data.rejectionReason.length > 0;
+      }
+      return true;
+    },
+    {
+      message: 'Rejection reason is required when rejecting an event',
+      path: ['rejectionReason'],
+    }
+  );
