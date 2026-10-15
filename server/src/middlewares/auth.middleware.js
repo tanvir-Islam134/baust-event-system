@@ -32,6 +32,36 @@ export const requireAuth = (req, res, next) => {
 };
 
 /**
+ * Optional authentication middleware:
+ * Populates req.user if a valid token is present; otherwise proceeds with req.user = null.
+ */
+export const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    req.user = null;
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+  } catch {
+    req.user = null;
+  }
+
+  next();
+};
+
+/**
  * Middleware to authorize requests based on user roles.
  * Allowed roles: 'admin' | 'organizer' | 'participant' | 'guest'
  * @param {string | string[]} allowedRoles - Single role or array of allowed roles
@@ -56,4 +86,3 @@ export const requireRole = (allowedRoles) => {
     next();
   };
 };
-
