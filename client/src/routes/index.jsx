@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
 import api from '../services/api.js';
+import LoginPage from '../pages/LoginPage.jsx';
+import DashboardPage from '../pages/DashboardPage.jsx';
+import ProtectedRoute from '../components/ProtectedRoute.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 function HomePage() {
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     api
@@ -27,10 +32,28 @@ function HomePage() {
           <span className="inline-block py-1 px-3 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 uppercase tracking-wider mb-2">
             BAUST Event System
           </span>
-          <h1 className="text-2xl font-bold text-slate-800">System Monorepo Ready</h1>
+          <h1 className="text-2xl font-bold text-slate-800">BAUST Event System</h1>
           <p className="text-sm text-slate-500 mt-1">
             Express ESM + Cloud Firestore (Admin SDK) & React + Vite PWA
           </p>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-2">
+          {isAuthenticated ? (
+            <Link
+              to="/dashboard"
+              className="w-full text-center py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition"
+            >
+              Open Dashboard ({user?.role})
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              className="w-full text-center py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+            >
+              Sign In with Google
+            </Link>
+          )}
         </div>
 
         <div className="rounded-lg bg-slate-100 p-4 text-xs font-mono">
@@ -57,9 +80,20 @@ const router = createBrowserRouter([
     path: '/',
     element: <HomePage />,
   },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/dashboard',
+    element: (
+      <ProtectedRoute>
+        <DashboardPage />
+      </ProtectedRoute>
+    ),
+  },
 ]);
 
 export function AppRouter() {
   return <RouterProvider router={router} />;
 }
-
