@@ -58,7 +58,25 @@ export class UserRepository extends BaseRepository {
       orderBy: ['createdAt', 'desc'],
     });
   }
+
+  /**
+   * Find users matching optional filters (role, organizerStatus).
+   * @param {{ role?: string, organizerStatus?: string }} [filters={}]
+   */
+  async findUsers(filters = {}) {
+    const queryFilters = [];
+    if (filters.role) {
+      queryFilters.push(['role', '==', filters.role]);
+    }
+    if (filters.organizerStatus) {
+      queryFilters.push(['organizerStatus', '==', filters.organizerStatus]);
+    }
+
+    if (queryFilters.length > 0) {
+      return this.find(queryFilters, { orderBy: ['createdAt', 'desc'] });
+    }
+    return this.findAll();
+  }
 }
 
 export const userRepository = new UserRepository();
-

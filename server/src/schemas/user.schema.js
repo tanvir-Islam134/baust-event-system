@@ -22,3 +22,23 @@ export const OrganizerStatusUpdateSchema = z.object({
   organizerStatus: OrganizerStatusEnum,
 });
 
+export const UpdateStudentProfileSchema = z.object({
+  batch: z.string().trim().nullable().optional(),
+  section: z.string().trim().nullable().optional(),
+  level: z.union([z.number(), z.string()]).nullable().optional(),
+  term: z.union([z.number(), z.string()]).nullable().optional(),
+});
+
+export const AdminUpdateUserRoleSchema = z
+  .object({
+    role: UserRoleEnum.optional(),
+    organizerStatus: OrganizerStatusEnum.optional(),
+  })
+  .refine((data) => data.role !== undefined || data.organizerStatus !== undefined, {
+    message: 'Either role or organizerStatus must be provided',
+  });
+
+export const ListUsersQuerySchema = z.object({
+  role: UserRoleEnum.optional(),
+  organizerStatus: OrganizerStatusEnum.optional(),
+});
