@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { createBrowserRouter, RouterProvider, Link } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Link, Navigate } from 'react-router-dom';
 import api from '../services/api.js';
 import LoginPage from '../pages/LoginPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
+import EventsPage from '../pages/EventsPage.jsx';
+import ProfilePage from '../pages/ProfilePage.jsx';
+import UsersPage from '../pages/UsersPage.jsx';
+import FinancesPage from '../pages/FinancesPage.jsx';
 import ProtectedRoute from '../components/ProtectedRoute.jsx';
+import MainLayout from '../components/layout/MainLayout.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 function HomePage() {
@@ -84,13 +89,47 @@ const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
   },
+  // Protected Routes using MainLayout
   {
-    path: '/dashboard',
     element: (
       <ProtectedRoute>
-        <DashboardPage />
+        <MainLayout />
       </ProtectedRoute>
     ),
+    children: [
+      {
+        path: '/dashboard',
+        element: <DashboardPage />,
+      },
+      {
+        path: '/events',
+        element: <EventsPage />,
+      },
+      {
+        path: '/profile',
+        element: <ProfilePage />,
+      },
+      {
+        path: '/finances',
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'organizer']}>
+            <FinancesPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/users',
+        element: (
+          <ProtectedRoute allowedRoles={['admin']}>
+            <UsersPage />
+          </ProtectedRoute>
+        ),
+      },
+    ],
+  },
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
   },
 ]);
 
