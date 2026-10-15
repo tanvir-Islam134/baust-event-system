@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../firebase.js';
 import api from '../services/api.js';
@@ -10,6 +10,18 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await api.get('/auth/me');
+      const profile = res.data?.data || res.data;
+      setUser(profile);
+      return profile;
+    } catch (err) {
+      console.warn('[AuthContext] Failed to refresh user profile:', err.message);
+      return null;
+    }
+  }, []);
 
   // Initialize and verify stored session on app load
   useEffect(() => {
@@ -99,6 +111,8 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!token && !!user,
     loginWithGoogle,
     logout,
+    refreshUser,
+    setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -111,4 +125,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
