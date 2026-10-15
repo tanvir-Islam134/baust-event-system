@@ -17,3 +17,8 @@ export const CreateIncomeSchema = IncomeSchema.omit({
   updatedAt: true,
 });
 
+export const CreateIncomeInputSchema = IncomeSchema.omit({
+  addedBy: true,
+  createdAt: true,
+  updatedAt: true,
+});

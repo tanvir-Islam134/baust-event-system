@@ -21,7 +21,11 @@ export const CreatePollInputSchema = z.object({
   question: z.string().trim().min(1, 'Poll question is required'),
   options: z.array(z.string().trim().min(1)).min(2, 'At least 2 options are required'),
   expiresAt: z.union([z.date(), z.string()]),
-  createdBy: z.string().min(1),
+  createdBy: z.string().min(1).optional(),
+});
+
+export const CastVoteInputSchema = z.object({
+  selectedOptionId: z.string().min(1, 'Option selection is required'),
 });
 
 export const VoteSchema = z.object({
@@ -30,4 +34,3 @@ export const VoteSchema = z.object({
   selectedOption: z.string().min(1, 'Selected option ID or label is required'),
   votedAt: z.union([z.date(), z.string(), z.any()]).optional(),
 });
-

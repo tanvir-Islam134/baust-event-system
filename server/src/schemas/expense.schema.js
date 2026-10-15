@@ -16,3 +16,8 @@ export const CreateExpenseSchema = ExpenseSchema.omit({
   updatedAt: true,
 });
 
+export const CreateExpenseInputSchema = ExpenseSchema.omit({
+  addedBy: true,
+  createdAt: true,
+  updatedAt: true,
+});
