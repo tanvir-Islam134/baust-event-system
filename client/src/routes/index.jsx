@@ -4,6 +4,7 @@ import api from '../services/api.js';
 import LoginPage from '../pages/LoginPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
 import EventsPage from '../pages/EventsPage.jsx';
+import EventDetailsPage from '../pages/EventDetailsPage.jsx';
 import ProfilePage from '../pages/ProfilePage.jsx';
 import UsersPage from '../pages/UsersPage.jsx';
 import FinancesPage from '../pages/FinancesPage.jsx';
@@ -59,6 +60,13 @@ function HomePage() {
               Sign In with Google
             </Link>
           )}
+
+          <Link
+            to="/events"
+            className="w-full text-center py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition"
+          >
+            Browse Public Events
+          </Link>
         </div>
 
         <div className="rounded-lg bg-slate-100 p-4 text-xs font-mono">
@@ -89,25 +97,35 @@ const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
   },
-  // Protected Routes using MainLayout
+  // Application Routes using MainLayout
   {
-    element: (
-      <ProtectedRoute>
-        <MainLayout />
-      </ProtectedRoute>
-    ),
+    element: <MainLayout />,
     children: [
-      {
-        path: '/dashboard',
-        element: <DashboardPage />,
-      },
+      // Publicly viewable event catalog & event details
       {
         path: '/events',
         element: <EventsPage />,
       },
       {
+        path: '/events/:id',
+        element: <EventDetailsPage />,
+      },
+      // Authenticated Protected Routes
+      {
+        path: '/dashboard',
+        element: (
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: '/profile',
-        element: <ProfilePage />,
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '/finances',

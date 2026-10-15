@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import eventService from '../services/eventService.js';
 
@@ -323,6 +324,15 @@ export default function EventsPage() {
                       }`}
                       style={{ width: `${capacityPercent}%` }}
                     />
+                  </div>
+
+                  <div className="mt-3.5">
+                    <Link
+                      to={`/events/${event.id}`}
+                      className="block text-center w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                    >
+                      View Details & Register
+                    </Link>
                   </div>
                 </div>
               </div>

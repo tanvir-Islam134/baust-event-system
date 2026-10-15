@@ -100,21 +100,31 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* User Footer Profile */}
       <div className="p-4 border-t border-slate-800 bg-slate-950/40">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0 pr-2">
-            <p className="text-xs font-semibold text-white truncate">{user?.name || 'Logged In'}</p>
-            <p className="text-[11px] text-slate-400 capitalize">{user?.role || 'User'}</p>
+        {user ? (
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 pr-2">
+              <p className="text-xs font-semibold text-white truncate">{user?.name || 'Logged In'}</p>
+              <p className="text-[11px] text-slate-400 capitalize">{user?.role || 'User'}</p>
+            </div>
+            <button
+              onClick={logout}
+              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition"
+              title="Sign out"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
           </div>
-          <button
-            onClick={logout}
-            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition"
-            title="Sign out"
+        ) : (
+          <NavLink
+            to="/login"
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
-        </div>
+            <span>Sign In</span>
+          </NavLink>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function Navbar({ onToggleSidebar }) {
@@ -39,7 +40,7 @@ export default function Navbar({ onToggleSidebar }) {
 
       {/* Right User Bar */}
       <div className="flex items-center gap-4">
-        {user && (
+        {user ? (
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
               <span className="block text-xs font-semibold text-slate-800">{user.name}</span>
@@ -63,9 +64,15 @@ export default function Navbar({ onToggleSidebar }) {
               Sign out
             </button>
           </div>
+        ) : (
+          <Link
+            to="/login"
+            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm"
+          >
+            Sign In with Google
+          </Link>
         )}
       </div>
     </header>
   );
 }
-
