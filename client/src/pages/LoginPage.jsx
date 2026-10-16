@@ -5,15 +5,16 @@ import { auth } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
+
+  const from = location.state?.from?.pathname || '/dashboard';
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(location.state?.successMessage || location.state?.message || null);
   const [accountNotFound, setAccountNotFound] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/dashboard';
 
   // If already logged in, show options
   if (isAuthenticated && user) {
