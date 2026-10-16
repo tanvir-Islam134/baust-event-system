@@ -5,19 +5,29 @@ import eventService from '../services/eventService.js';
 
 export default function EventsPage() {
   const { user } = useAuth();
-  const canCreateEvent = user?.role === 'organizer' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
+  const canCreateEvent = user?.role === 'organizer' || isAdmin;
+
+  // Active Tab for Admin
+  const [activeTab, setActiveTab] = useState('approved'); // 'approved' | 'pending'
 
   // Events state
-  const [events, setEvents] = useState([]);
+  const [approvedEvents, setApprovedEvents] = useState([]);
+  const [pendingEvents, setPendingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Modal & form state
+  // Create Modal & form state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Admin Reject Modal State
+  const [rejectingEvent, setRejectingEvent] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [processingStatus, setProcessingStatus] = useState(false);
 
   const initialFormState = {
     title: '',
@@ -36,22 +46,40 @@ export default function EventsPage() {
 
   const [formData, setFormData] = useState(initialFormState);
 
-  const fetchEvents = useCallback(async () => {
+  const fetchApprovedEvents = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
       const data = await eventService.getApprovedEvents();
-      setEvents(Array.isArray(data) ? data : []);
+      setApprovedEvents(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.response?.data?.error?.message || err.message || 'Failed to load events');
-    } finally {
-      setLoading(false);
+      setError(err.response?.data?.error?.message || err.message || 'Failed to load approved events');
     }
   }, []);
 
+  const fetchPendingEvents = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const data = await eventService.getAdminQueue();
+      setPendingEvents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('Failed to fetch admin pending queue:', err);
+    }
+  }, [isAdmin]);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    await Promise.all([fetchApprovedEvents(), fetchPendingEvents()]);
+    setLoading(false);
+  }, [fetchApprovedEvents, fetchPendingEvents]);
+
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    loadAll();
+  }, [loadAll]);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 5000);
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -96,9 +124,8 @@ export default function EventsPage() {
       await eventService.createEvent(payload);
       setIsModalOpen(false);
       setFormData(initialFormState);
-      setToastMessage('Event submitted successfully! It is now pending administrative approval.');
-      setTimeout(() => setToastMessage(null), 6000);
-      fetchEvents();
+      showToast('Event submitted successfully! It is now pending administrative approval.');
+      loadAll();
     } catch (err) {
       setFormError(
         err.response?.data?.error?.message ||
@@ -112,7 +139,47 @@ export default function EventsPage() {
     }
   };
 
-  const filteredEvents = events.filter((ev) => {
+  // Admin Approval Action
+  const handleApproveEvent = async (eventId) => {
+    try {
+      setProcessingStatus(true);
+      await eventService.updateEventStatus(eventId, { status: 'approved' });
+      showToast('Event approved successfully and published to catalog!');
+      await loadAll();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to approve event');
+    } finally {
+      setProcessingStatus(false);
+    }
+  };
+
+  // Admin Reject Action
+  const handleConfirmReject = async (e) => {
+    e.preventDefault();
+    if (!rejectionReason.trim()) {
+      alert('Please provide a reason for rejecting this event.');
+      return;
+    }
+    try {
+      setProcessingStatus(true);
+      await eventService.updateEventStatus(rejectingEvent.id, {
+        status: 'rejected',
+        rejectionReason: rejectionReason.trim(),
+      });
+      showToast('Event has been rejected.');
+      setRejectingEvent(null);
+      setRejectionReason('');
+      await loadAll();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to reject event');
+    } finally {
+      setProcessingStatus(false);
+    }
+  };
+
+  const activeEventList = activeTab === 'pending' ? pendingEvents : approvedEvents;
+
+  const filteredEvents = activeEventList.filter((ev) => {
     const term = searchTerm.toLowerCase();
     return (
       ev.title?.toLowerCase().includes(term) ||
@@ -163,6 +230,41 @@ export default function EventsPage() {
         )}
       </div>
 
+      {/* Admin Tabs Toggle */}
+      {isAdmin && (
+        <div className="flex border-b border-slate-200 gap-4">
+          <button
+            onClick={() => setActiveTab('approved')}
+            className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'approved'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span>Approved Events</span>
+            <span className="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">
+              {approvedEvents.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
+              activeTab === 'pending'
+                ? 'border-amber-600 text-amber-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span>Pending Approvals</span>
+            {pendingEvents.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 font-bold">
+                {pendingEvents.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Search & Filter Bar */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <div className="relative">
@@ -178,7 +280,11 @@ export default function EventsPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search events by title, venue, or keyword..."
+            placeholder={
+              activeTab === 'pending'
+                ? 'Search pending event requests...'
+                : 'Search events by title, venue, or keyword...'
+            }
             className="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
           />
         </div>
@@ -188,22 +294,19 @@ export default function EventsPage() {
       {loading && (
         <div className="py-16 flex flex-col items-center justify-center gap-3">
           <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm font-medium text-slate-500">Loading approved events...</p>
+          <p className="text-sm font-medium text-slate-500">
+            {activeTab === 'pending' ? 'Loading review queue...' : 'Loading events...'}
+          </p>
         </div>
       )}
 
       {/* Error State */}
       {!loading && error && (
         <div className="p-6 bg-rose-50 border border-rose-200 rounded-xl text-center">
-          <div className="inline-flex p-3 rounded-full bg-rose-100 text-rose-600 mb-2">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
           <h3 className="text-base font-semibold text-rose-900">Failed to load events</h3>
           <p className="text-xs text-rose-700 mt-1">{error}</p>
           <button
-            onClick={fetchEvents}
+            onClick={loadAll}
             className="mt-4 px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition"
           >
             Retry Loading
@@ -214,18 +317,17 @@ export default function EventsPage() {
       {/* Empty State */}
       {!loading && !error && filteredEvents.length === 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
-          <div className="inline-flex p-4 rounded-full bg-slate-100 text-slate-400 mb-4">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-bold text-slate-800">No events found</h3>
+          <h3 className="text-lg font-bold text-slate-800">
+            {activeTab === 'pending' ? 'No pending events in review queue' : 'No events found'}
+          </h3>
           <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1">
-            {searchTerm
-              ? `No events match your search query "${searchTerm}". Try a different search term.`
+            {activeTab === 'pending'
+              ? 'Great work! All submitted events have been reviewed.'
+              : searchTerm
+              ? `No events match your search query "${searchTerm}".`
               : 'There are currently no approved public events scheduled. Check back soon!'}
           </p>
-          {canCreateEvent && !searchTerm && (
+          {canCreateEvent && activeTab === 'approved' && !searchTerm && (
             <button
               onClick={() => setIsModalOpen(true)}
               className="mt-6 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition"
@@ -236,8 +338,60 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Events Responsive Grid */}
-      {!loading && !error && filteredEvents.length > 0 && (
+      {/* Pending Events Review List (Admin Tab) */}
+      {!loading && !error && activeTab === 'pending' && filteredEvents.length > 0 && (
+        <div className="space-y-4">
+          {filteredEvents.map((event) => (
+            <div
+              key={event.id}
+              className="bg-white rounded-xl shadow-sm border border-amber-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md transition"
+            >
+              <div className="space-y-2 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                    Pending Review
+                  </span>
+                  <span className="text-xs text-slate-400 font-mono">Creator ID: {event.createdBy}</span>
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-800">{event.title}</h3>
+                <p className="text-xs text-slate-600 line-clamp-2">{event.description || 'No description provided.'}</p>
+
+                <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-1">
+                  <span>📅 {event.date} ({event.startTime} - {event.endTime})</span>
+                  <span>📍 {event.venue}</span>
+                  <span>👥 Capacity: {event.capacity} seats</span>
+                  <span>💵 Fee: {Number(event.fee) === 0 ? 'Free' : `৳ ${event.fee}`}</span>
+                </div>
+              </div>
+
+              {/* Admin Actions */}
+              <div className="flex items-center gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 flex-shrink-0">
+                <button
+                  disabled={processingStatus}
+                  onClick={() => handleApproveEvent(event.id)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50"
+                >
+                  Approve Event
+                </button>
+                <button
+                  disabled={processingStatus}
+                  onClick={() => {
+                    setRejectingEvent(event);
+                    setRejectionReason('');
+                  }}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50"
+                >
+                  Reject...
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Approved Events Responsive Grid */}
+      {!loading && !error && activeTab === 'approved' && filteredEvents.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map((event) => {
             const isFree = Number(event.fee) === 0;
@@ -341,6 +495,51 @@ export default function EventsPage() {
         </div>
       )}
 
+      {/* Admin Rejection Modal */}
+      {rejectingEvent && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 animate-scale-in">
+            <h3 className="text-lg font-bold text-slate-800">Reject Event Submission</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Provide constructive feedback for rejecting <span className="font-semibold text-slate-700">{rejectingEvent.title}</span>.
+            </p>
+
+            <form onSubmit={handleConfirmReject} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Rejection Reason *
+                </label>
+                <textarea
+                  required
+                  rows="3"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="e.g. Venue is reserved for university convocations on this date..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setRejectingEvent(null)}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={processingStatus}
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm disabled:opacity-50"
+                >
+                  {processingStatus ? 'Rejecting...' : 'Confirm Rejection'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Create Event Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -369,7 +568,6 @@ export default function EventsPage() {
             )}
 
             <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
-              {/* Title */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Event Title *
@@ -385,7 +583,6 @@ export default function EventsPage() {
                 />
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Description
@@ -400,12 +597,9 @@ export default function EventsPage() {
                 />
               </div>
 
-              {/* Date & Times */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Date *
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Date *</label>
                   <input
                     type="date"
                     name="date"
@@ -416,9 +610,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Start Time *
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Start Time *</label>
                   <input
                     type="time"
                     name="startTime"
@@ -429,9 +621,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    End Time *
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">End Time *</label>
                   <input
                     type="time"
                     name="endTime"
@@ -443,12 +633,9 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              {/* Venue & Capacity */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Venue *
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Venue *</label>
                   <input
                     type="text"
                     name="venue"
@@ -460,9 +647,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Capacity (Seats) *
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Capacity (Seats) *</label>
                   <input
                     type="number"
                     name="capacity"
@@ -475,11 +660,8 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              {/* Fee */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Registration Fee (BDT)
-                </label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Registration Fee (BDT)</label>
                 <input
                   type="number"
                   name="fee"
@@ -489,16 +671,10 @@ export default function EventsPage() {
                   placeholder="0 for free events"
                   className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
-                <span className="text-[11px] text-slate-400 mt-0.5 block">
-                  Set to 0 if attendance is free of charge.
-                </span>
               </div>
 
-              {/* Items Provided */}
               <div className="border border-slate-200 rounded-lg p-3.5 bg-slate-50">
-                <span className="block text-xs font-semibold text-slate-700 mb-2">
-                  Items Provided for Attendees
-                </span>
+                <span className="block text-xs font-semibold text-slate-700 mb-2">Items Provided for Attendees</span>
                 <div className="flex items-center gap-6">
                   <label className="inline-flex items-center gap-2 cursor-pointer">
                     <input
@@ -523,7 +699,6 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              {/* Modal Actions */}
               <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
                 <button
                   type="button"
