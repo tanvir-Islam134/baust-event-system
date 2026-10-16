@@ -27,6 +27,16 @@ export default function ProtectedRoute({ allowedRoles, children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Completely block dashboard and protected access for pending organizers
+  const isPendingOrganizer =
+    (user.organizerRequestStatus === 'pending' || user.organizerStatus === 'pending') &&
+    user.role !== 'organizer' &&
+    user.role !== 'admin';
+
+  if (isPendingOrganizer) {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">

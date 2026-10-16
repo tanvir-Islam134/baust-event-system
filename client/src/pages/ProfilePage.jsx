@@ -129,9 +129,7 @@ export default function ProfilePage() {
 
       await userService.requestOrganizer({ clubAffiliation: selectedClub });
       await refreshUser();
-      setOrganizerMsg(
-        `Your organizer application for ${selectedClub} has been submitted! It is now pending administrative review.`
-      );
+      navigate('/pending-approval', { replace: true });
     } catch (err) {
       setOrganizerErrorMsg(
         err.response?.data?.error?.message || err.message || 'Failed to submit organizer request'

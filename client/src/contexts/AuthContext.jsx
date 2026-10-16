@@ -222,12 +222,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const isPendingOrganizer =
+    !!user &&
+    (user.organizerRequestStatus === 'pending' || user.organizerStatus === 'pending') &&
+    user.role !== 'organizer' &&
+    user.role !== 'admin';
+
   const value = {
     user,
     token,
     loading,
     error,
     isAuthenticated: !!token && !!user,
+    isPendingOrganizer,
     loginWithGoogle,
     registerWithGoogle,
     completeRegistration,

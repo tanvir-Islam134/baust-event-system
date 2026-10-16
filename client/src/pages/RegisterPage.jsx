@@ -41,7 +41,7 @@ export const BAUST_CLUBS = [
 ];
 
 export default function RegisterPage() {
-  const { completeRegistration, logout, isAuthenticated, user } = useAuth();
+  const { completeRegistration, logout, isAuthenticated, user, isPendingOrganizer } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const navigate = useNavigate();
@@ -66,8 +66,12 @@ export default function RegisterPage() {
     clubAffiliation: '',
   });
 
-  // If already logged in, show options
+  // If already logged in, check if pending or show options
   if (isAuthenticated && user) {
+    if (isPendingOrganizer) {
+      return <Navigate to="/pending-approval" replace />;
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
         <div className="max-w-md w-full bg-white rounded-xl shadow-md p-6 border border-slate-200 text-center">
@@ -237,8 +241,18 @@ export default function RegisterPage() {
         clubAffiliation: formData.accountType === 'Organizer' ? formData.clubAffiliation : null,
       };
 
-      await completeRegistration(payload);
-      navigate(from, { replace: true });
+      const regRes = await completeRegistration(payload);
+      const regUser = regRes?.user;
+      const isPending =
+        (regUser?.organizerRequestStatus === 'pending' || regUser?.organizerStatus === 'pending') &&
+        regUser?.role !== 'organizer' &&
+        regUser?.role !== 'admin';
+
+      if (isPending) {
+        navigate('/pending-approval', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       const status = err.response?.status;
       const message =

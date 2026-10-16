@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
+  const { loginWithGoogle, logout, isAuthenticated, user, isPendingOrganizer } = useAuth();
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -29,8 +29,12 @@ export default function LoginPage() {
     }
   }, [successMsg]);
 
-  // If already logged in, show options
+  // If already logged in, check if pending or show options
   if (isAuthenticated && user) {
+    if (isPendingOrganizer) {
+      return <Navigate to="/pending-approval" replace />;
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
         <div className="max-w-md w-full bg-white rounded-xl shadow-md p-6 border border-slate-200 text-center">
@@ -65,8 +69,18 @@ export default function LoginPage() {
       setErrorMsg(null);
       setSuccessMsg(null);
       setAccountNotFound(false);
-      await loginWithGoogle();
-      navigate(from, { replace: true });
+      const loginRes = await loginWithGoogle();
+      const loggedUser = loginRes?.user;
+      const isPending =
+        (loggedUser?.organizerRequestStatus === 'pending' || loggedUser?.organizerStatus === 'pending') &&
+        loggedUser?.role !== 'organizer' &&
+        loggedUser?.role !== 'admin';
+
+      if (isPending) {
+        navigate('/pending-approval', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       // Immediately clear Firebase session on failure
       try {
