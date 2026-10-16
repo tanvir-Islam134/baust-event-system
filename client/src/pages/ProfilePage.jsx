@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import userService from '../services/userService.js';
 
+export const BAUST_DEPARTMENTS = [
+  'Computer Science and Engineering (CSE)',
+  'Electrical and Electronic Engineering (EEE)',
+  'Civil Engineering (CE)',
+  'Mechanical Engineering (ME)',
+  'Industrial and Production Engineering (IPE)',
+  'Business Administration (BBA)',
+  'English',
+  'Other / General',
+];
+
 export const BAUST_CLUBS = [
   'BAUST Computer Club (BCC)',
   'Career Society of BAUST (CSB)',
@@ -36,6 +47,9 @@ export default function ProfilePage() {
 
   // Student profile form state
   const [formData, setFormData] = useState({
+    department: '',
+    studentId: '',
+    mobileNumber: '',
     batch: '',
     section: '',
     level: '',
@@ -55,6 +69,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setFormData({
+        department: user.department || '',
+        studentId: user.studentId || '',
+        mobileNumber: user.mobileNumber || '',
         batch: user.batch || '',
         section: user.section || '',
         level: user.level !== null && user.level !== undefined ? String(user.level) : '',
@@ -79,6 +96,9 @@ export default function ProfilePage() {
       setProfileErrorMsg(null);
 
       const payload = {
+        department: formData.department ? formData.department.trim() : null,
+        studentId: formData.studentId ? formData.studentId.trim() : null,
+        mobileNumber: formData.mobileNumber ? formData.mobileNumber.trim() : null,
         batch: formData.batch ? formData.batch.trim() : null,
         section: formData.section ? formData.section.trim() : null,
         level: formData.level ? Number(formData.level) || formData.level : null,
@@ -328,6 +348,59 @@ export default function ProfilePage() {
 
         <form onSubmit={handleProfileSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Department */}
+            <div className="sm:col-span-2">
+              <label htmlFor="department" className="block text-xs font-medium text-slate-700 mb-1">
+                Department
+              </label>
+              <select
+                id="department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white"
+              >
+                <option value="">-- Select Your Department --</option>
+                {BAUST_DEPARTMENTS.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Student ID */}
+            <div>
+              <label htmlFor="studentId" className="block text-xs font-medium text-slate-700 mb-1">
+                Student ID
+              </label>
+              <input
+                type="text"
+                id="studentId"
+                name="studentId"
+                value={formData.studentId}
+                onChange={handleChange}
+                placeholder="e.g. 210201001"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+
+            {/* Mobile Number */}
+            <div>
+              <label htmlFor="mobileNumber" className="block text-xs font-medium text-slate-700 mb-1">
+                Mobile Number
+              </label>
+              <input
+                type="tel"
+                id="mobileNumber"
+                name="mobileNumber"
+                value={formData.mobileNumber}
+                onChange={handleChange}
+                placeholder="e.g. 01700000000"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+
             {/* Batch */}
             <div>
               <label htmlFor="batch" className="block text-xs font-medium text-slate-700 mb-1">

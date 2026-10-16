@@ -147,6 +147,46 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
+   * Complete registration with student/organizer profile form data.
+   * Sends { firebaseToken, ...details } to /api/v1/auth/register,
+   * stores custom JWT, and sets user state.
+   */
+  const completeRegistration = async (registrationPayload) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const response = await api.post('/auth/register', registrationPayload);
+      const { token: customToken, user: userProfile } = response.data.data;
+
+      localStorage.setItem('token', customToken);
+      setToken(customToken);
+      setUser(userProfile);
+
+      return { success: true, user: userProfile };
+    } catch (err) {
+      try {
+        await signOut(auth);
+      } catch (signOutErr) {
+        // ignore
+      }
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+
+      const errorMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Registration failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
    * Logout flow:
    * Cleans up Firebase Auth session, localStorage custom JWT, and React state.
    */
@@ -190,6 +230,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!token && !!user,
     loginWithGoogle,
     registerWithGoogle,
+    completeRegistration,
     logout,
     deleteAccount,
     refreshUser,

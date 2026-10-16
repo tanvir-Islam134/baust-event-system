@@ -29,6 +29,9 @@ const generateAuthResponse = (user, uid) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      department: user.department || null,
+      studentId: user.studentId || null,
+      mobileNumber: user.mobileNumber || null,
       clubAffiliation: user.clubAffiliation || null,
       organizerRequestStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
       organizerStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
@@ -76,10 +79,12 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
 
 /**
  * Service to handle Firebase ID token verification and user creation (Register).
- * Verifies Firebase token and creates new user in Firestore database.
+ * Verifies Firebase token, records student cohort info, handles organizer requests,
+ * and creates new user in Firestore database with default base role 'participant'.
  * @param {string} firebaseToken
+ * @param {object} registrationData
  */
-export const verifyFirebaseTokenAndRegister = async (firebaseToken) => {
+export const verifyFirebaseTokenAndRegister = async (firebaseToken, registrationData = {}) => {
   if (!firebaseAuth) {
     throw new AppError('Firebase Auth service is uninitialized on server', 500);
   }
@@ -91,29 +96,66 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken) => {
     throw new AppError(`Firebase token verification failed: ${error.message}`, 401);
   }
 
-  const { uid, email, name } = decodedToken;
+  const { uid, email, name: tokenName } = decodedToken;
 
   if (!email) {
     throw new AppError('Authenticated Firebase account does not have an associated email address', 400);
   }
 
+  const isOrganizerRequested =
+    registrationData.accountType === 'Organizer' ||
+    registrationData.accountType === 'organizer' ||
+    registrationData.requestedRole === 'Organizer' ||
+    registrationData.requestedRole === 'organizer';
+
+  const targetClub =
+    registrationData.clubAffiliation ||
+    registrationData.clubId ||
+    registrationData.club ||
+    null;
+
+  if (isOrganizerRequested && (!targetClub || !targetClub.trim())) {
+    throw new AppError('Club selection is required when requesting an Organizer account', 400);
+  }
+
+  const finalName = registrationData.name?.trim() || tokenName || email.split('@')[0] || 'BAUST User';
+  const finalDepartment = registrationData.department?.trim() || null;
+  const finalStudentId = registrationData.studentId?.trim() || null;
+  const finalBatch = registrationData.batch?.trim() || null;
+  const finalSection = registrationData.section?.trim() || null;
+  const finalLevel = registrationData.level !== undefined && registrationData.level !== null ? String(registrationData.level).trim() : null;
+  const finalTerm = registrationData.term !== undefined && registrationData.term !== null ? String(registrationData.term).trim() : null;
+  const finalMobileNumber = registrationData.mobileNumber?.trim() || null;
+
+  const finalRole = 'participant'; // Default base role is Student / participant
+  const organizerRequestStatus = isOrganizerRequested ? 'pending' : 'none';
+  const organizerStatus = isOrganizerRequested ? 'pending' : 'none';
+  const clubAffiliation = isOrganizerRequested ? targetClub.trim() : null;
+
   // Check if user already exists in Firestore
   let user = await userRepository.findById(uid);
 
+  const userPayload = {
+    name: finalName,
+    email,
+    role: finalRole,
+    department: finalDepartment,
+    studentId: finalStudentId,
+    mobileNumber: finalMobileNumber,
+    batch: finalBatch,
+    section: finalSection,
+    level: finalLevel,
+    term: finalTerm,
+    clubAffiliation,
+    organizerRequestStatus,
+    organizerStatus,
+    organizerRejectionReason: null,
+  };
+
   if (!user) {
-    // Create new user profile with default role 'participant'
-    user = await userRepository.upsertUser(uid, {
-      name: name || email.split('@')[0] || 'BAUST User',
-      email,
-      role: 'participant',
-      batch: null,
-      section: null,
-      level: null,
-      term: null,
-      clubAffiliation: null,
-      organizerRequestStatus: 'none',
-      organizerStatus: 'none',
-    });
+    user = await userRepository.upsertUser(uid, userPayload);
+  } else {
+    user = await userRepository.update(uid, userPayload);
   }
 
   return generateAuthResponse(user, uid);

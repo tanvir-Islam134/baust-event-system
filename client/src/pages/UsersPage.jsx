@@ -270,18 +270,28 @@ export default function UsersPage() {
 
                           {/* Cohort */}
                           <td className="py-4 px-4">
-                            {reqUser.batch || reqUser.section || reqUser.level ? (
-                              <div className="space-y-0.5">
-                                <span className="font-medium text-slate-800 block">
-                                  {reqUser.batch || 'Batch unset'} {reqUser.section ? `• Sec ${reqUser.section}` : ''}
+                            <div className="space-y-0.5">
+                              {reqUser.department && (
+                                <span className="font-semibold text-slate-800 block truncate max-w-xs">
+                                  {reqUser.department}
                                 </span>
+                              )}
+                              <span className="font-medium text-slate-700 block">
+                                {reqUser.studentId ? `ID: ${reqUser.studentId}` : ''}
+                                {reqUser.batch ? ` • ${reqUser.batch}` : ''}
+                                {reqUser.section ? ` • Sec ${reqUser.section}` : ''}
+                              </span>
+                              {(reqUser.level || reqUser.term || reqUser.mobileNumber) ? (
                                 <span className="text-[11px] text-slate-500 block">
-                                  {reqUser.level ? `Level ${reqUser.level}` : ''} {reqUser.term ? `Term ${reqUser.term}` : ''}
+                                  {reqUser.level ? `L-${reqUser.level} ` : ''}
+                                  {reqUser.term ? `T-${reqUser.term}` : ''}
+                                  {reqUser.mobileNumber ? ` • 📞 ${reqUser.mobileNumber}` : ''}
                                 </span>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 italic">Not provided</span>
-                            )}
+                              ) : null}
+                              {!reqUser.department && !reqUser.studentId && !reqUser.batch && (
+                                <span className="text-slate-400 italic">Not provided</span>
+                              )}
+                            </div>
                           </td>
 
                           {/* Club Affiliation */}
@@ -451,18 +461,28 @@ export default function UsersPage() {
 
                           {/* Cohort */}
                           <td className="py-3.5 px-4">
-                            {u.batch || u.section || u.level ? (
-                              <div className="space-y-0.5">
-                                <span className="font-medium text-slate-800 block">
-                                  {u.batch || 'Batch unset'} {u.section ? `• Sec ${u.section}` : ''}
+                            <div className="space-y-0.5">
+                              {u.department && (
+                                <span className="font-semibold text-slate-800 block truncate max-w-xs">
+                                  {u.department}
                                 </span>
+                              )}
+                              <span className="font-medium text-slate-700 block">
+                                {u.studentId ? `ID: ${u.studentId}` : ''}
+                                {u.batch ? ` • ${u.batch}` : ''}
+                                {u.section ? ` • Sec ${u.section}` : ''}
+                              </span>
+                              {(u.level || u.term || u.mobileNumber) ? (
                                 <span className="text-[11px] text-slate-500 block">
-                                  {u.level ? `Level ${u.level}` : ''} {u.term ? `Term ${u.term}` : ''}
+                                  {u.level ? `L-${u.level} ` : ''}
+                                  {u.term ? `T-${u.term}` : ''}
+                                  {u.mobileNumber ? ` • 📞 ${u.mobileNumber}` : ''}
                                 </span>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 italic">Not specified</span>
-                            )}
+                              ) : null}
+                              {!u.department && !u.studentId && !u.batch && (
+                                <span className="text-slate-400 italic">Not specified</span>
+                              )}
+                            </div>
                           </td>
 
                           {/* Club Affiliation */}

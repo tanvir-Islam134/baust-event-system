@@ -23,8 +23,8 @@ export const login = async (req, res, next) => {
  */
 export const register = async (req, res, next) => {
   try {
-    const { firebaseToken } = req.body;
-    const authData = await authService.verifyFirebaseTokenAndRegister(firebaseToken);
+    const { firebaseToken, ...registrationData } = req.body;
+    const authData = await authService.verifyFirebaseTokenAndRegister(firebaseToken, registrationData);
 
     res.status(201).json({
       success: true,
