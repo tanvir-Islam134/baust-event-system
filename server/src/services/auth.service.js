@@ -135,6 +135,10 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
   // Check if user already exists in Firestore
   let user = await userRepository.findById(uid);
 
+  if (user) {
+    throw new AppError('An account with this email already exists. Please log in.', 409);
+  }
+
   const userPayload = {
     name: finalName,
     email,
@@ -152,11 +156,7 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
     organizerRejectionReason: null,
   };
 
-  if (!user) {
-    user = await userRepository.upsertUser(uid, userPayload);
-  } else {
-    user = await userRepository.update(uid, userPayload);
-  }
+  user = await userRepository.upsertUser(uid, userPayload);
 
   return generateAuthResponse(user, uid);
 };

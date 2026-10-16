@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import api from '../services/api.js';
 
 export const BAUST_DEPARTMENTS = [
   'Computer Science and Engineering (CSE)',
@@ -104,6 +105,51 @@ export default function RegisterPage() {
       const result = await signInWithPopup(auth, googleAuthProvider);
       const token = await result.user.getIdToken();
 
+      // Check with backend if this user already exists in the database
+      let userAlreadyExists = false;
+      try {
+        const checkRes = await api.post('/auth/login', { firebaseToken: token });
+        if (checkRes.status === 200 || checkRes.data?.success) {
+          userAlreadyExists = true;
+        }
+      } catch (checkErr) {
+        const status = checkErr.response?.status;
+        const message =
+          checkErr.response?.data?.error?.message ||
+          checkErr.response?.data?.message ||
+          checkErr.message ||
+          '';
+
+        // 404 confirms the user DOES NOT exist in the database (expected for new signups)
+        if (status === 404 || message.toLowerCase().includes('account not found')) {
+          userAlreadyExists = false;
+        } else {
+          // Genuine network or server error occurred
+          throw checkErr;
+        }
+      }
+
+      // If the backend confirms the user ALREADY EXISTS:
+      // 1. Call Firebase signOut(auth) immediately
+      // 2. Redirect to /login with toast message: "You have already signed up. Please log in."
+      if (userAlreadyExists) {
+        try {
+          await signOut(auth);
+        } catch (signOutErr) {
+          // ignore
+        }
+        navigate('/login', {
+          replace: true,
+          state: {
+            message: 'You have already signed up. Please log in.',
+            from,
+          },
+        });
+        return;
+      }
+
+      // If backend confirms the user DOES NOT exist:
+      // Reveal the multi-step registration form
       setFirebaseAuthData({
         user: result.user,
         token,
@@ -122,7 +168,15 @@ export default function RegisterPage() {
       } catch (signOutErr) {
         // ignore
       }
-      setErrorMsg(err.message || 'Google authentication failed');
+      if (err.code === 'auth/popup-closed-by-user') {
+        return;
+      }
+      const message =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Google authentication failed';
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }
@@ -186,11 +240,29 @@ export default function RegisterPage() {
       await completeRegistration(payload);
       navigate(from, { replace: true });
     } catch (err) {
+      const status = err.response?.status;
       const message =
         err.response?.data?.error?.message ||
         err.response?.data?.message ||
         err.message ||
         'Registration failed';
+
+      if (status === 409 || message.toLowerCase().includes('already exists')) {
+        try {
+          await signOut(auth);
+        } catch (signOutErr) {
+          // ignore
+        }
+        navigate('/login', {
+          replace: true,
+          state: {
+            message: 'You have already signed up. Please log in.',
+            from,
+          },
+        });
+        return;
+      }
+
       setErrorMsg(message);
     } finally {
       setLoading(false);
@@ -254,7 +326,7 @@ export default function RegisterPage() {
                 />
               </svg>
             )}
-            <span>{loading ? 'Connecting Google Account...' : 'Sign up with Google'}</span>
+            <span>{loading ? 'Verifying account...' : 'Sign up with Google'}</span>
           </button>
 
           <div className="mt-8 pt-4 border-t border-slate-100 flex flex-col gap-2 text-center text-xs text-slate-500">

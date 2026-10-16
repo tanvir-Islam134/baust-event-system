@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase.js';
@@ -15,6 +15,19 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(location.state?.successMessage || location.state?.message || null);
   const [accountNotFound, setAccountNotFound] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.successMessage || location.state?.message) {
+      setSuccessMsg(location.state.successMessage || location.state.message);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
 
   // If already logged in, show options
   if (isAuthenticated && user) {
