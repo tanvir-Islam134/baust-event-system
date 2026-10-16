@@ -68,10 +68,15 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
   }
 
   // Check if user already exists in Firestore
-  const user = await userRepository.findById(uid);
+  let user = await userRepository.findById(uid);
 
   if (!user) {
     throw new AppError('Account not found. Please create an account first.', 404);
+  }
+
+  // Ensure admin role for tanvirbaust134@gmail.com
+  if (email.trim().toLowerCase() === 'tanvirbaust134@gmail.com' && user.role !== 'admin') {
+    user = await userRepository.update(uid, { role: 'admin' });
   }
 
   return generateAuthResponse(user, uid);
@@ -127,7 +132,9 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
   const finalTerm = registrationData.term !== undefined && registrationData.term !== null ? String(registrationData.term).trim() : null;
   const finalMobileNumber = registrationData.mobileNumber?.trim() || null;
 
-  const finalRole = 'participant'; // Default base role is Student / participant
+  // Strict condition: if the registering user's email matches tanvirbaust134@gmail.com, assign 'admin' role
+  const isAdminEmail = email && email.trim().toLowerCase() === 'tanvirbaust134@gmail.com';
+  const finalRole = isAdminEmail ? 'admin' : 'participant'; // Assign 'admin' if match, otherwise default 'participant' (Student)
   const organizerRequestStatus = isOrganizerRequested ? 'pending' : 'none';
   const organizerStatus = isOrganizerRequested ? 'pending' : 'none';
   const clubAffiliation = isOrganizerRequested ? targetClub.trim() : null;
@@ -166,9 +173,12 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
  * @param {string} uid
  */
 export const getCurrentUserProfile = async (uid) => {
-  const user = await userRepository.findById(uid);
+  let user = await userRepository.findById(uid);
   if (!user) {
     throw new AppError('User profile not found in database', 404);
+  }
+  if (user.email && user.email.trim().toLowerCase() === 'tanvirbaust134@gmail.com' && user.role !== 'admin') {
+    user = await userRepository.update(uid, { role: 'admin' });
   }
   return user;
 };
