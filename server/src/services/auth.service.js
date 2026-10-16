@@ -38,6 +38,8 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
       section: null,
       level: null,
       term: null,
+      clubAffiliation: null,
+      organizerRequestStatus: 'none',
       organizerStatus: 'none',
     });
   }
@@ -65,7 +67,9 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      organizerStatus: user.organizerStatus,
+      clubAffiliation: user.clubAffiliation || null,
+      organizerRequestStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
+      organizerStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
       batch: user.batch,
       section: user.section,
       level: user.level,

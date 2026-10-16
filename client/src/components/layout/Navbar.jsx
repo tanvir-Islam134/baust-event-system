@@ -1,9 +1,18 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function Navbar({ onToggleSidebar }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate('/');
+    }
+  };
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
@@ -63,7 +72,7 @@ export default function Navbar({ onToggleSidebar }) {
             </div>
 
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="text-xs font-medium text-slate-500 hover:text-rose-600 px-2 py-1 rounded hover:bg-slate-50 transition"
             >
               Sign out

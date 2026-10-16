@@ -2,6 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import userService from '../services/userService.js';
 
+export const BAUST_CLUBS = [
+  'BAUST Computer Club (BCC)',
+  'Career Society of BAUST (CSB)',
+  'Environment and Sustainability Club (ESC)',
+  'Civil Engineering Innovation Club (CEIC)',
+  'CSE Society of BAUST',
+  'BAUST Business Club',
+  'BAUST Career Club',
+  'BAUST Debating Society',
+  'IEEE Student Branch, BAUST',
+  'IEOM BAUST Student Chapter',
+  'Cultural Club, BAUST',
+  'BAUST Sports Club',
+  'BAUST Robotics Club',
+  'BAUST Photography Club',
+  'BAUST Language Club',
+  'BAUST Social Welfare Club',
+  'BAUST Science Club',
+  'BAUST Entrepreneurship Club',
+  'BAUST Volunteer Club',
+  'English Language and Literary Society (ELLS)',
+  'BAUST Alumni Society',
+];
+
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
 
@@ -18,6 +42,7 @@ export default function ProfilePage() {
   const [profileErrorMsg, setProfileErrorMsg] = useState(null);
 
   // Organizer request state
+  const [selectedClub, setSelectedClub] = useState('');
   const [requestingOrganizer, setRequestingOrganizer] = useState(false);
   const [organizerMsg, setOrganizerMsg] = useState(null);
   const [organizerErrorMsg, setOrganizerErrorMsg] = useState(null);
@@ -30,6 +55,9 @@ export default function ProfilePage() {
         level: user.level !== null && user.level !== undefined ? String(user.level) : '',
         term: user.term !== null && user.term !== undefined ? String(user.term) : '',
       });
+      if (user.clubAffiliation) {
+        setSelectedClub(user.clubAffiliation);
+      }
     }
   }, [user]);
 
@@ -62,15 +90,23 @@ export default function ProfilePage() {
     }
   };
 
-  const handleOrganizerRequest = async () => {
+  const handleOrganizerRequestSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedClub) {
+      setOrganizerErrorMsg('Please select a campus club from the list');
+      return;
+    }
+
     try {
       setRequestingOrganizer(true);
       setOrganizerMsg(null);
       setOrganizerErrorMsg(null);
 
-      await userService.requestOrganizerAccess();
+      await userService.requestOrganizer({ clubAffiliation: selectedClub });
       await refreshUser();
-      setOrganizerMsg('Your organizer application has been submitted and is pending administrative review.');
+      setOrganizerMsg(
+        `Your organizer application for ${selectedClub} has been submitted! It is now pending administrative review.`
+      );
     } catch (err) {
       setOrganizerErrorMsg(
         err.response?.data?.error?.message || err.message || 'Failed to submit organizer request'
@@ -79,6 +115,8 @@ export default function ProfilePage() {
       setRequestingOrganizer(false);
     }
   };
+
+  const currentStatus = user?.organizerRequestStatus || user?.organizerStatus || 'none';
 
   const getRoleBadge = (role) => {
     switch (role) {
@@ -96,7 +134,7 @@ export default function ProfilePage() {
       case 'approved':
         return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Approved</span>;
       case 'pending':
-        return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200">Pending Review</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">Pending Review</span>;
       case 'rejected':
         return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-rose-100 text-rose-800 border border-rose-200">Rejected</span>;
       default:
@@ -104,9 +142,8 @@ export default function ProfilePage() {
     }
   };
 
-  const canRequestOrganizer =
-    user?.role === 'participant' &&
-    (!user?.organizerStatus || user?.organizerStatus === 'none' || user?.organizerStatus === 'rejected');
+  const canApplyForOrganizer =
+    user?.role === 'participant' && (currentStatus === 'none' || currentStatus === 'rejected');
 
   return (
     <div className="space-y-6">
@@ -122,58 +159,127 @@ export default function ProfilePage() {
               <p className="text-sm text-slate-500">{user?.email}</p>
               <div className="flex items-center gap-2 mt-2">
                 {getRoleBadge(user?.role)}
+                {user?.clubAffiliation && (
+                  <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    🏛️ {user.clubAffiliation}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm">
             <span className="text-xs text-slate-400 block font-medium">Organizer Status</span>
-            <div className="mt-1">{getStatusBadge(user?.organizerStatus)}</div>
+            <div className="mt-1">{getStatusBadge(currentStatus)}</div>
           </div>
         </div>
       </div>
 
-      {/* Organizer Request Card */}
-      {canRequestOrganizer && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Organizer Access Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🏛️</span>
+            <h2 className="text-lg font-bold text-slate-800">Request Organizer Access</h2>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Organizers can publish events, manage registrations, record expenses, and run attendee polls.
+            Each official BAUST club is strictly limited to a maximum of <strong>2 organizers</strong>.
+          </p>
+        </div>
+
+        {/* Status: Approved */}
+        {user?.role === 'organizer' && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-sm">
+            <div className="flex items-center gap-2 font-bold text-emerald-800">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Verified Club Organizer</span>
+            </div>
+            <p className="mt-1 text-xs text-emerald-700">
+              You are an active organizer for <strong>{user.clubAffiliation || 'your designated club'}</strong>.
+              You have full permissions to create and manage events.
+            </p>
+          </div>
+        )}
+
+        {/* Status: Pending */}
+        {currentStatus === 'pending' && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm">
+            <div className="flex items-center gap-2 font-bold text-amber-800">
+              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Application Under Administrative Review</span>
+            </div>
+            <p className="mt-1 text-xs text-amber-800 leading-relaxed">
+              You have requested organizer access for <strong>{user?.clubAffiliation || selectedClub}</strong>.
+              University administrators will verify availability (maximum 2 organizers per club) and review your request shortly.
+            </p>
+          </div>
+        )}
+
+        {/* Status: Rejected */}
+        {currentStatus === 'rejected' && canApplyForOrganizer && (
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">
+            <p className="font-semibold">Previous Request Status: Rejected</p>
+            <p className="mt-0.5">
+              Your previous application was not approved. You may submit a new application for a club below.
+            </p>
+          </div>
+        )}
+
+        {/* Application Form */}
+        {canApplyForOrganizer && (
+          <form onSubmit={handleOrganizerRequestSubmit} className="mt-4 space-y-4">
+            {organizerMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-medium">
+                {organizerMsg}
+              </div>
+            )}
+
+            {organizerErrorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs font-medium">
+                {organizerErrorMsg}
+              </div>
+            )}
+
             <div>
-              <h3 className="text-base font-semibold text-slate-900">Want to host university events?</h3>
-              <p className="text-sm text-slate-600 mt-1">
-                Apply for organizer access to create, publish, and manage events on the BAUST Event Portal.
+              <label htmlFor="clubSelect" className="block text-xs font-semibold text-slate-700 mb-1">
+                Select Your BAUST Club / Organization <span className="text-rose-500">*</span>
+              </label>
+              <select
+                id="clubSelect"
+                value={selectedClub}
+                onChange={(e) => setSelectedClub(e.target.value)}
+                disabled={requestingOrganizer}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              >
+                <option value="">-- Choose an Official Club --</option>
+                {BAUST_CLUBS.map((club) => (
+                  <option key={club} value={club}>
+                    {club}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Only select a club if you are an authorized student executive or committee member.
               </p>
             </div>
-            <button
-              onClick={handleOrganizerRequest}
-              disabled={requestingOrganizer}
-              className="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm transition disabled:opacity-50 whitespace-nowrap"
-            >
-              {requestingOrganizer ? 'Submitting...' : 'Request Organizer Access'}
-            </button>
-          </div>
 
-          {organizerMsg && (
-            <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-medium">
-              {organizerMsg}
+            <div>
+              <button
+                type="submit"
+                disabled={requestingOrganizer || !selectedClub}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition disabled:opacity-50"
+              >
+                {requestingOrganizer ? 'Submitting Application...' : 'Submit Organizer Request'}
+              </button>
             </div>
-          )}
-
-          {organizerErrorMsg && (
-            <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-800 text-xs font-medium">
-              {organizerErrorMsg}
-            </div>
-          )}
-        </div>
-      )}
-
-      {user?.organizerStatus === 'pending' && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm flex items-center gap-3">
-          <svg className="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>Your organizer request is currently pending administrative review. We will notify you once approved.</span>
-        </div>
-      )}
+          </form>
+        )}
+      </div>
 
       {/* Academic Profile Form */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

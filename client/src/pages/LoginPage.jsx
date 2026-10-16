@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function LoginPage() {
-  const { loginWithGoogle, isAuthenticated, user } = useAuth();
+  const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
-  // If already logged in, redirect
+  // If already logged in, show options
   if (isAuthenticated && user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
@@ -19,12 +19,23 @@ export default function LoginPage() {
           <p className="text-sm text-slate-600 mb-4">
             You are currently logged in as <span className="font-semibold text-slate-800">{user.email}</span> ({user.role}).
           </p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
-          >
-            Go to Dashboard
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+            >
+              Go to Dashboard
+            </button>
+            <button
+              onClick={async () => {
+                await logout();
+                navigate('/');
+              }}
+              className="w-full py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     );

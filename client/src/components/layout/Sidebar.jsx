@@ -1,9 +1,19 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    if (onClose) onClose();
+    try {
+      await logout();
+    } finally {
+      navigate('/');
+    }
+  };
 
   const isAdmin = user?.role === 'admin';
   const isOrganizer = user?.role === 'organizer';
@@ -107,7 +117,7 @@ export default function Sidebar({ isOpen, onClose }) {
               <p className="text-[11px] text-slate-400 capitalize">{user?.role || 'User'}</p>
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition"
               title="Sign out"
             >

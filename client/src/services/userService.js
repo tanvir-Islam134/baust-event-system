@@ -14,16 +14,52 @@ export const userService = {
   },
 
   /**
-   * Submit an organizer status request for the currently logged-in participant.
+   * Submit an organizer status request with club selection.
+   * @param {{ clubAffiliation: string }} data
    */
-  requestOrganizerAccess: async () => {
-    const response = await api.post('/users/me/request-organizer');
+  requestOrganizer: async (data) => {
+    const response = await api.post('/users/request-organizer', data);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Submit an organizer status request (backward compatible alias).
+   */
+  requestOrganizerAccess: async (data = {}) => {
+    const response = await api.post('/users/request-organizer', data);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Fetch all users where organizerRequestStatus === 'pending' (Admin only).
+   */
+  getOrganizerRequests: async () => {
+    const response = await api.get('/users/organizer-requests');
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Approve an organizer request (Admin only). Enforces max 2 organizers per club limit.
+   * @param {string} userId - Target user Firebase UID
+   */
+  approveOrganizer: async (userId) => {
+    const response = await api.post('/users/approve-organizer', { userId });
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Reject an organizer request (Admin only).
+   * @param {string} userId - Target user Firebase UID
+   * @param {string} [rejectionReason]
+   */
+  rejectOrganizer: async (userId, rejectionReason = null) => {
+    const response = await api.post('/users/reject-organizer', { userId, rejectionReason });
     return response.data?.data || response.data;
   },
 
   /**
    * List all users with optional query filters (Admin only).
-   * @param {{ role?: 'admin'|'organizer'|'participant'|'guest', organizerStatus?: 'none'|'pending'|'approved'|'rejected' }} [params]
+   * @param {{ role?: 'admin'|'organizer'|'participant'|'guest', organizerStatus?: 'none'|'pending'|'approved'|'rejected', organizerRequestStatus?: 'none'|'pending'|'approved'|'rejected', clubAffiliation?: string }} [params]
    */
   listUsers: async (params = {}) => {
     const response = await api.get('/users', { params });
@@ -33,7 +69,7 @@ export const userService = {
   /**
    * Update a specific user's role and/or organizer status (Admin only).
    * @param {string} userId - Target user Firebase UID
-   * @param {{ role?: 'admin'|'organizer'|'participant'|'guest', organizerStatus?: 'none'|'pending'|'approved'|'rejected' }} data
+   * @param {{ role?: 'admin'|'organizer'|'participant'|'guest', organizerStatus?: 'none'|'pending'|'approved'|'rejected', organizerRequestStatus?: 'none'|'pending'|'approved'|'rejected', clubAffiliation?: string }} data
    */
   updateUserRole: async (userId, data) => {
     const response = await api.patch(`/users/${userId}/role`, data);
@@ -42,4 +78,3 @@ export const userService = {
 };
 
 export default userService;
-

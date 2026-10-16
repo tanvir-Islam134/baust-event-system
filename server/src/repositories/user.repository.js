@@ -27,14 +27,22 @@ export class UserRepository extends BaseRepository {
   }
 
   /**
-   * Update user organizer request status.
+   * Update user organizer request status and optional club affiliation.
    * @param {string} firebaseUid
    * @param {'none' | 'pending' | 'approved' | 'rejected'} status
+   * @param {string|null} [clubAffiliation=null]
    */
-  async updateOrganizerStatus(firebaseUid, status) {
-    OrganizerStatusUpdateSchema.parse({ organizerStatus: status });
-    const updatePayload = {
+  async updateOrganizerStatus(firebaseUid, status, clubAffiliation = null) {
+    OrganizerStatusUpdateSchema.parse({
+      organizerRequestStatus: status,
       organizerStatus: status,
+      ...(clubAffiliation ? { clubAffiliation } : {}),
+    });
+
+    const updatePayload = {
+      organizerRequestStatus: status,
+      organizerStatus: status,
+      ...(clubAffiliation ? { clubAffiliation } : {}),
       ...(status === 'approved' ? { role: 'organizer' } : {}),
     };
     return this.update(firebaseUid, updatePayload);
@@ -44,9 +52,37 @@ export class UserRepository extends BaseRepository {
    * Query all users with pending organizer status.
    */
   async findPendingOrganizers() {
-    return this.find([['organizerStatus', '==', 'pending']], {
-      orderBy: ['createdAt', 'asc'],
+    // Query users where organizerRequestStatus is pending or organizerStatus is pending
+    const byReqStatus = await this.find([['organizerRequestStatus', '==', 'pending']]);
+    const byStatus = await this.find([['organizerStatus', '==', 'pending']]);
+
+    const userMap = new Map();
+    for (const u of [...byReqStatus, ...byStatus]) {
+      userMap.set(u.id, u);
+    }
+
+    const results = Array.from(userMap.values());
+    results.sort((a, b) => {
+      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+      return timeA - timeB;
     });
+
+    return results;
+  }
+
+  /**
+   * Count how many active organizers are currently assigned to a specific club.
+   * @param {string} clubAffiliation
+   * @returns {Promise<number>}
+   */
+  async countOrganizersByClub(clubAffiliation) {
+    if (!clubAffiliation) return 0;
+    const organizers = await this.find([
+      ['role', '==', 'organizer'],
+      ['clubAffiliation', '==', clubAffiliation],
+    ]);
+    return organizers.length;
   }
 
   /**
@@ -60,16 +96,20 @@ export class UserRepository extends BaseRepository {
   }
 
   /**
-   * Find users matching optional filters (role, organizerStatus).
-   * @param {{ role?: string, organizerStatus?: string }} [filters={}]
+   * Find users matching optional filters (role, organizerRequestStatus/organizerStatus, clubAffiliation).
+   * @param {{ role?: string, organizerRequestStatus?: string, organizerStatus?: string, clubAffiliation?: string }} [filters={}]
    */
   async findUsers(filters = {}) {
     const queryFilters = [];
     if (filters.role) {
       queryFilters.push(['role', '==', filters.role]);
     }
-    if (filters.organizerStatus) {
-      queryFilters.push(['organizerStatus', '==', filters.organizerStatus]);
+    const status = filters.organizerRequestStatus || filters.organizerStatus;
+    if (status) {
+      queryFilters.push(['organizerRequestStatus', '==', status]);
+    }
+    if (filters.clubAffiliation) {
+      queryFilters.push(['clubAffiliation', '==', filters.clubAffiliation]);
     }
 
     if (queryFilters.length > 0) {
