@@ -30,12 +30,17 @@ export default function Navbar({ onToggleSidebar }) {
           </svg>
         </button>
 
-        <div className="hidden sm:block">
-          <h2 className="text-sm font-semibold text-slate-800">
-            Bangladesh Army University of Science and Technology
-          </h2>
-          <p className="text-xs text-slate-500">Event Management & Ticketing System</p>
-        </div>
+        <Link to="/" className="flex items-center gap-2.5 hover:opacity-85 transition">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex md:hidden items-center justify-center font-bold text-white text-sm shadow">
+            B
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-800 leading-tight">
+              BAUST <span className="hidden sm:inline">Event System</span>
+            </h2>
+            <p className="text-[11px] text-slate-500 hidden sm:block">Saidpur Cantonment</p>
+          </div>
+        </Link>
       </div>
 
       {/* Right User Bar */}

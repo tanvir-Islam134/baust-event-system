@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -20,7 +20,7 @@ export default function Sidebar({ isOpen, onClose }) {
     <div className="flex flex-col h-full bg-slate-900 text-white w-64 border-r border-slate-800">
       {/* Brand Header */}
       <div className="flex items-center justify-between h-16 px-6 border-b border-slate-800">
-        <div className="flex items-center gap-3">
+        <Link to="/" onClick={onClose} className="flex items-center gap-3 hover:opacity-90 transition">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-base shadow">
             B
           </div>
@@ -28,7 +28,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <span className="font-bold text-sm tracking-tight text-white block">BAUST Events</span>
             <span className="text-[10px] text-slate-400 block -mt-1">Event Portal</span>
           </div>
-        </div>
+        </Link>
         {/* Mobile close button */}
         <button
           onClick={onClose}
