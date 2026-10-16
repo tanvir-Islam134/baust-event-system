@@ -126,3 +126,19 @@ export const updateUserRole = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * DELETE /api/v1/users/me
+ * Permanently delete current logged-in user account.
+ */
+export const deleteMyAccount = async (req, res, next) => {
+  try {
+    await userService.deleteUserAccount(req.user.uid);
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};

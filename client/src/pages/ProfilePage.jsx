@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import userService from '../services/userService.js';
 
@@ -27,7 +28,11 @@ export const BAUST_CLUBS = [
 ];
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, deleteAccount } = useAuth();
+  const navigate = useNavigate();
+
+  // Account deletion state
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Student profile form state
   const [formData, setFormData] = useState({
@@ -113,6 +118,25 @@ export default function ProfilePage() {
       );
     } finally {
       setRequestingOrganizer(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure? All your data will be permanently deleted and this cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingAccount(true);
+      await deleteAccount();
+      navigate('/login', {
+        replace: true,
+        state: { successMessage: 'Account deleted successfully' },
+      });
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to delete account');
+      setDeletingAccount(false);
     }
   };
 
@@ -385,6 +409,30 @@ export default function ProfilePage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Danger Zone: Account Deletion */}
+      <div className="bg-white rounded-xl shadow-sm border border-rose-200 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-rose-600 font-bold">⚠️</span>
+              <h2 className="text-base font-bold text-rose-700">Delete Account</h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1 max-w-xl">
+              Permanently delete your user profile and registered credentials.
+              Once deleted, your account cannot be recovered and you will need to sign up again to access the portal.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold shadow-sm transition disabled:opacity-50 whitespace-nowrap self-start sm:self-auto"
+          >
+            {deletingAccount ? 'Deleting Account...' : 'Delete Account'}
+          </button>
+        </div>
       </div>
     </div>
   );

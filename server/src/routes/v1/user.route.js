@@ -19,6 +19,9 @@ router.use(requireAuth);
 // PATCH /api/v1/users/me - Update student profile
 router.patch('/me', validate(UpdateStudentProfileSchema), userController.updateProfile);
 
+// DELETE /api/v1/users/me - Permanently delete current user account
+router.delete('/me', userController.deleteMyAccount);
+
 // POST /api/v1/users/request-organizer - Allows logged-in users to submit their club selection (sets organizerRequestStatus to pending)
 router.post(
   '/request-organizer',

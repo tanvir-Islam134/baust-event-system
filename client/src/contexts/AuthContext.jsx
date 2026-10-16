@@ -162,6 +162,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Account Deletion flow:
+   * Calls backend DELETE /users/me, cleans up Firebase Auth session,
+   * removes localStorage custom JWT, and clears React state.
+   */
+  const deleteAccount = async () => {
+    try {
+      await api.delete('/users/me');
+    } finally {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.warn('[AuthContext] Firebase signOut warning after delete:', err.message);
+      }
+      localStorage.removeItem('token');
+      setUser(null);
+      setToken(null);
+    }
+  };
+
   const value = {
     user,
     token,
@@ -171,6 +191,7 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     registerWithGoogle,
     logout,
+    deleteAccount,
     refreshUser,
     setUser,
   };

@@ -75,6 +75,14 @@ export const userService = {
     const response = await api.patch(`/users/${userId}/role`, data);
     return response.data?.data || response.data;
   },
+
+  /**
+   * Permanently delete currently authenticated user account.
+   */
+  deleteMyAccount: async () => {
+    const response = await api.delete('/users/me');
+    return response.data?.data || response.data;
+  },
 };
 
 export default userService;

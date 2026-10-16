@@ -8,6 +8,7 @@ export default function LoginPage() {
   const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(location.state?.successMessage || location.state?.message || null);
   const [accountNotFound, setAccountNotFound] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,6 +49,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
+      setSuccessMsg(null);
       setAccountNotFound(false);
       await loginWithGoogle();
       navigate(from, { replace: true });
@@ -80,6 +82,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-slate-50">
+      {/* Toast Success Alert */}
+      {successMsg && (
+        <div className="fixed top-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in bg-emerald-600 text-white border border-emerald-700">
+          <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <div className="flex-1 text-sm font-medium">{successMsg}</div>
+          <button onClick={() => setSuccessMsg(null)} className="text-white/80 hover:text-white">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Toast Error Alert */}
       {errorMsg && (
         <div className="fixed top-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in bg-rose-600 text-white border border-rose-700">

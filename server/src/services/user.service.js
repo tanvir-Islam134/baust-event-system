@@ -1,4 +1,5 @@
 import { userRepository } from '../repositories/user.repository.js';
+import { auth as firebaseAdminAuth } from '../config/firebase.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import {
   UpdateStudentProfileSchema,
@@ -221,4 +222,30 @@ export const updateUserRoleAndStatus = async (targetUserId, updateData) => {
 
   const updated = await userRepository.update(targetUserId, payload);
   return updated;
+};
+
+/**
+ * Permanently delete the user account from Firestore database and Firebase Auth.
+ * @param {string} userId - Firebase UID
+ */
+export const deleteUserAccount = async (userId) => {
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // 1. Delete user document from Firestore database
+  await userRepository.delete(userId);
+
+  // 2. Delete user from Firebase Auth using Firebase Admin SDK (if configured)
+  if (firebaseAdminAuth) {
+    try {
+      await firebaseAdminAuth.deleteUser(userId);
+      console.log(`[Firebase Admin Auth] Successfully deleted user account record for ${userId}`);
+    } catch (authErr) {
+      console.warn(`[Firebase Admin Auth] Warning deleting user ${userId}:`, authErr.message);
+    }
+  }
+
+  return { success: true, message: 'Account deleted successfully' };
 };

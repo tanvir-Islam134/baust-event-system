@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as authController from '../../controllers/auth.controller.js';
+import { deleteMyAccount } from '../../controllers/user.controller.js';
 import { validate } from '../../middlewares/validate.js';
 import { LoginInputSchema, RegisterInputSchema } from '../../schemas/auth.schema.js';
 import { requireAuth } from '../../middlewares/auth.middleware.js';
@@ -15,5 +16,8 @@ router.post('/register', strictLimiter, validate(RegisterInputSchema), authContr
 
 // GET /api/v1/auth/me (Protected)
 router.get('/me', requireAuth, authController.getMe);
+
+// DELETE /api/v1/auth/me (Protected)
+router.delete('/me', requireAuth, deleteMyAccount);
 
 export default router;
