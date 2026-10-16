@@ -40,12 +40,20 @@ export default function HomePage() {
                 Dashboard ({user?.role})
               </Link>
             ) : (
-              <Link
-                to="/login"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition"
-              >
-                Sign In
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="px-3 py-1.5 text-slate-700 hover:text-blue-600 rounded-lg text-xs sm:text-sm font-semibold transition"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-sm transition"
+                >
+                  Sign Up
+                </Link>
+              </div>
             )}
           </nav>
         </div>
@@ -87,12 +95,20 @@ export default function HomePage() {
                 Open Dashboard &rarr;
               </Link>
             ) : (
-              <Link
-                to="/login"
-                className="w-full sm:w-auto px-8 py-3.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl text-sm font-bold shadow-sm transition"
-              >
-                Sign In with Google
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Link
+                  to="/register"
+                  className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-slate-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-bold shadow-sm transition"
+                >
+                  Create Account with Google
+                </Link>
+                <Link
+                  to="/login"
+                  className="w-full sm:w-auto px-7 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-sm font-bold shadow-sm transition"
+                >
+                  Sign In
+                </Link>
+              </div>
             )}
           </div>
         </div>

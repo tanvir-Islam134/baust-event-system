@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function LoginPage() {
   const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [accountNotFound, setAccountNotFound] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -45,10 +48,31 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
+      setAccountNotFound(false);
       await loginWithGoogle();
       navigate(from, { replace: true });
     } catch (err) {
-      setErrorMsg(err.message || 'Google sign-in failed');
+      // Immediately clear Firebase session on failure
+      try {
+        await signOut(auth);
+      } catch (signOutErr) {
+        // ignore
+      }
+
+      const status = err.response?.status;
+      const message =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Authentication failed';
+
+      if (status === 404 || message.toLowerCase().includes('account not found')) {
+        setErrorMsg('Account not found. Please create an account first.');
+        setAccountNotFound(true);
+      } else {
+        setErrorMsg(message);
+        setAccountNotFound(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +80,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-slate-50">
+      {/* Toast Error Alert */}
+      {errorMsg && (
+        <div className="fixed top-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in bg-rose-600 text-white border border-rose-700">
+          <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div className="flex-1 text-sm font-medium">{errorMsg}</div>
+          <button onClick={() => setErrorMsg(null)} className="text-white/80 hover:text-white">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 border border-slate-200">
         <div className="text-center mb-6">
           <span className="inline-block py-1 px-3 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 uppercase tracking-wider mb-2">
@@ -67,9 +106,21 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {errorMsg && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-            {errorMsg}
+        {accountNotFound && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+            <div className="flex items-center gap-2 font-bold mb-1">
+              <span>⚠️</span>
+              <span>Account Not Found</span>
+            </div>
+            <p className="mb-3">
+              We couldn't find an existing account matching your Google account. Please create an account to get started.
+            </p>
+            <button
+              onClick={() => navigate('/register')}
+              className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition"
+            >
+              Go to Sign Up Page &rarr;
+            </button>
           </div>
         )}
 
@@ -100,11 +151,17 @@ export default function LoginPage() {
               />
             </svg>
           )}
-          <span>{loading ? 'Authenticating...' : 'Sign in with Google'}</span>
+          <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
         </button>
 
-        <div className="mt-6 text-center">
-          <Link to="/" className="text-xs text-blue-600 hover:underline">
+        <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2 text-center text-xs text-slate-500">
+          <p>
+            Don't have an account?{' '}
+            <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">
+              Sign up with Google
+            </Link>
+          </p>
+          <Link to="/" className="text-slate-400 hover:text-slate-600">
             &larr; Back to Home
           </Link>
         </div>
@@ -112,4 +169,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

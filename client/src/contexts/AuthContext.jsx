@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Google Sign-in flow:
+   * Google Sign-in flow (Existing users only):
    * 1. Trigger Firebase Web SDK Google Auth popup
    * 2. Obtain Firebase ID token
    * 3. Exchange with backend /api/v1/auth/login for custom JWT and user profile
@@ -79,9 +79,68 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user: userProfile };
     } catch (err) {
-      const errorMessage = err.response?.data?.error?.message || err.message || 'Login failed';
+      // Immediately clear Firebase session on failure
+      try {
+        await signOut(auth);
+      } catch (signOutErr) {
+        // ignore
+      }
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+
+      const errorMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Login failed';
       setError(errorMessage);
-      throw new Error(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Google Sign-up / Registration flow (New user creation):
+   * 1. Trigger Firebase Web SDK Google Auth popup
+   * 2. Obtain Firebase ID token
+   * 3. Call backend /api/v1/auth/register to create user in database
+   * 4. Persist custom JWT to localStorage and state
+   */
+  const registerWithGoogle = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const result = await signInWithPopup(auth, googleAuthProvider);
+      const firebaseToken = await result.user.getIdToken();
+
+      const response = await api.post('/auth/register', { firebaseToken });
+      const { token: customToken, user: userProfile } = response.data.data;
+
+      localStorage.setItem('token', customToken);
+      setToken(customToken);
+      setUser(userProfile);
+
+      return { success: true, user: userProfile };
+    } catch (err) {
+      try {
+        await signOut(auth);
+      } catch (signOutErr) {
+        // ignore
+      }
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+
+      const errorMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Registration failed';
+      setError(errorMessage);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -110,6 +169,7 @@ export const AuthProvider = ({ children }) => {
     error,
     isAuthenticated: !!token && !!user,
     loginWithGoogle,
+    registerWithGoogle,
     logout,
     refreshUser,
     setUser,
