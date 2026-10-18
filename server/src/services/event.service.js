@@ -1,4 +1,5 @@
 import { eventRepository } from '../repositories/event.repository.js';
+import { userRepository } from '../repositories/user.repository.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { CreateEventInputSchema, UpdateEventStatusSchema } from '../schemas/event.schema.js';
 
@@ -8,16 +9,21 @@ import { CreateEventInputSchema, UpdateEventStatusSchema } from '../schemas/even
 
 /**
  * Create a new event under pending review.
- * Forces status: 'pending', registeredCount: 0, createdBy: creatorUid.
+ * Forces status: 'pending', registeredCount: 0, createdBy: creatorUid, and ties to creator's club.
  * @param {string} creatorUid
  * @param {object} rawEventData
  */
 export const createEvent = async (creatorUid, rawEventData) => {
   const validatedInput = CreateEventInputSchema.parse(rawEventData);
 
+  const creator = await userRepository.findById(creatorUid);
+  const clubId = rawEventData.clubId || rawEventData.clubAffiliation || creator?.clubAffiliation || null;
+
   const eventPayload = {
     ...validatedInput,
     createdBy: creatorUid,
+    clubId,
+    clubAffiliation: clubId,
     status: 'pending',
     registeredCount: 0,
     rejectionReason: null,

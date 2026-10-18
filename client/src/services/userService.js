@@ -83,6 +83,23 @@ export const userService = {
     const response = await api.delete('/users/me');
     return response.data?.data || response.data;
   },
+
+  /**
+   * Fetch all approved organizers grouped/sorted by Club/Society (Admin only).
+   */
+  getApprovedOrganizers: async () => {
+    const response = await api.get('/admin/organizers');
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Demote or remove an organizer back to student/participant (Admin only).
+   * @param {string} userId - Target user Firebase UID
+   */
+  demoteOrganizer: async (userId) => {
+    const response = await api.post(`/admin/organizers/${userId}/demote`);
+    return response.data?.data || response.data;
+  },
 };
 
 export default userService;

@@ -62,6 +62,15 @@ export class RegistrationRepository extends BaseRepository {
       }
       const eventData = eventDoc.data();
 
+      // Resolve event's clubId strictly
+      let clubId = eventData.clubId || eventData.clubAffiliation || null;
+      if (!clubId && eventData.createdBy) {
+        const creatorDoc = await transaction.get(this.db.collection('users').doc(eventData.createdBy));
+        if (creatorDoc.exists) {
+          clubId = creatorDoc.data().clubAffiliation || null;
+        }
+      }
+
       // 2. Validate event status
       if (eventData.status !== 'approved') {
         throw new Error(`Event is not open for registration (Current status: ${eventData.status}).`);
@@ -79,8 +88,14 @@ export class RegistrationRepository extends BaseRepository {
         throw new Error('Duplicate registration: This user or guest is already registered for this event.');
       }
 
+      const finalPayload = {
+        ...payload,
+        clubId: clubId || null,
+        status: 'pending',
+      };
+
       // 5. Write registration document
-      transaction.set(regRef, payload);
+      transaction.set(regRef, finalPayload);
 
       // 6. Atomically increment event registeredCount
       transaction.update(eventRef, {
@@ -88,7 +103,7 @@ export class RegistrationRepository extends BaseRepository {
         updatedAt: timestamp,
       });
 
-      return { id: regId, ...payload };
+      return { id: regId, ...finalPayload };
     });
   }
 
@@ -202,6 +217,73 @@ export class RegistrationRepository extends BaseRepository {
     return this.update(registrationId, {
       paymentStatus,
       ...(trxId ? { trxId } : {}),
+    });
+  }
+
+  /**
+   * Find all pending registrations belonging to a specific clubId.
+   * @param {string} clubId
+   */
+  async findPendingByClub(clubId) {
+    if (!clubId) return [];
+    const snapshot = await this.collection
+      .where('clubId', '==', clubId)
+      .where('status', '==', 'pending')
+      .get();
+
+    const results = [];
+    snapshot.forEach((doc) => {
+      results.push({ id: doc.id, ...doc.data() });
+    });
+
+    return results.sort((a, b) => {
+      const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+      const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+  }
+
+  /**
+   * Atomically approve or reject a registration.
+   * If rejected, decrements event registeredCount to free up the seat.
+   * @param {string} registrationId
+   * @param {{ status: 'approved' | 'rejected', rejectionReason?: string|null, reviewedBy?: string|null }} data
+   */
+  async updateStatusTransactional(registrationId, { status, rejectionReason = null, reviewedBy = null }) {
+    const timestamp = new Date();
+    return this.runTransaction(async (transaction) => {
+      const regRef = this.collection.doc(registrationId);
+      const regDoc = await transaction.get(regRef);
+
+      if (!regDoc.exists) {
+        throw new Error(`Registration '${registrationId}' does not exist.`);
+      }
+
+      const regData = regDoc.data();
+      const eventRef = this.db.collection('events').doc(regData.eventId);
+
+      // If rejected, decrement event registeredCount
+      if (status === 'rejected' && regData.status !== 'rejected') {
+        const eventDoc = await transaction.get(eventRef);
+        if (eventDoc.exists) {
+          const currentCount = eventDoc.data().registeredCount || 0;
+          transaction.update(eventRef, {
+            registeredCount: Math.max(0, currentCount - 1),
+            updatedAt: timestamp,
+          });
+        }
+      }
+
+      const updateData = {
+        status,
+        rejectionReason: rejectionReason || null,
+        reviewedBy: reviewedBy || null,
+        reviewedAt: timestamp,
+        updatedAt: timestamp,
+      };
+
+      transaction.update(regRef, updateData);
+      return { id: registrationId, ...regData, ...updateData };
     });
   }
 }

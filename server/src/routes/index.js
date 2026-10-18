@@ -6,6 +6,7 @@ import eventRouter from './v1/event.route.js';
 import registrationRouter from './v1/registration.route.js';
 import financeRouter from './v1/finance.route.js';
 import pollRouter from './v1/poll.route.js';
+import adminRouter from './v1/admin.route.js';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use('/v1/events', eventRouter);
 router.use('/v1/registrations', registrationRouter);
 router.use('/v1/finances', financeRouter);
 router.use('/v1/polls', pollRouter);
+router.use('/v1/admin', adminRouter);
 
 export default router;

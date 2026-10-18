@@ -22,11 +22,18 @@ export const ReceivedItemsSchema = z.object({
   tshirt: ItemReceivedSchema.default({ done: false, at: null, by: null }),
 });
 
+export const RegistrationStatusEnum = z.enum(['pending', 'approved', 'rejected', 'cancelled']);
+
 export const RegistrationSchema = z
   .object({
     eventId: z.string().min(1, 'Event ID is required'),
+    clubId: z.string().trim().nullable().default(null),
     userId: z.string().nullable().default(null),
     guest: GuestInfoSchema.nullable().default(null),
+    status: RegistrationStatusEnum.default('pending'),
+    rejectionReason: z.string().trim().nullable().optional().default(null),
+    reviewedBy: z.string().trim().nullable().optional().default(null),
+    reviewedAt: z.union([z.date(), z.string(), z.any()]).nullable().optional().default(null),
     batch: z.string().trim().nullable().default(null),
     section: z.string().trim().nullable().default(null),
     level: z.union([z.number(), z.string()]).nullable().default(null),
@@ -52,6 +59,7 @@ export const RegistrationSchema = z
 export const CreateRegistrationInputSchema = z
   .object({
     eventId: z.string().min(1, 'Event ID is required'),
+    clubId: z.string().trim().nullable().optional().default(null),
     userId: z.string().nullable().optional().default(null),
     guest: GuestInfoSchema.nullable().optional().default(null),
     batch: z.string().trim().nullable().optional().default(null),
@@ -61,9 +69,15 @@ export const CreateRegistrationInputSchema = z
     tshirtSize: TshirtSizeEnum.optional().default(null),
     foodType: FoodTypeEnum.optional().default(null),
     paymentMethod: PaymentMethodEnum.default('cash'),
+    trxId: z.string().trim().nullable().optional().default(null),
   })
   .refine((data) => data.userId || (data.guest && data.guest.email), {
     message: 'Either userId or guest details must be provided',
     path: ['userId'],
   });
+
+export const UpdateRegistrationStatusSchema = z.object({
+  status: z.enum(['approved', 'rejected']),
+  rejectionReason: z.string().trim().nullable().optional().default(null),
+});
 

@@ -249,3 +249,6 @@ export const deleteUserAccount = async (userId) => {
 
   return { success: true, message: 'Account deleted successfully' };
 };
+
+export { getApprovedOrganizers, demoteOrganizer } from './admin.service.js';
+

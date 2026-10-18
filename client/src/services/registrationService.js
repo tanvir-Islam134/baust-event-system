@@ -31,6 +31,35 @@ export const registrationService = {
     const response = await api.post(`/registrations/${registrationId}/cancel`);
     return response.data;
   },
+
+  /**
+   * Fetch all pending event registrations for events created by the caller's assigned club (Organizer only).
+   */
+  getOrganizerPendingRegistrations: async () => {
+    const response = await api.get('/registrations/organizer/pending');
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Approve a participant's event registration (Organizer only).
+   * @param {string} registrationId
+   */
+  approveRegistration: async (registrationId) => {
+    const response = await api.post(`/registrations/${registrationId}/approve`);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Reject a participant's event registration (Organizer only).
+   * @param {string} registrationId
+   * @param {string} [rejectionReason]
+   */
+  rejectRegistration: async (registrationId, rejectionReason = '') => {
+    const response = await api.post(`/registrations/${registrationId}/reject`, {
+      rejectionReason,
+    });
+    return response.data?.data || response.data;
+  },
 };
 
 export default registrationService;

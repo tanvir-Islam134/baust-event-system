@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import userService from '../services/userService.js';
+import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
 
 export default function UsersPage() {
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'requests'
@@ -199,6 +200,16 @@ export default function UsersPage() {
                 {pendingCount}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('organizers')}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+              activeTab === 'organizers'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>Club Organizers</span>
           </button>
         </div>
       </div>
@@ -551,6 +562,11 @@ export default function UsersPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB 3: CLUB ORGANIZERS DIRECTORY */}
+      {activeTab === 'organizers' && (
+        <ClubOrganizersDirectory onNotify={showToast} />
       )}
     </div>
   );

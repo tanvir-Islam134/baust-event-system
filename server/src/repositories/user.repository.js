@@ -117,6 +117,40 @@ export class UserRepository extends BaseRepository {
     }
     return this.findAll();
   }
+
+  /**
+   * Query all approved organizers.
+   * Fetches users with role === 'organizer' or organizerRequestStatus/organizerStatus === 'approved',
+   * excluding pending or rejected ones.
+   */
+  async findApprovedOrganizers() {
+    const byRole = await this.find([['role', '==', 'organizer']]);
+    const byApprovedReq = await this.find([['organizerRequestStatus', '==', 'approved']]);
+    const byApprovedStatus = await this.find([['organizerStatus', '==', 'approved']]);
+
+    const userMap = new Map();
+    for (const u of [...byRole, ...byApprovedReq, ...byApprovedStatus]) {
+      const isPending = u.organizerRequestStatus === 'pending' || u.organizerStatus === 'pending';
+      const isRejected = u.organizerRequestStatus === 'rejected' || u.organizerStatus === 'rejected';
+      const isApprovedRole = u.role === 'organizer';
+      const isApprovedStatus = u.organizerRequestStatus === 'approved' || u.organizerStatus === 'approved';
+
+      if ((isApprovedRole || isApprovedStatus) && !isPending && !isRejected) {
+        userMap.set(u.id, u);
+      }
+    }
+
+    const results = Array.from(userMap.values());
+    results.sort((a, b) => {
+      const clubA = (a.clubAffiliation || a.clubName || a.clubId || 'Unassigned').toLowerCase();
+      const clubB = (b.clubAffiliation || b.clubName || b.clubId || 'Unassigned').toLowerCase();
+      if (clubA < clubB) return -1;
+      if (clubA > clubB) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    return results;
+  }
 }
 
 export const userRepository = new UserRepository();

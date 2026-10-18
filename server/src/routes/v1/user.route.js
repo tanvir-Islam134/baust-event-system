@@ -58,6 +58,13 @@ router.post(
   userController.rejectOrganizer
 );
 
+// GET /api/v1/users/organizers - List approved organizers (Admin only)
+router.get(
+  '/organizers',
+  requireRole(['admin']),
+  userController.getApprovedOrganizers
+);
+
 // GET /api/v1/users - List users (Admin only)
 router.get(
   '/',

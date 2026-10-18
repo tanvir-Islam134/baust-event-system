@@ -142,3 +142,21 @@ export const deleteMyAccount = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * GET /api/v1/users/organizers
+ * Admin only: Fetch all approved organizers.
+ */
+export const getApprovedOrganizers = async (req, res, next) => {
+  try {
+    const organizers = await userService.getApprovedOrganizers();
+    res.status(200).json({
+      success: true,
+      count: organizers.length,
+      data: organizers,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

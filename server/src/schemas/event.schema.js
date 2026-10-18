@@ -20,6 +20,8 @@ export const EventSchema = z.object({
   items: EventItemsSchema.default({ food: false, tshirt: false }),
   status: EventStatusEnum.default('pending'),
   createdBy: z.string().min(1, 'Creator UID is required'),
+  clubId: z.string().trim().nullable().optional().default(null),
+  clubAffiliation: z.string().trim().nullable().optional().default(null),
   rejectionReason: z.string().trim().nullable().default(null),
   createdAt: z.union([z.date(), z.string(), z.any()]).optional(),
   updatedAt: z.union([z.date(), z.string(), z.any()]).optional(),

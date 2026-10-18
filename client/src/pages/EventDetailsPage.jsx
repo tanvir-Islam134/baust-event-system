@@ -90,7 +90,7 @@ export default function EventDetailsPage() {
       setFormData(initialFormState);
       setRegSuccess(createdReg);
       setToastMessage(
-        `Registration confirmed! Ticket Code: ${createdReg?.ticketCode || 'Generated'}`
+        `Registration submitted! Status: Pending Club Organizer Approval (Ticket Code: ${createdReg?.ticketCode || 'Generated'})`
       );
       setTimeout(() => setToastMessage(null), 8000);
 
