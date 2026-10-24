@@ -1,10 +1,11 @@
 import React from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     if (onClose) onClose();
@@ -19,12 +20,18 @@ export default function Sidebar({ isOpen, onClose }) {
   const isOrganizer = user?.role === 'organizer';
   const hasFinanceAccess = isAdmin || isOrganizer;
 
-  const navLinkClasses = ({ isActive }) =>
-    `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-      isActive
-        ? 'bg-blue-600 text-white shadow-sm'
-        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-    }`;
+  const isTabActive = (tabName) => {
+    return location.pathname === '/dashboard' && location.search.includes(`tab=${tabName}`);
+  };
+
+  const isDashboardHome =
+    location.pathname === '/dashboard' &&
+    (!location.search || (!location.search.includes('tab=create-event') && !location.search.includes('tab=manage-events')));
+
+  const linkBaseClasses =
+    'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all';
+  const activeClasses = 'bg-blue-600 text-white shadow-sm';
+  const inactiveClasses = 'text-slate-300 hover:bg-slate-800 hover:text-white';
 
   const navContent = (
     <div className="flex flex-col h-full bg-slate-900 text-white w-64 border-r border-slate-800">
@@ -58,24 +65,63 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* Dashboard */}
-        <NavLink to="/dashboard" end className={navLinkClasses} onClick={onClose}>
+        <Link
+          to="/dashboard"
+          className={`${linkBaseClasses} ${isDashboardHome ? activeClasses : inactiveClasses}`}
+          onClick={onClose}
+        >
           <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
           <span>Dashboard</span>
-        </NavLink>
+        </Link>
 
-        {/* Events */}
-        <NavLink to="/events" className={navLinkClasses} onClick={onClose}>
+        {/* Organizer Section: Create Event & Manage Events */}
+        {isOrganizer && (
+          <>
+            <Link
+              to="/dashboard?tab=manage-events"
+              className={`${linkBaseClasses} ${isTabActive('manage-events') ? activeClasses : inactiveClasses}`}
+              onClick={onClose}
+            >
+              <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <span>Manage Events</span>
+            </Link>
+
+            <Link
+              to="/dashboard?tab=create-event"
+              className={`${linkBaseClasses} ${isTabActive('create-event') ? activeClasses : inactiveClasses}`}
+              onClick={onClose}
+            >
+              <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Create Event</span>
+            </Link>
+          </>
+        )}
+
+        {/* Events Catalog */}
+        <NavLink
+          to="/events"
+          className={({ isActive }) => `${linkBaseClasses} ${isActive ? activeClasses : inactiveClasses}`}
+          onClick={onClose}
+        >
           <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span>Events</span>
+          <span>All Events</span>
         </NavLink>
 
         {/* Finances - Admin & Organizer only */}
         {hasFinanceAccess && (
-          <NavLink to="/finances" className={navLinkClasses} onClick={onClose}>
+          <NavLink
+            to="/finances"
+            className={({ isActive }) => `${linkBaseClasses} ${isActive ? activeClasses : inactiveClasses}`}
+            onClick={onClose}
+          >
             <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -85,7 +131,11 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Users - Admin only */}
         {isAdmin && (
-          <NavLink to="/users" className={navLinkClasses} onClick={onClose}>
+          <NavLink
+            to="/users"
+            className={({ isActive }) => `${linkBaseClasses} ${isActive ? activeClasses : inactiveClasses}`}
+            onClick={onClose}
+          >
             <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -100,7 +150,11 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* Profile */}
-        <NavLink to="/profile" className={navLinkClasses} onClick={onClose}>
+        <NavLink
+          to="/profile"
+          className={({ isActive }) => `${linkBaseClasses} ${isActive ? activeClasses : inactiveClasses}`}
+          onClick={onClose}
+        >
           <svg className="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
@@ -165,4 +219,3 @@ export default function Sidebar({ isOpen, onClose }) {
     </>
   );
 }
-

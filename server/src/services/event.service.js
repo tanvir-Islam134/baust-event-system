@@ -9,7 +9,10 @@ import { CreateEventInputSchema, UpdateEventStatusSchema } from '../schemas/even
 
 /**
  * Create a new event under pending review.
- * Forces status: 'pending', registeredCount: 0, createdBy: creatorUid, and ties to creator's club.
+ * Allows approved Organizers or Admins.
+ * Strictly links event to creator's UID as organizerId/createdBy
+ * and organizer's assigned Club as clubName/clubId/clubAffiliation.
+ *
  * @param {string} creatorUid
  * @param {object} rawEventData
  */
@@ -17,13 +20,53 @@ export const createEvent = async (creatorUid, rawEventData) => {
   const validatedInput = CreateEventInputSchema.parse(rawEventData);
 
   const creator = await userRepository.findById(creatorUid);
-  const clubId = rawEventData.clubId || rawEventData.clubAffiliation || creator?.clubAffiliation || null;
+  if (!creator) {
+    throw new AppError('Authenticated user account not found', 404);
+  }
+
+  const isAdmin = creator.role === 'admin';
+  const isOrganizer = creator.role === 'organizer';
+
+  if (!isAdmin && !isOrganizer) {
+    throw new AppError('Forbidden: Only approved club organizers or administrators can create events', 403);
+  }
+
+  if (isOrganizer) {
+    const isApproved =
+      creator.organizerStatus === 'approved' ||
+      creator.organizerRequestStatus === 'approved';
+
+    if (!isApproved) {
+      throw new AppError(
+        'Forbidden: Only approved organizers are authorized to create events. Your organizer status is pending or not approved.',
+        403
+      );
+    }
+
+    if (!creator.clubAffiliation) {
+      throw new AppError(
+        'Organizer must be assigned to an active club affiliation to create events. Please contact the administrator.',
+        400
+      );
+    }
+  }
+
+  // Strictly link the event to the organizer's assigned club
+  const assignedClub = isOrganizer
+    ? creator.clubAffiliation
+    : (validatedInput.clubName ||
+       validatedInput.clubAffiliation ||
+       validatedInput.clubId ||
+       creator.clubAffiliation ||
+       'Central BAUST Event');
 
   const eventPayload = {
     ...validatedInput,
     createdBy: creatorUid,
-    clubId,
-    clubAffiliation: clubId,
+    organizerId: creatorUid,
+    clubName: assignedClub,
+    clubId: assignedClub,
+    clubAffiliation: assignedClub,
     status: 'pending',
     registeredCount: 0,
     rejectionReason: null,
@@ -88,4 +131,3 @@ export const updateEventStatus = async (eventId, statusData) => {
 
   return updated;
 };
-

@@ -48,39 +48,78 @@ export class EventRepository extends BaseRepository {
    * Find approved upcoming events ordered by date ascending.
    */
   async findUpcomingEvents() {
-    return this.find([['status', '==', 'approved']], {
-      orderBy: ['date', 'asc'],
-    });
+    try {
+      return await this.find([['status', '==', 'approved']], {
+        orderBy: ['date', 'asc'],
+      });
+    } catch {
+      const all = await this.find([['status', '==', 'approved']]);
+      return all.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    }
   }
 
   /**
    * Find approved past/recent events ordered by date descending.
    */
   async findRecentApprovedEvents() {
-    return this.find([['status', '==', 'approved']], {
-      orderBy: ['date', 'desc'],
-    });
+    try {
+      return await this.find([['status', '==', 'approved']], {
+        orderBy: ['date', 'desc'],
+      });
+    } catch {
+      const all = await this.find([['status', '==', 'approved']]);
+      return all.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
   }
 
   /**
    * Find pending events for administrative approval.
    */
   async findPendingEvents() {
-    return this.find([['status', '==', 'pending']], {
-      orderBy: ['createdAt', 'desc'],
-    });
+    try {
+      return await this.find([['status', '==', 'pending']], {
+        orderBy: ['createdAt', 'desc'],
+      });
+    } catch {
+      const all = await this.find([['status', '==', 'pending']]);
+      return all.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
   }
 
   /**
    * Find all events created by a specific user/organizer.
-   * @param {string} createdBy - Firebase UID
+   * Matches either createdBy or organizerId.
+   * @param {string} creatorUid - Firebase UID / User ID
    */
-  async findByCreator(createdBy) {
-    return this.find([['createdBy', '==', createdBy]], {
-      orderBy: ['createdAt', 'desc'],
+  async findByCreator(creatorUid) {
+    let results = [];
+    try {
+      results = await this.find([['createdBy', '==', creatorUid]], {
+        orderBy: ['createdAt', 'desc'],
+      });
+    } catch {
+      results = await this.find([['createdBy', '==', creatorUid]]);
+    }
+
+    // Also check if any were saved by organizerId if not captured
+    if (results.length === 0) {
+      try {
+        results = await this.find([['organizerId', '==', creatorUid]]);
+      } catch {
+        // ignore
+      }
+    }
+
+    return results.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
     });
   }
 }
 
 export const eventRepository = new EventRepository();
-

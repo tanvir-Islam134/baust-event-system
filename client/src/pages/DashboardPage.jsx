@@ -1,26 +1,55 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import registrationService from '../services/registrationService.js';
 import adminService from '../services/adminService.js';
+import eventService from '../services/eventService.js';
 import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
+import OrganizerCreateEvent from '../components/organizer/OrganizerCreateEvent.jsx';
+import OrganizerManageEvents from '../components/organizer/OrganizerManageEvents.jsx';
 
-export default function DashboardPage() {
+export default function DashboardPage({ defaultTab = null }) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isAdmin = user?.role === 'admin';
   const isOrganizer = user?.role === 'organizer';
 
-  // Admin: Organizers Directory state for Card 2
+  // Organizer Dashboard Tab State: 'manage-events' | 'create-event' | 'pending-registrations'
+  const initialTab =
+    defaultTab ||
+    searchParams.get('tab') ||
+    (isOrganizer ? 'manage-events' : 'overview');
+  const [organizerTab, setOrganizerTab] = useState(initialTab);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setOrganizerTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (newTab) => {
+    setOrganizerTab(newTab);
+    setSearchParams({ tab: newTab });
+  };
+
+  // Admin: Organizers Directory count state
   const [organizersCount, setOrganizersCount] = useState(0);
+
+  // Organizer: My Published Events state
+  const [myEvents, setMyEvents] = useState([]);
+  const [loadingMyEvents, setLoadingMyEvents] = useState(false);
 
   // Organizer: Pending Event Registrations state
   const [pendingRegistrations, setPendingRegistrations] = useState([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
   const [processingRegId, setProcessingRegId] = useState(null);
+
+  // Toast feedback state
   const [toast, setToast] = useState(null); // { message: string, type: 'success' | 'error' }
 
-  // Rejection modal state
+  // Rejection modal state for participant registrations
   const [rejectingReg, setRejectingReg] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
@@ -28,6 +57,19 @@ export default function DashboardPage() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 5000);
   };
+
+  const fetchMyEvents = useCallback(async () => {
+    if (!isOrganizer && !isAdmin) return;
+    try {
+      setLoadingMyEvents(true);
+      const data = await eventService.getMyEvents();
+      setMyEvents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('Failed to load organizer events:', err);
+    } finally {
+      setLoadingMyEvents(false);
+    }
+  }, [isOrganizer, isAdmin]);
 
   const fetchPendingRegistrations = useCallback(async () => {
     if (!isOrganizer) return;
@@ -53,12 +95,22 @@ export default function DashboardPage() {
   }, [isAdmin]);
 
   useEffect(() => {
+    fetchMyEvents();
+  }, [fetchMyEvents]);
+
+  useEffect(() => {
     fetchPendingRegistrations();
   }, [fetchPendingRegistrations]);
 
   useEffect(() => {
     fetchAdminOrganizersCount();
   }, [fetchAdminOrganizersCount]);
+
+  const handleEventCreated = (created) => {
+    showToast('Event created successfully! It is now pending administrative approval.', 'success');
+    fetchMyEvents();
+    handleTabChange('manage-events');
+  };
 
   const handleApproveRegistration = async (regId) => {
     try {
@@ -116,27 +168,62 @@ export default function DashboardPage() {
             <span>BAUST Event System</span>
             <span>•</span>
             <span className="capitalize">{user?.role} Portal</span>
+            {user?.clubAffiliation && (
+              <>
+                <span>•</span>
+                <span>🏛️ {user.clubAffiliation}</span>
+              </>
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Welcome back, {user?.name || 'Student'}!
+            Welcome back, {user?.name || 'Organizer'}!
           </h1>
           <p className="mt-2 text-sm text-blue-100 leading-relaxed">
-            Stay updated with all campus conferences, academic competitions, cultural fests, and sports tournaments.
+            {isOrganizer
+              ? `Manage your events, publish announcements, and review participant registrations for ${user?.clubAffiliation || 'your assigned club'}.`
+              : 'Stay updated with all campus conferences, academic competitions, cultural fests, and sports tournaments.'}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/events"
-              className="px-4 py-2 bg-white text-blue-900 font-semibold rounded-lg text-sm hover:bg-blue-50 transition shadow-sm"
-            >
-              Browse Events
-            </Link>
-            <Link
-              to="/profile"
-              className="px-4 py-2 bg-blue-600/60 hover:bg-blue-600 text-white font-medium rounded-lg text-sm transition border border-white/20"
-            >
-              View Profile
-            </Link>
+            {isOrganizer ? (
+              <>
+                <button
+                  onClick={() => handleTabChange('create-event')}
+                  className="px-4 py-2 bg-white text-blue-900 font-semibold rounded-lg text-sm hover:bg-blue-50 transition shadow-sm flex items-center gap-1.5"
+                >
+                  <span>➕</span>
+                  <span>Create Event</span>
+                </button>
+                <button
+                  onClick={() => handleTabChange('manage-events')}
+                  className="px-4 py-2 bg-blue-600/60 hover:bg-blue-600 text-white font-medium rounded-lg text-sm transition border border-white/20 flex items-center gap-1.5"
+                >
+                  <span>📋</span>
+                  <span>Manage Events ({myEvents.length})</span>
+                </button>
+                <Link
+                  to="/events"
+                  className="px-4 py-2 bg-blue-900/40 hover:bg-blue-900/70 text-blue-200 font-medium rounded-lg text-sm transition"
+                >
+                  Browse Campus Events
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/events"
+                  className="px-4 py-2 bg-white text-blue-900 font-semibold rounded-lg text-sm hover:bg-blue-50 transition shadow-sm"
+                >
+                  Browse Events
+                </Link>
+                <Link
+                  to="/profile"
+                  className="px-4 py-2 bg-blue-600/60 hover:bg-blue-600 text-white font-medium rounded-lg text-sm transition border border-white/20"
+                >
+                  View Profile
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -147,25 +234,44 @@ export default function DashboardPage() {
 
       {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Card 1: Upcoming Events */}
+        {/* Card 1: Events */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Events</span>
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
             </div>
           </div>
           <div className="mt-3">
-            <h3 className="text-2xl font-bold text-slate-800">4 Active</h3>
-            <p className="text-xs text-slate-500 mt-1">Upcoming campus events</p>
+            <h3 className="text-2xl font-bold text-slate-800">
+              {isOrganizer ? `${myEvents.length} Created` : '4 Active'}
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              {isOrganizer ? `Linked to ${user?.clubAffiliation || 'your club'}` : 'Upcoming campus events'}
+            </p>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100">
-            <Link to="/events" className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
-              <span>View calendar</span>
-              <span>&rarr;</span>
-            </Link>
+            {isOrganizer ? (
+              <button
+                onClick={() => handleTabChange('manage-events')}
+                className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <span>Manage my events</span>
+                <span>&rarr;</span>
+              </button>
+            ) : (
+              <Link to="/events" className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                <span>View calendar</span>
+                <span>&rarr;</span>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -177,7 +283,12 @@ export default function DashboardPage() {
             </span>
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+                />
               </svg>
             </div>
           </div>
@@ -193,21 +304,27 @@ export default function DashboardPage() {
               {isAdmin
                 ? 'Active club organizers'
                 : isOrganizer
-                ? 'Awaiting organizer approval'
+                ? 'Applications to review'
                 : 'Confirmed passes'}
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100">
             {isAdmin ? (
-              <a href="#organizers-directory" className="text-xs font-medium text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
+              <a
+                href="#organizers-directory"
+                className="text-xs font-medium text-emerald-600 hover:text-emerald-800 flex items-center gap-1"
+              >
                 <span>View directory</span>
                 <span>&darr;</span>
               </a>
             ) : isOrganizer ? (
-              <a href="#pending-registrations" className="text-xs font-medium text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
+              <button
+                onClick={() => handleTabChange('pending-registrations')}
+                className="text-xs font-medium text-emerald-600 hover:text-emerald-800 flex items-center gap-1"
+              >
                 <span>Review registrations</span>
                 <span>&darr;</span>
-              </a>
+              </button>
             ) : (
               <Link to="/events" className="text-xs font-medium text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
                 <span>Check tickets & QR</span>
@@ -223,7 +340,12 @@ export default function DashboardPage() {
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Access Level</span>
             <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
             </div>
           </div>
@@ -241,7 +363,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 4: Cohort Info or Financials */}
+        {/* Card 4: Finances or Cohort */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -249,14 +371,19 @@ export default function DashboardPage() {
             </span>
             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
           </div>
           <div className="mt-3">
             <h3 className="text-2xl font-bold text-slate-800">
               {isAdmin || isOrganizer
-                ? 'Overview'
+                ? 'Ledger'
                 : user?.batch
                 ? `${user.batch}`
                 : 'Not Set'}
@@ -279,6 +406,297 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ORGANIZER SECTION: Tabbed Experience */}
+      {isOrganizer && (
+        <div className="space-y-6">
+          {/* Tabs Bar */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex flex-wrap gap-2">
+            <button
+              onClick={() => handleTabChange('manage-events')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                organizerTab === 'manage-events'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <span>📋</span>
+              <span>Manage Events</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  organizerTab === 'manage-events'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {myEvents.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleTabChange('create-event')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                organizerTab === 'create-event'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <span>➕</span>
+              <span>Create Event</span>
+            </button>
+
+            <button
+              onClick={() => handleTabChange('pending-registrations')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                organizerTab === 'pending-registrations'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <span>👥</span>
+              <span>Registration Queue</span>
+              {pendingRegistrations.length > 0 && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    organizerTab === 'pending-registrations'
+                      ? 'bg-amber-400 text-slate-900'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {pendingRegistrations.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* TAB 1: Manage Events */}
+          {organizerTab === 'manage-events' && (
+            <OrganizerManageEvents
+              events={myEvents}
+              loading={loadingMyEvents}
+              onRefresh={fetchMyEvents}
+              onCreateClick={() => handleTabChange('create-event')}
+            />
+          )}
+
+          {/* TAB 2: Create Event Form */}
+          {organizerTab === 'create-event' && (
+            <OrganizerCreateEvent
+              onEventCreated={handleEventCreated}
+              onCancel={() => handleTabChange('manage-events')}
+            />
+          )}
+
+          {/* TAB 3: Pending Registrations Table */}
+          {organizerTab === 'pending-registrations' && (
+            <div id="pending-registrations" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Header */}
+              <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-amber-50/60 to-orange-50/40">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-800">Pending Event Registrations</h2>
+                    <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                      {pendingRegistrations.length} Pending
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Review and approve participant applications for events hosted by{' '}
+                    <span className="font-semibold text-indigo-700">
+                      🏛️ {user?.clubAffiliation || 'Your Assigned Club'}
+                    </span>
+                    .
+                  </p>
+                </div>
+
+                <button
+                  onClick={fetchPendingRegistrations}
+                  disabled={loadingRegistrations}
+                  className="px-3.5 py-1.5 border border-slate-300 hover:bg-white rounded-lg text-xs font-medium text-slate-700 transition flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-50 shadow-sm"
+                >
+                  <svg
+                    className={`w-3.5 h-3.5 ${loadingRegistrations ? 'animate-spin' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span>Refresh List</span>
+                </button>
+              </div>
+
+              {/* Content Area */}
+              {loadingRegistrations && (
+                <div className="py-16 flex flex-col items-center justify-center gap-2">
+                  <div className="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs font-medium text-slate-500">Loading pending applications...</p>
+                </div>
+              )}
+
+              {!loadingRegistrations && pendingRegistrations.length === 0 && (
+                <div className="p-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center text-xl mb-2">
+                    ✓
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800">All Caught Up!</h3>
+                  <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto">
+                    There are currently no pending participant registrations awaiting approval for{' '}
+                    {user?.clubAffiliation || 'your club'}.
+                  </p>
+                </div>
+              )}
+
+              {!loadingRegistrations && pendingRegistrations.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3 px-4">Event</th>
+                        <th className="py-3 px-4">Participant</th>
+                        <th className="py-3 px-4">Cohort Details</th>
+                        <th className="py-3 px-4">Options & Payment</th>
+                        <th className="py-3 px-4 text-right">Review Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                      {pendingRegistrations.map((reg) => {
+                        const isProcessing = processingRegId === reg.id;
+
+                        return (
+                          <tr key={reg.id} className="hover:bg-slate-50/70 transition">
+                            {/* Event Title & Date */}
+                            <td className="py-3.5 px-4">
+                              <div>
+                                <span className="font-bold text-slate-800 block text-xs truncate max-w-xs">
+                                  {reg.eventTitle}
+                                </span>
+                                <span className="text-[11px] text-slate-500 block">
+                                  📅 {reg.eventDate || 'Date TBA'} {reg.eventVenue ? `• 📍 ${reg.eventVenue}` : ''}
+                                </span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">
+                                  Fee: {reg.eventFee > 0 ? `৳${reg.eventFee}` : 'Free'}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Participant Name & Contact */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                                  {reg.participantName ? reg.participantName.charAt(0) : 'U'}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-slate-800 block truncate">
+                                    {reg.participantName}
+                                  </span>
+                                  <span className="text-[11px] text-slate-400 block truncate">
+                                    {reg.participantEmail}
+                                  </span>
+                                  {reg.participantPhone && reg.participantPhone !== 'N/A' && (
+                                    <span className="text-[10px] text-slate-500 block">
+                                      📞 {reg.participantPhone}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Cohort / Department */}
+                            <td className="py-3.5 px-4">
+                              {reg.isGuest ? (
+                                <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                  Guest Participant
+                                </span>
+                              ) : (
+                                <div className="space-y-0.5">
+                                  {reg.department && (
+                                    <span className="font-semibold text-slate-800 block truncate max-w-[200px]">
+                                      {reg.department}
+                                    </span>
+                                  )}
+                                  <span className="text-slate-600 block">
+                                    {reg.studentId ? `ID: ${reg.studentId}` : ''}
+                                    {reg.batch ? ` • ${reg.batch}` : ''}
+                                    {reg.section ? ` • Sec ${reg.section}` : ''}
+                                  </span>
+                                  {(reg.level || reg.term) && (
+                                    <span className="text-[11px] text-slate-400 block">
+                                      {reg.level ? `L-${reg.level} ` : ''}
+                                      {reg.term ? `T-${reg.term}` : ''}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Options & Payment */}
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-1">
+                                {(reg.tshirtSize || reg.foodType) && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {reg.tshirtSize && (
+                                      <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-medium border border-blue-200">
+                                        👕 {reg.tshirtSize}
+                                      </span>
+                                    )}
+                                    {reg.foodType && (
+                                      <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-medium border border-emerald-200 capitalize">
+                                        🍲 {reg.foodType}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1.5">
+                                  <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-semibold uppercase">
+                                    {reg.paymentMethod || 'cash'}
+                                  </span>
+                                  {reg.trxId && (
+                                    <span className="text-[11px] font-mono text-purple-700 font-medium">
+                                      Trx: {reg.trxId}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  disabled={isProcessing}
+                                  onClick={() => handleApproveRegistration(reg.id)}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                                >
+                                  {isProcessing ? 'Saving...' : 'Accept'}
+                                </button>
+                                <button
+                                  disabled={isProcessing}
+                                  onClick={() => {
+                                    setRejectingReg(reg);
+                                    setRejectReason('');
+                                  }}
+                                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold transition disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ADMIN ONLY: Club Organizers Directory Section */}
       {isAdmin && (
         <div id="organizers-directory">
@@ -288,204 +706,6 @@ export default function DashboardPage() {
               fetchAdminOrganizersCount();
             }}
           />
-        </div>
-      )}
-
-      {/* ORGANIZER ONLY: Pending Event Registrations Section */}
-      {isOrganizer && (
-        <div id="pending-registrations" className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          {/* Header */}
-          <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-amber-50/60 to-orange-50/40">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-800">Pending Event Registrations</h2>
-                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                  {pendingRegistrations.length} Pending
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Review and approve participant applications for events hosted by{' '}
-                <span className="font-semibold text-indigo-700">
-                  🏛️ {user?.clubAffiliation || 'Your Assigned Club'}
-                </span>
-                .
-              </p>
-            </div>
-
-            <button
-              onClick={fetchPendingRegistrations}
-              disabled={loadingRegistrations}
-              className="px-3.5 py-1.5 border border-slate-300 hover:bg-white rounded-lg text-xs font-medium text-slate-700 transition flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-50 shadow-sm"
-            >
-              <svg className={`w-3.5 h-3.5 ${loadingRegistrations ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span>Refresh List</span>
-            </button>
-          </div>
-
-          {/* Content Area */}
-          {loadingRegistrations && (
-            <div className="py-16 flex flex-col items-center justify-center gap-2">
-              <div className="w-8 h-8 border-3 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs font-medium text-slate-500">Loading pending applications...</p>
-            </div>
-          )}
-
-          {!loadingRegistrations && pendingRegistrations.length === 0 && (
-            <div className="p-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center text-xl mb-2">
-                ✓
-              </div>
-              <h3 className="text-sm font-bold text-slate-800">All Caught Up!</h3>
-              <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto">
-                There are currently no pending participant registrations awaiting approval for {user?.clubAffiliation || 'your club'}.
-              </p>
-            </div>
-          )}
-
-          {!loadingRegistrations && pendingRegistrations.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3 px-4">Event</th>
-                    <th className="py-3 px-4">Participant</th>
-                    <th className="py-3 px-4">Cohort Details</th>
-                    <th className="py-3 px-4">Options & Payment</th>
-                    <th className="py-3 px-4 text-right">Review Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                  {pendingRegistrations.map((reg) => {
-                    const isProcessing = processingRegId === reg.id;
-
-                    return (
-                      <tr key={reg.id} className="hover:bg-slate-50/70 transition">
-                        {/* Event Title & Date */}
-                        <td className="py-3.5 px-4">
-                          <div>
-                            <span className="font-bold text-slate-800 block text-xs truncate max-w-xs">
-                              {reg.eventTitle}
-                            </span>
-                            <span className="text-[11px] text-slate-500 block">
-                              📅 {reg.eventDate || 'Date TBA'} {reg.eventVenue ? `• 📍 ${reg.eventVenue}` : ''}
-                            </span>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">
-                              Fee: {reg.eventFee > 0 ? `৳${reg.eventFee}` : 'Free'}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Participant Name & Contact */}
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                              {reg.participantName ? reg.participantName.charAt(0) : 'U'}
-                            </div>
-                            <div className="min-w-0">
-                              <span className="font-semibold text-slate-800 block truncate">
-                                {reg.participantName}
-                              </span>
-                              <span className="text-[11px] text-slate-400 block truncate">
-                                {reg.participantEmail}
-                              </span>
-                              {reg.participantPhone && reg.participantPhone !== 'N/A' && (
-                                <span className="text-[10px] text-slate-500 block">
-                                  📞 {reg.participantPhone}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Cohort / Department */}
-                        <td className="py-3.5 px-4">
-                          {reg.isGuest ? (
-                            <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-100 text-slate-600 border border-slate-200">
-                              Guest Participant
-                            </span>
-                          ) : (
-                            <div className="space-y-0.5">
-                              {reg.department && (
-                                <span className="font-semibold text-slate-800 block truncate max-w-[200px]">
-                                  {reg.department}
-                                </span>
-                              )}
-                              <span className="text-slate-600 block">
-                                {reg.studentId ? `ID: ${reg.studentId}` : ''}
-                                {reg.batch ? ` • ${reg.batch}` : ''}
-                                {reg.section ? ` • Sec ${reg.section}` : ''}
-                              </span>
-                              {(reg.level || reg.term) && (
-                                <span className="text-[11px] text-slate-400 block">
-                                  {reg.level ? `L-${reg.level} ` : ''}
-                                  {reg.term ? `T-${reg.term}` : ''}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Options & Payment */}
-                        <td className="py-3.5 px-4">
-                          <div className="space-y-1">
-                            {(reg.tshirtSize || reg.foodType) && (
-                              <div className="flex flex-wrap gap-1">
-                                {reg.tshirtSize && (
-                                  <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-medium border border-blue-200">
-                                    👕 {reg.tshirtSize}
-                                  </span>
-                                )}
-                                {reg.foodType && (
-                                  <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[10px] font-medium border border-emerald-200 capitalize">
-                                    🍲 {reg.foodType}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-semibold uppercase">
-                                {reg.paymentMethod || 'cash'}
-                              </span>
-                              {reg.trxId && (
-                                <span className="text-[11px] font-mono text-purple-700 font-medium">
-                                  Trx: {reg.trxId}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              disabled={isProcessing}
-                              onClick={() => handleApproveRegistration(reg.id)}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
-                            >
-                              {isProcessing ? 'Saving...' : 'Accept'}
-                            </button>
-                            <button
-                              disabled={isProcessing}
-                              onClick={() => {
-                                setRejectingReg(reg);
-                                setRejectReason('');
-                              }}
-                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold transition disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       )}
 

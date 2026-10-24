@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import HomePage from '../pages/HomePage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
@@ -39,6 +39,14 @@ const router = createBrowserRouter([
       {
         path: '/events',
         element: <EventsPage />,
+      },
+      {
+        path: '/events/create',
+        element: (
+          <ProtectedRoute allowedRoles={['admin', 'organizer']}>
+            <DashboardPage defaultTab="create-event" />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '/events/:id',
