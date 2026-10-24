@@ -185,16 +185,26 @@ export default function EventDetailsPage() {
 
       {/* Main Event Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Event Banner Image if present */}
+        {event.bannerUrl && (
+          <div className="relative h-64 sm:h-80 w-full overflow-hidden bg-slate-900 border-b border-slate-200">
+            <img src={event.bannerUrl} alt={event.title} className="w-full h-full object-cover" />
+          </div>
+        )}
+
         {/* Banner Header */}
         <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-6 sm:p-8 text-white">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={`px-3 py-1 text-xs font-bold rounded-full ${
                   isFree ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                 }`}
               >
-                {isFree ? 'Free Admission' : `Fee: ৳ ${event.fee}`}
+                {isFree ? 'Free Admission' : `Fee: ৳ ${event.ticketPrice || event.fee}`}
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-full bg-white/10 text-white border border-white/20">
+                🏛️ {event.clubName || event.clubAffiliation || 'BAUST Club'}
               </span>
               <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-white/10 border border-white/20 capitalize">
                 {event.status}

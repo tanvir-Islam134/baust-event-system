@@ -14,10 +14,11 @@ export const eventService = {
   },
 
   /**
-   * Get all approved public events.
+   * Get all approved public events with optional filters (clubName, search).
+   * @param {object} [params={}]
    */
-  getApprovedEvents: async () => {
-    const response = await api.get('/events');
+  getApprovedEvents: async (params = {}) => {
+    const response = await api.get('/events', { params });
     return response.data?.data || response.data;
   },
 

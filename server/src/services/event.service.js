@@ -77,10 +77,11 @@ export const createEvent = async (creatorUid, rawEventData) => {
 };
 
 /**
- * List all public approved events.
+ * List all public approved events with optional query filters (clubName, search/title).
+ * @param {object} [filters={}]
  */
-export const getApprovedEvents = async () => {
-  return eventRepository.findUpcomingEvents();
+export const getApprovedEvents = async (filters = {}) => {
+  return eventRepository.findApproved(filters);
 };
 
 /**

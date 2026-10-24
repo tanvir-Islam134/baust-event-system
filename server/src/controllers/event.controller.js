@@ -23,7 +23,13 @@ export const create = async (req, res, next) => {
  */
 export const getApproved = async (req, res, next) => {
   try {
-    const events = await eventService.getApprovedEvents();
+    const { clubName, club, title, search, q, status } = req.query;
+    const filters = {
+      clubName: clubName || club,
+      title: title || search || q,
+      status,
+    };
+    const events = await eventService.getApprovedEvents(filters);
     res.status(200).json({
       success: true,
       data: events,

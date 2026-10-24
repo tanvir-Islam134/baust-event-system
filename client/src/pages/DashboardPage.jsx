@@ -7,6 +7,7 @@ import eventService from '../services/eventService.js';
 import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
 import OrganizerCreateEvent from '../components/organizer/OrganizerCreateEvent.jsx';
 import OrganizerManageEvents from '../components/organizer/OrganizerManageEvents.jsx';
+import StudentEventFeed from '../components/events/StudentEventFeed.jsx';
 
 export default function DashboardPage({ defaultTab = null }) {
   const { user } = useAuth();
@@ -709,65 +710,77 @@ export default function DashboardPage({ defaultTab = null }) {
         </div>
       )}
 
-      {/* Featured Campus Highlights */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">Campus Event Highlights</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Upcoming flagships scheduled at BAUST</p>
-          </div>
-          <Link to="/events" className="text-xs font-semibold text-blue-600 hover:underline">
-            View All Events &rarr;
-          </Link>
+      {/* PARTICIPANT DASHBOARD: Live Student Event Feed */}
+      {!isOrganizer && !isAdmin && (
+        <div id="participant-event-feed" className="space-y-6">
+          <StudentEventFeed
+            title="Student Event Feed"
+            subtitle="Explore upcoming campus workshops, coding competitions, sports matches, and cultural club activities."
+          />
         </div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition">
-            <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-blue-100 text-blue-800 mb-2">
-              Technology
-            </span>
-            <h4 className="text-sm font-bold text-slate-800">BAUST CSE Fest 2026</h4>
-            <p className="text-xs text-slate-500 mt-1">
-              Hackathon, competitive programming, project display, and gaming tournaments.
-            </p>
-            <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
-              <span>Nov 20, 2026</span>
-              <span>•</span>
-              <span>Central Auditorium</span>
+      {/* Featured Campus Highlights (for Organizers & Admins) */}
+      {(isOrganizer || isAdmin) && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Campus Event Highlights</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Upcoming flagships scheduled at BAUST</p>
             </div>
+            <Link to="/events" className="text-xs font-semibold text-blue-600 hover:underline">
+              View All Events &rarr;
+            </Link>
           </div>
 
-          <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition">
-            <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-100 text-emerald-800 mb-2">
-              Sports
-            </span>
-            <h4 className="text-sm font-bold text-slate-800">Inter-Department Cricket Tournament</h4>
-            <p className="text-xs text-slate-500 mt-1">
-              Annual championship clash between engineering and business faculties.
-            </p>
-            <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
-              <span>Dec 05, 2026</span>
-              <span>•</span>
-              <span>Main Campus Ground</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition">
+              <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-blue-100 text-blue-800 mb-2">
+                Technology
+              </span>
+              <h4 className="text-sm font-bold text-slate-800">BAUST CSE Fest 2026</h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Hackathon, competitive programming, project display, and gaming tournaments.
+              </p>
+              <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
+                <span>Nov 20, 2026</span>
+                <span>•</span>
+                <span>Central Auditorium</span>
+              </div>
             </div>
-          </div>
 
-          <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition">
-            <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-purple-100 text-purple-800 mb-2">
-              Cultural
-            </span>
-            <h4 className="text-sm font-bold text-slate-800">BAUST Cultural Gala Night</h4>
-            <p className="text-xs text-slate-500 mt-1">
-              Music, drama, arts exhibition, and award ceremony honoring student achievements.
-            </p>
-            <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
-              <span>Dec 18, 2026</span>
-              <span>•</span>
-              <span>Open Air Stage</span>
+            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition">
+              <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-100 text-emerald-800 mb-2">
+                Sports
+              </span>
+              <h4 className="text-sm font-bold text-slate-800">Inter-Department Cricket Tournament</h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Annual championship clash between engineering and business faculties.
+              </p>
+              <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
+                <span>Dec 05, 2026</span>
+                <span>•</span>
+                <span>Main Campus Ground</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition">
+              <span className="inline-block px-2 py-0.5 text-[10px] font-semibold rounded bg-purple-100 text-purple-800 mb-2">
+                Cultural
+              </span>
+              <h4 className="text-sm font-bold text-slate-800">BAUST Cultural Gala Night</h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Music, drama, arts exhibition, and award ceremony honoring student achievements.
+              </p>
+              <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1">
+                <span>Dec 18, 2026</span>
+                <span>•</span>
+                <span>Open Air Stage</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Organizer Rejection Reason Modal */}
       {rejectingReg && (

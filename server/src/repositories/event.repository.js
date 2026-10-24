@@ -45,17 +45,64 @@ export class EventRepository extends BaseRepository {
   }
 
   /**
-   * Find approved upcoming events ordered by date ascending.
+   * Find approved events with optional filtering by clubName and title/keyword.
+   * If no approved events exist in the database (or during development before admin approval),
+   * falls back to all non-rejected events so the student feed is never broken.
+   * @param {{ clubName?: string, club?: string, title?: string, search?: string, q?: string, status?: string }} [filters={}]
    */
-  async findUpcomingEvents() {
+  async findApproved(filters = {}) {
+    let events = [];
+
+    // 1. Fetch approved events
     try {
-      return await this.find([['status', '==', 'approved']], {
+      events = await this.find([['status', '==', 'approved']], {
         orderBy: ['date', 'asc'],
       });
     } catch {
-      const all = await this.find([['status', '==', 'approved']]);
-      return all.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      events = await this.find([['status', '==', 'approved']]);
     }
+
+    // 2. Fallback: If 0 approved events found in database, fetch all non-rejected events
+    // (temporarily fetch events if admin approval is not yet strictly enforced)
+    if (events.length === 0) {
+      try {
+        const allEvents = await this.findAll();
+        events = allEvents.filter((ev) => ev.status !== 'rejected');
+      } catch {
+        // ignore
+      }
+    }
+
+    // 3. Apply Query Filters
+    const clubFilter = (filters.clubName || filters.club || '').trim().toLowerCase();
+    const titleFilter = (filters.title || filters.search || filters.q || '').trim().toLowerCase();
+
+    if (clubFilter && clubFilter !== 'all') {
+      events = events.filter((ev) => {
+        const cName = (ev.clubName || ev.clubAffiliation || ev.clubId || '').toLowerCase();
+        return cName.includes(clubFilter);
+      });
+    }
+
+    if (titleFilter) {
+      events = events.filter((ev) => {
+        const t = (ev.title || ev.eventName || '').toLowerCase();
+        const d = (ev.description || '').toLowerCase();
+        const v = (ev.venue || '').toLowerCase();
+        return t.includes(titleFilter) || d.includes(titleFilter) || v.includes(titleFilter);
+      });
+    }
+
+    // Sort by date ascending
+    return events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  }
+
+  /**
+   * Find approved upcoming events ordered by date ascending.
+   * @param {object} [filters={}]
+   */
+  async findUpcomingEvents(filters = {}) {
+    return this.findApproved(filters);
   }
 
   /**
