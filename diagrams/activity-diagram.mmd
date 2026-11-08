@@ -1,0 +1,27 @@
+flowchart TD
+    Start(["Student Submits Organizer Request"]) --> SelectClub["Select Desired Club / Society"]
+    SelectClub --> CheckRole{"Is User already Organizer or Admin?"}
+
+    CheckRole -->|Yes| RejectEarly["Throw Error: Already holds privileges"]
+    CheckRole -->|No| SetPending["Set organizerRequestStatus = pending<br/>Save clubAffiliation in Firestore"]
+
+    SetPending --> LockOut["Frontend ProtectedRoute detects pending status<br/>Redirect to PendingApprovalPage"]
+    LockOut --> AdminReviews["Admin opens Users Console / Organizer Requests"]
+
+    AdminReviews --> Decision{"Admin Decision"}
+
+    Decision -->|Reject| EnterReason["Admin inputs rejection reason"]
+    EnterReason --> SetReject["Update organizerRequestStatus = rejected<br/>Save rejectionReason"]
+    SetReject --> EndReject(["Student Notified / Remains Participant"])
+
+    Decision -->|Approve| StartTx["Start Atomic Firestore Transaction"]
+    StartTx --> CountOrganizers["Query current organizers count for requested club"]
+
+    CountOrganizers --> CheckCap{"Active Organizers Count >= 2?"}
+
+    CheckCap -->|Yes| AbortTx["Abort Transaction<br/>Return 400: Capacity Full"]
+    AbortTx --> AdminAlert(["Admin alerted to full capacity slot"])
+
+    CheckCap -->|No| CommitTx["Commit Transaction:<br/>Set role = organizer, status = approved"]
+    CommitTx --> Unlock["User unlocks Organizer Dashboard"]
+    Unlock --> EndApprove(["Process Complete"])

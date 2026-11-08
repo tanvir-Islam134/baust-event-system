@@ -1,0 +1,46 @@
+sequenceDiagram
+    autonumber
+    actor Attendee as Student / Attendee
+    participant Client as React Client (Vite)
+    participant API as Express API (/api/v1)
+    participant Service as RegistrationService
+    participant Repo as RegistrationRepository
+    participant DB as Cloud Firestore
+    actor Organizer as Club Organizer
+
+    Attendee->>Client: Clicks 'Register Now' & submits options (T-shirt, Food, bKash/Cash)
+    Client->>API: POST /api/v1/registrations (Bearer JWT)
+    API->>Service: createRegistration(authUserId, inputData)
+    Service->>Repo: createRegistrationTransactional(data)
+
+    rect rgb(240, 248, 255)
+        Note over Repo,DB: Atomic runTransaction block
+        Repo->>DB: Fetch Event document
+        DB-->>Repo: Return event (capacity: 100, registeredCount: 42)
+        Repo->>Repo: Verify registeredCount < capacity & check duplicate
+        Repo->>Repo: Generate unique Ticket Code (e.g., TKT-7K9A2)
+        Repo->>DB: Increment event.registeredCount by +1
+        Repo->>DB: Insert new Registration record (status: 'pending')
+    end
+
+    DB-->>Service: Registration created
+    Service-->>API: Return ticket code & pending registration
+    API-->>Client: 201 Created { ticketCode, status: 'pending' }
+    Client-->>Attendee: Display Ticket Pass & Confirmation Modal
+
+    Organizer->>Client: Navigates to Organizer Dashboard -> Registration Queue
+    Client->>API: GET /api/v1/registrations/organizer/pending
+    API->>Service: getOrganizerPendingRegistrations(organizerUid)
+    Service->>DB: Query registrations for organizer's club
+    DB-->>Service: Return pending list
+    Service-->>Client: Return hydrated registrations with attendee cohort data
+    Client-->>Organizer: Displays pending applicant list
+
+    Organizer->>Client: Clicks 'Accept' on registration
+    Client->>API: POST /api/v1/registrations/:id/approve
+    API->>Service: updateRegistrationStatusByOrganizer(organizerUid, regId, 'approved')
+    Service->>DB: Verify event belongs to organizer's club
+    Service->>DB: Update registration status = 'approved', reviewedBy = organizerUid
+    DB-->>API: Updated successfully
+    API-->>Client: 200 OK
+    Client-->>Organizer: Updates UI to 'Accepted' & notifies attendee

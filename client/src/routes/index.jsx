@@ -7,6 +7,7 @@ import RegisterPage from '../pages/RegisterPage.jsx';
 import PendingApprovalPage from '../pages/PendingApprovalPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
 import EventsPage from '../pages/EventsPage.jsx';
+import CalendarPage from '../pages/CalendarPage.jsx';
 import EventDetailsPage from '../pages/EventDetailsPage.jsx';
 import ProfilePage from '../pages/ProfilePage.jsx';
 import UsersPage from '../pages/UsersPage.jsx';
@@ -35,10 +36,14 @@ const router = createBrowserRouter([
   {
     element: <MainLayout />,
     children: [
-      // Publicly viewable event catalog & event details
+      // Publicly viewable event catalog, calendar & event details
       {
         path: '/events',
         element: <EventsPage />,
+      },
+      {
+        path: '/calendar',
+        element: <CalendarPage />,
       },
       {
         path: '/events/create',

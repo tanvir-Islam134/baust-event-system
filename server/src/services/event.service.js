@@ -2,10 +2,23 @@ import { eventRepository } from '../repositories/event.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { CreateEventInputSchema, UpdateEventStatusSchema } from '../schemas/event.schema.js';
+import { attachConflictFlags } from '../utils/conflictDetector.js';
 
 /**
- * Service handling event creation, discovery, and status management.
+ * Service handling event creation, discovery, conflict management, and status updates.
  */
+
+/**
+ * Helper to fetch all active events for cross-schedule conflict evaluation.
+ */
+const getAllActiveEvents = async () => {
+  try {
+    const all = await eventRepository.findAll();
+    return all.filter((e) => e.status !== 'rejected');
+  } catch {
+    return [];
+  }
+};
 
 /**
  * Create a new event under pending review.
@@ -78,29 +91,64 @@ export const createEvent = async (creatorUid, rawEventData) => {
 
 /**
  * List all public approved events with optional query filters (clubName, search/title).
+ * Attaches conflict detection flags (`hasConflict: true/false`).
  * @param {object} [filters={}]
  */
 export const getApprovedEvents = async (filters = {}) => {
-  return eventRepository.findApproved(filters);
+  const events = await eventRepository.findApproved(filters);
+  const activeEvents = await getAllActiveEvents();
+  return attachConflictFlags(events, activeEvents);
 };
 
 /**
  * List events created by a specific organizer or admin.
+ * Attaches conflict detection flags (`hasConflict: true/false`).
  * @param {string} creatorUid
  */
 export const getMyEvents = async (creatorUid) => {
-  return eventRepository.findByCreator(creatorUid);
+  const events = await eventRepository.findByCreator(creatorUid);
+  const activeEvents = await getAllActiveEvents();
+  return attachConflictFlags(events, activeEvents);
 };
 
 /**
  * List pending events awaiting administrative review.
+ * Attaches conflict detection flags (`hasConflict: true/false`).
  */
 export const getAdminQueue = async () => {
-  return eventRepository.findPendingEvents();
+  const events = await eventRepository.findPendingEvents();
+  const activeEvents = await getAllActiveEvents();
+  return attachConflictFlags(events, activeEvents);
 };
 
 /**
- * Retrieve public event details by ID.
+ * List events for calendar view (approved + pending/organizer events) with conflict flags.
+ * @param {object} [filters={}]
+ */
+export const getCalendarEvents = async (filters = {}) => {
+  const allEvents = await getAllActiveEvents();
+  let events = allEvents;
+
+  // Filter if club specified
+  if (filters.clubName && filters.clubName !== 'all') {
+    const c = filters.clubName.trim().toLowerCase();
+    events = events.filter((ev) => {
+      const club = (ev.clubName || ev.clubAffiliation || '').toLowerCase();
+      return club.includes(c);
+    });
+  }
+
+  // Filter by category if specified
+  if (filters.category && filters.category !== 'all') {
+    const cat = filters.category.trim().toLowerCase();
+    events = events.filter((ev) => (ev.category || 'General').toLowerCase() === cat);
+  }
+
+  return attachConflictFlags(events, allEvents);
+};
+
+/**
+ * Retrieve public event details by ID with conflict details.
  * @param {string} eventId
  */
 export const getEventById = async (eventId) => {
@@ -108,7 +156,9 @@ export const getEventById = async (eventId) => {
   if (!event) {
     throw new AppError(`Event with ID '${eventId}' not found`, 404);
   }
-  return event;
+  const activeEvents = await getAllActiveEvents();
+  const [flagged] = attachConflictFlags([event], activeEvents);
+  return flagged;
 };
 
 /**

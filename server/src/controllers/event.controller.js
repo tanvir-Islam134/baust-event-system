@@ -40,6 +40,26 @@ export const getApproved = async (req, res, next) => {
 };
 
 /**
+ * GET /api/v1/events/calendar
+ * Public/Protected: List events for calendar view with schedule conflict flags.
+ */
+export const getCalendarEvents = async (req, res, next) => {
+  try {
+    const { clubName, club, category } = req.query;
+    const events = await eventService.getCalendarEvents({
+      clubName: clubName || club,
+      category,
+    });
+    res.status(200).json({
+      success: true,
+      data: events,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/events/my-events
  * Protected: List events created by current user.
  */

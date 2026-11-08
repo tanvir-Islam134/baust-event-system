@@ -18,10 +18,12 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
 
   const initialFormState = {
     title: '',
+    category: 'General',
     description: '',
     bannerUrl: '',
     date: '',
     time: '10:00 AM',
+    endTime: '12:00 PM',
     venue: '',
     ticketPrice: 0,
     capacity: 100,
@@ -122,11 +124,13 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
       const payload = {
         title: formData.title.trim(),
         eventName: formData.title.trim(),
+        category: formData.category || 'General',
         description: formData.description.trim(),
         bannerUrl: formData.bannerUrl.trim(),
         date: formData.date,
         time: formData.time.trim(),
         startTime: formData.time.trim(),
+        endTime: formData.endTime ? formData.endTime.trim() : '',
         venue: formData.venue.trim(),
         ticketPrice: Number(formData.ticketPrice) || 0,
         fee: Number(formData.ticketPrice) || 0,
@@ -209,27 +213,50 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
               Basic Event Information
             </h3>
 
-            {/* Event Name */}
-            <div>
-              <label htmlFor="title" className="block text-xs font-semibold text-slate-700 mb-1">
-                Event Name / Title <span className="text-rose-500">*</span>
-              </label>
-              <input
-                id="title"
-                name="title"
-                type="text"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="e.g. BAUST CSE Fest 2026 - Hackathon & Game Jam"
-                className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
-                  fieldErrors.title
-                    ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
-                    : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
-                }`}
-              />
-              {fieldErrors.title && (
-                <p className="mt-1 text-xs text-rose-600 font-medium">{fieldErrors.title}</p>
-              )}
+            {/* Event Name & Category */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
+                <label htmlFor="title" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Event Name / Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="title"
+                  name="title"
+                  type="text"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="e.g. BAUST CSE Fest 2026 - Hackathon & Game Jam"
+                  className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
+                    fieldErrors.title
+                      ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
+                      : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                  }`}
+                />
+                {fieldErrors.title && (
+                  <p className="mt-1 text-xs text-rose-600 font-medium">{fieldErrors.title}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="category" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Event Category
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                >
+                  <option value="Tech">Tech / Hackathon</option>
+                  <option value="Workshop">Workshop</option>
+                  <option value="Seminar">Seminar</option>
+                  <option value="Cultural">Cultural</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Competition">Competition</option>
+                  <option value="General">General</option>
+                </select>
+              </div>
             </div>
 
             {/* Event Description */}
@@ -327,10 +354,10 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                 )}
               </div>
 
-              {/* Time */}
+              {/* Start Time */}
               <div>
                 <label htmlFor="time" className="block text-xs font-semibold text-slate-700 mb-1">
-                  Event Time <span className="text-rose-500">*</span>
+                  Start Time <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="time"
@@ -348,6 +375,22 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                 {fieldErrors.time && (
                   <p className="mt-1 text-xs text-rose-600 font-medium">{fieldErrors.time}</p>
                 )}
+              </div>
+
+              {/* End Time (Optional for Conflict Detection) */}
+              <div>
+                <label htmlFor="endTime" className="block text-xs font-semibold text-slate-700 mb-1">
+                  End Time
+                </label>
+                <input
+                  id="endTime"
+                  name="endTime"
+                  type="text"
+                  value={formData.endTime}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 12:00 PM or 04:30 PM"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                />
               </div>
 
               {/* Ticket Price */}

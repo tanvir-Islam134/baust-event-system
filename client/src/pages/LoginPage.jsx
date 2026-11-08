@@ -1,57 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
+/**
+ * Temporary Login Page
+ * Features a direct "Login with Google" button to test the Firebase Google Sign-In -> backend JWT flow.
+ */
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithGoogle, logout, isAuthenticated, user, isPendingOrganizer } = useAuth();
+  const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
 
   const from = location.state?.from?.pathname || '/dashboard';
-
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(location.state?.successMessage || location.state?.message || null);
-  const [accountNotFound, setAccountNotFound] = useState(false);
 
-  useEffect(() => {
-    if (location.state?.successMessage || location.state?.message) {
-      setSuccessMsg(location.state.successMessage || location.state.message);
-    }
-  }, [location.state]);
-
-  useEffect(() => {
-    if (successMsg) {
-      const timer = setTimeout(() => setSuccessMsg(null), 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMsg]);
-
-  // If already logged in, check if pending or show options
+  // If already authenticated, display status & quick navigation
   if (isAuthenticated && user) {
-    if (isPendingOrganizer) {
-      return <Navigate to="/pending-approval" replace />;
-    }
-
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-md p-6 border border-slate-200 text-center">
-          <p className="text-sm text-slate-600 mb-4">
-            You are currently logged in as <span className="font-semibold text-slate-800">{user.email}</span> ({user.role}).
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-1">Already Authenticated</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            Signed in as <span className="font-semibold text-slate-800">{user.email}</span>
+            <br />
+            Role: <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 capitalize">{user.role}</span>
           </p>
-          <div className="flex flex-col gap-2">
+
+          <div className="flex flex-col gap-3">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(from, { replace: true })}
               className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
             >
-              Go to Dashboard
+              Continue to {from === '/dashboard' ? 'Dashboard' : 'Page'} &rarr;
             </button>
             <button
               onClick={async () => {
                 await logout();
-                navigate('/');
               }}
               className="w-full py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition"
             >
@@ -67,42 +59,20 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
-      setSuccessMsg(null);
-      setAccountNotFound(false);
-      const loginRes = await loginWithGoogle();
-      const loggedUser = loginRes?.user;
-      const isPending =
-        (loggedUser?.organizerRequestStatus === 'pending' || loggedUser?.organizerStatus === 'pending') &&
-        loggedUser?.role !== 'organizer' &&
-        loggedUser?.role !== 'admin';
-
-      if (isPending) {
-        navigate('/pending-approval', { replace: true });
-      } else {
-        navigate(from, { replace: true });
-      }
+      await loginWithGoogle();
+      navigate(from, { replace: true });
     } catch (err) {
-      // Immediately clear Firebase session on failure
       try {
         await signOut(auth);
-      } catch (signOutErr) {
+      } catch {
         // ignore
       }
-
-      const status = err.response?.status;
       const message =
         err.response?.data?.error?.message ||
         err.response?.data?.message ||
         err.message ||
-        'Authentication failed';
-
-      if (status === 404 || message.toLowerCase().includes('account not found')) {
-        setErrorMsg('Account not found. Please create an account first.');
-        setAccountNotFound(true);
-      } else {
-        setErrorMsg(message);
-        setAccountNotFound(false);
-      }
+        'Google Authentication failed';
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }
@@ -110,69 +80,33 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-slate-50">
-      {/* Toast Success Alert */}
-      {successMsg && (
-        <div className="fixed top-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in bg-emerald-600 text-white border border-emerald-700">
-          <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-          </svg>
-          <div className="flex-1 text-sm font-medium">{successMsg}</div>
-          <button onClick={() => setSuccessMsg(null)} className="text-white/80 hover:text-white">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Toast Error Alert */}
-      {errorMsg && (
-        <div className="fixed top-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in bg-rose-600 text-white border border-rose-700">
-          <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <div className="flex-1 text-sm font-medium">{errorMsg}</div>
-          <button onClick={() => setErrorMsg(null)} className="text-white/80 hover:text-white">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      <div className="max-w-md w-full bg-white rounded-xl shadow-md p-8 border border-slate-200">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <div className="text-center mb-6">
-          <span className="inline-block py-1 px-3 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 uppercase tracking-wider mb-2">
+          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white text-xl mx-auto mb-3 shadow">
+            B
+          </div>
+          <span className="inline-block py-1 px-3 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 uppercase tracking-wider mb-2">
             BAUST Event System
           </span>
-          <h1 className="text-2xl font-bold text-slate-800">Sign In</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Account Login</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Sign in with your Google account to access events and dashboard
+            Sign in with your Google account to test the Phase 1 Authentication flow.
           </p>
         </div>
 
-        {accountNotFound && (
-          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
-            <div className="flex items-center gap-2 font-bold mb-1">
-              <span>⚠️</span>
-              <span>Account Not Found</span>
-            </div>
-            <p className="mb-3">
-              We couldn't find an existing account matching your Google account. Please create an account to get started.
-            </p>
-            <button
-              onClick={() => navigate('/register')}
-              className="w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition"
-            >
-              Go to Sign Up Page &rarr;
-            </button>
+        {errorMsg && (
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">{errorMsg}</div>
           </div>
         )}
 
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition font-medium text-slate-700 text-sm shadow-sm disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition font-medium text-slate-700 text-sm shadow-sm disabled:opacity-50"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
@@ -196,17 +130,11 @@ export default function LoginPage() {
               />
             </svg>
           )}
-          <span>{loading ? 'Authenticating...' : 'Continue with Google'}</span>
+          <span>{loading ? 'Signing in with Google...' : 'Login with Google'}</span>
         </button>
 
         <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2 text-center text-xs text-slate-500">
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">
-              Sign up with Google
-            </Link>
-          </p>
-          <Link to="/" className="text-slate-400 hover:text-slate-600">
+          <Link to="/" className="text-slate-400 hover:text-slate-600 transition">
             &larr; Back to Home
           </Link>
         </div>

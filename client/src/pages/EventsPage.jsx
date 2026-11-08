@@ -109,15 +109,25 @@ export default function EventsPage() {
           </p>
         </div>
 
-        {canCreateEvent && (
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <Link
-            to="/dashboard?tab=create-event"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition whitespace-nowrap self-start sm:self-auto"
+            to="/calendar"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs sm:text-sm font-semibold transition"
           >
-            <span>➕</span>
-            <span>Create New Event</span>
+            <span>📅</span>
+            <span>View Calendar</span>
           </Link>
-        )}
+
+          {canCreateEvent && (
+            <Link
+              to="/dashboard?tab=create-event"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition whitespace-nowrap"
+            >
+              <span>➕</span>
+              <span>Create New Event</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Admin Tabs Toggle */}

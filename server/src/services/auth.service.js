@@ -44,9 +44,11 @@ const generateAuthResponse = (user, uid) => {
 };
 
 /**
- * Service to handle Firebase ID token verification for existing users (Login).
- * Strictly checks if the user exists in the database.
- * If user does NOT exist, returns 404: "Account not found. Please create an account first."
+ * Service to handle Firebase ID token verification for users (Login).
+ * Verifies token via firebase-admin and upserts the user in Firestore:
+ * - If user is new: creates profile in Firestore with extracted name/email and default role 'participant'.
+ * - If user exists: retrieves existing profile (ensuring admin role if matches admin email).
+ * - Generates and returns custom JWT containing uid, email, and role.
  * @param {string} firebaseToken
  */
 export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
@@ -61,22 +63,44 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
     throw new AppError(`Firebase token verification failed: ${error.message}`, 401);
   }
 
-  const { uid, email } = decodedToken;
+  const { uid, email, name: tokenName } = decodedToken;
 
   if (!email) {
     throw new AppError('Authenticated Firebase account does not have an associated email address', 400);
   }
 
+  const normalizedEmail = email.trim().toLowerCase();
+  const isAdminEmail = normalizedEmail === 'tanvirbaust134@gmail.com';
+
   // Check if user already exists in Firestore
   let user = await userRepository.findById(uid);
 
   if (!user) {
-    throw new AppError('Account not found. Please create an account first.', 404);
-  }
+    // Upsert new user with extracted name/email and default role 'participant' (or 'admin' for primary admin)
+    const finalRole = isAdminEmail ? 'admin' : 'participant';
+    const finalName = tokenName || email.split('@')[0] || 'BAUST User';
 
-  // Ensure admin role for tanvirbaust134@gmail.com
-  if (email.trim().toLowerCase() === 'tanvirbaust134@gmail.com' && user.role !== 'admin') {
-    user = await userRepository.update(uid, { role: 'admin' });
+    user = await userRepository.upsertUser(uid, {
+      name: finalName,
+      email: normalizedEmail,
+      role: finalRole,
+      department: null,
+      studentId: null,
+      mobileNumber: null,
+      batch: null,
+      section: null,
+      level: null,
+      term: null,
+      clubAffiliation: null,
+      organizerRequestStatus: 'none',
+      organizerStatus: 'none',
+      organizerRejectionReason: null,
+    });
+  } else {
+    // Ensure admin role for tanvirbaust134@gmail.com
+    if (isAdminEmail && user.role !== 'admin') {
+      user = await userRepository.update(uid, { role: 'admin' });
+    }
   }
 
   return generateAuthResponse(user, uid);

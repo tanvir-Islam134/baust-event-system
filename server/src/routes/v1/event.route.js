@@ -34,6 +34,9 @@ router.get(
   eventController.getAdminQueue
 );
 
+// GET /api/v1/events/calendar - Public: List events for calendar view with conflict flags
+router.get('/calendar', eventController.getCalendarEvents);
+
 // GET /api/v1/events/:id - Public: Get event details by ID
 router.get('/:id', eventController.getById);
 

@@ -1,0 +1,49 @@
+flowchart LR
+    Student["Student (Participant)"]
+    Organizer["Club Organizer"]
+    Admin["System Administrator"]
+    Guest["Guest Attendee"]
+
+    subgraph ClubSphere["ClubSphere System Boundary"]
+        UC_Auth["Sign Up / Login (Google OAuth + Custom JWT)"]
+        UC_Cohort["Update Student Cohort Info"]
+        UC_ReqOrg["Apply for Organizer Role (Club Selection)"]
+        UC_Browse["Browse Approved Events Catalog"]
+        UC_Register["Register for Event & Receive Ticket"]
+        UC_Vote["Cast Vote in Event Polls"]
+
+        UC_CreateEvt["Create Event (Linked to Club)"]
+        UC_ManageEvt["Manage Club Events"]
+        UC_ReviewReg["Review & Approve Attendee Registrations"]
+        UC_AddExp["Record Event Expense"]
+
+        UC_ApproveOrg["Approve Organizer Request (Enforce Max 2/Club)"]
+        UC_DemoteOrg["Demote Organizer to Student"]
+        UC_ReviewEvt["Review & Approve Pending Events"]
+        UC_AddInc["Record Sponsor / Alumni Income"]
+        UC_CancelReg["Cancel Registration & Recalculate Capacity"]
+    end
+
+    Student --> UC_Auth
+    Student --> UC_Cohort
+    Student --> UC_ReqOrg
+    Student --> UC_Browse
+    Student --> UC_Register
+    Student --> UC_Vote
+
+    Guest --> UC_Browse
+    Guest --> UC_Register
+
+    Organizer --> UC_Auth
+    Organizer --> UC_Browse
+    Organizer --> UC_CreateEvt
+    Organizer --> UC_ManageEvt
+    Organizer --> UC_ReviewReg
+    Organizer --> UC_AddExp
+
+    Admin --> UC_Auth
+    Admin --> UC_ApproveOrg
+    Admin --> UC_DemoteOrg
+    Admin --> UC_ReviewEvt
+    Admin --> UC_AddInc
+    Admin --> UC_CancelReg

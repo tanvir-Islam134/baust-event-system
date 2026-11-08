@@ -10,6 +10,7 @@ export const EventItemsSchema = z.object({
 export const EventSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
   eventName: z.string().trim().optional(),
+  category: z.string().trim().default('General'),
   description: z.string().trim().default(''),
   bannerUrl: z.string().trim().default(''),
   date: z.string().trim().min(1, 'Date is required (e.g. YYYY-MM-DD)'),
@@ -37,6 +38,8 @@ export const CreateEventInputSchema = z
   .object({
     title: z.string().trim().min(1, 'Title / Event name is required').optional(),
     eventName: z.string().trim().min(1).optional(),
+    category: z.string().trim().optional(),
+    type: z.string().trim().optional(),
     description: z.string().trim().default(''),
     bannerUrl: z.string().trim().default(''),
     imageUrl: z.string().trim().default(''),
@@ -66,12 +69,14 @@ export const CreateEventInputSchema = z
     const finalTitle = (data.title || data.eventName || '').trim();
     const finalTime = (data.time || data.startTime || '').trim();
     const finalBanner = (data.bannerUrl || data.imageUrl || '').trim();
+    const finalCategory = (data.category || data.type || 'General').trim();
     const finalPrice =
       data.ticketPrice !== undefined ? data.ticketPrice : data.fee !== undefined ? data.fee : 0;
     return {
       ...data,
       title: finalTitle,
       eventName: finalTitle,
+      category: finalCategory,
       bannerUrl: finalBanner,
       time: finalTime,
       startTime: finalTime,

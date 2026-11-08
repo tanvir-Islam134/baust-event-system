@@ -23,6 +23,15 @@ export const eventService = {
   },
 
   /**
+   * Get events for calendar view with schedule conflict flags.
+   * @param {object} [params={}]
+   */
+  getCalendarEvents: async (params = {}) => {
+    const response = await api.get('/events/calendar', { params });
+    return response.data?.data || response.data;
+  },
+
+  /**
    * Get events created by current organizer/admin.
    */
   getMyEvents: async () => {

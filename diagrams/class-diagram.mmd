@@ -1,0 +1,121 @@
+classDiagram
+    class User {
+        +String id
+        +String name
+        +String email
+        +String role
+        +String department
+        +String studentId
+        +String batch
+        +String section
+        +String level
+        +String term
+        +String mobileNumber
+        +String clubAffiliation
+        +String organizerRequestStatus
+        +String organizerStatus
+        +String organizerRejectionReason
+        +DateTime createdAt
+        +DateTime updatedAt
+        +updateProfile()
+        +requestOrganizer()
+    }
+
+    class Event {
+        +String id
+        +String title
+        +String description
+        +String bannerUrl
+        +String date
+        +String time
+        +String venue
+        +Number ticketPrice
+        +Number capacity
+        +Number registeredCount
+        +Object items
+        +String status
+        +String createdBy
+        +String organizerId
+        +String clubName
+        +String rejectionReason
+        +DateTime createdAt
+        +DateTime updatedAt
+        +isFull() Boolean
+    }
+
+    class Registration {
+        +String id
+        +String eventId
+        +String clubId
+        +String userId
+        +Object guest
+        +String status
+        +String rejectionReason
+        +String reviewedBy
+        +DateTime reviewedAt
+        +String batch
+        +String section
+        +String tshirtSize
+        +String foodType
+        +String paymentMethod
+        +String paymentStatus
+        +String trxId
+        +String ticketCode
+        +Object received
+        +DateTime createdAt
+        +DateTime updatedAt
+    }
+
+    class Expense {
+        +String id
+        +String eventId
+        +String category
+        +Number amount
+        +String note
+        +String receiptUrl
+        +String addedBy
+        +DateTime createdAt
+    }
+
+    class Income {
+        +String id
+        +String eventId
+        +String source
+        +Number amount
+        +String type
+        +String addedBy
+        +DateTime createdAt
+    }
+
+    class Poll {
+        +String id
+        +String eventId
+        +String question
+        +List~PollOption~ options
+        +DateTime expiresAt
+        +String createdBy
+        +DateTime createdAt
+    }
+
+    class PollOption {
+        +String id
+        +String text
+        +Number voteCount
+    }
+
+    class Vote {
+        +String pollId
+        +String userId
+        +String selectedOption
+        +DateTime votedAt
+    }
+
+    User "1" --> "*" Event : creates
+    User "1" --> "*" Registration : registers
+    User "1" --> "*" Vote : casts
+    Event "1" --> "*" Registration : has
+    Event "1" --> "*" Expense : incurs
+    Event "1" --> "*" Income : receives
+    Event "1" --> "*" Poll : features
+    Poll "1" *-- "*" PollOption : contains
+    Poll "1" --> "*" Vote : records
