@@ -1,11 +1,34 @@
 import * as registrationService from '../services/registration.service.js';
+import * as eventService from '../services/event.service.js';
 
 /**
  * POST /api/v1/registrations
  * Register for an event (authenticated participant or guest).
+ * Validates that event is not in the past before registering.
  */
 export const create = async (req, res, next) => {
   try {
+    const { eventId } = req.body;
+
+    // Check if event date has passed
+    if (eventId) {
+      const event = await eventService.getEventById(eventId);
+      if (event && event.date) {
+        const eventDate = new Date(event.date);
+        const now = new Date();
+
+        if (eventDate < now) {
+          return res.status(400).json({
+            success: false,
+            error: {
+              message: 'Registration is closed for past events.',
+            },
+            message: 'Registration is closed for past events.',
+          });
+        }
+      }
+    }
+
     const registration = await registrationService.createRegistration(req.user?.uid || null, req.body);
     res.status(201).json({
       success: true,

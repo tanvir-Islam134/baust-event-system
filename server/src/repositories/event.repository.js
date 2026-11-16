@@ -46,14 +46,13 @@ export class EventRepository extends BaseRepository {
 
   /**
    * Find approved events with optional filtering by clubName and title/keyword.
-   * If no approved events exist in the database (or during development before admin approval),
-   * falls back to all non-rejected events so the student feed is never broken.
+   * Strictly filters for status === 'approved' to prevent data leakage of pending events.
    * @param {{ clubName?: string, club?: string, title?: string, search?: string, q?: string, status?: string }} [filters={}]
    */
   async findApproved(filters = {}) {
     let events = [];
 
-    // 1. Fetch approved events
+    // Fetch strictly approved events
     try {
       events = await this.find([['status', '==', 'approved']], {
         orderBy: ['date', 'asc'],
@@ -62,18 +61,7 @@ export class EventRepository extends BaseRepository {
       events = await this.find([['status', '==', 'approved']]);
     }
 
-    // 2. Fallback: If 0 approved events found in database, fetch all non-rejected events
-    // (temporarily fetch events if admin approval is not yet strictly enforced)
-    if (events.length === 0) {
-      try {
-        const allEvents = await this.findAll();
-        events = allEvents.filter((ev) => ev.status !== 'rejected');
-      } catch {
-        // ignore
-      }
-    }
-
-    // 3. Apply Query Filters
+    // Apply Query Filters
     const clubFilter = (filters.clubName || filters.club || '').trim().toLowerCase();
     const titleFilter = (filters.title || filters.search || filters.q || '').trim().toLowerCase();
 

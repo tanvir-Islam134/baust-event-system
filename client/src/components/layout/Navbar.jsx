@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import AdminNotificationBell from '../admin/AdminNotificationBell.jsx';
 
 export default function Navbar({ onToggleSidebar }) {
   const { user, logout } = useAuth();
@@ -53,9 +54,12 @@ export default function Navbar({ onToggleSidebar }) {
       </div>
 
       {/* Right User Bar */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         {user ? (
           <div className="flex items-center gap-3">
+            {/* Real-time Admin Notifications */}
+            {user.role === 'admin' && <AdminNotificationBell />}
+
             <div className="text-right hidden sm:block">
               <span className="block text-xs font-semibold text-slate-800">{user.name}</span>
               <span

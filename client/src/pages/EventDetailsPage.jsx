@@ -55,6 +55,10 @@ export default function EventDetailsPage() {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
+    if (isPastEvent) {
+      setRegError('Registration is closed for past events.');
+      return;
+    }
     try {
       setRegistering(true);
       setRegError(null);
@@ -152,6 +156,7 @@ export default function EventDetailsPage() {
   const isApproved = event.status === 'approved';
   const capacityPercent = Math.min(100, Math.round((regCount / capacity) * 100));
   const isFree = Number(event.fee) === 0;
+  const isPastEvent = event?.date ? new Date(event.date) < new Date() : false;
 
   return (
     <div className="space-y-6">
@@ -196,6 +201,12 @@ export default function EventDetailsPage() {
         <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-6 sm:p-8 text-white">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2 flex-wrap">
+              {isPastEvent && (
+                <span className="px-3 py-1 text-xs font-bold rounded-full bg-slate-700/80 text-slate-200 border border-slate-600 flex items-center gap-1 shadow-xs">
+                  <span>🏁</span>
+                  <span>Event Ended</span>
+                </span>
+              )}
               <span
                 className={`px-3 py-1 text-xs font-bold rounded-full ${
                   isFree ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
@@ -322,9 +333,14 @@ export default function EventDetailsPage() {
             </div>
 
             {/* Registration Action */}
-            <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-200">
+            <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
               <div className="text-xs text-slate-500">
-                {!isApproved ? (
+                {isPastEvent ? (
+                  <span className="text-slate-500 font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                    Event has ended. Registration is closed.
+                  </span>
+                ) : !isApproved ? (
                   <span className="text-amber-600 font-medium">Registration is closed (event is pending review).</span>
                 ) : isFull ? (
                   <span className="text-rose-600 font-semibold">Maximum capacity reached. Registrations are closed.</span>
@@ -333,7 +349,21 @@ export default function EventDetailsPage() {
                 )}
               </div>
 
-              {isApproved && !isFull && (
+              {isPastEvent ? (
+                <button
+                  disabled
+                  className="px-6 py-2.5 bg-slate-200 text-slate-500 font-bold rounded-lg text-sm cursor-not-allowed shadow-none"
+                >
+                  Registration Closed
+                </button>
+              ) : isFull ? (
+                <button
+                  disabled
+                  className="px-6 py-2.5 bg-slate-200 text-slate-400 font-bold rounded-lg text-sm cursor-not-allowed"
+                >
+                  Sold Out
+                </button>
+              ) : isApproved ? (
                 <button
                   onClick={() => {
                     setRegError(null);
@@ -343,7 +373,7 @@ export default function EventDetailsPage() {
                 >
                   Register Now
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

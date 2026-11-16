@@ -279,6 +279,7 @@ export default function StudentEventFeed({
             const registeredCount = Number(event.registeredCount) || 0;
             const capacity = Number(event.capacity) || 100;
             const percentFilled = Math.min(Math.round((registeredCount / capacity) * 100), 100);
+            const isPast = event.date ? new Date(event.date) < new Date() : false;
 
             const hostingClub =
               event.clubName || event.clubAffiliation || 'BAUST Student Organization';
@@ -286,7 +287,9 @@ export default function StudentEventFeed({
             return (
               <div
                 key={event.id}
-                className="bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group"
+                className={`bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group ${
+                  isPast ? 'opacity-80' : ''
+                }`}
               >
                 {/* 1. Banner Image Header */}
                 <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
@@ -315,11 +318,21 @@ export default function StudentEventFeed({
 
                   {/* Badges Overlay */}
                   <div className="absolute top-3 inset-x-3 flex items-start justify-between gap-2 pointer-events-none">
-                    {/* Club Name Badge */}
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-900/85 text-white backdrop-blur-md border border-white/20 shadow-sm truncate max-w-[70%]">
-                      <span className="text-xs">🏛️</span>
-                      <span className="truncate">{hostingClub}</span>
-                    </span>
+                    <div className="flex items-center gap-1.5 truncate max-w-[70%]">
+                      {/* Club Name Badge */}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-900/85 text-white backdrop-blur-md border border-white/20 shadow-sm truncate">
+                        <span className="text-xs">🏛️</span>
+                        <span className="truncate">{hostingClub}</span>
+                      </span>
+
+                      {/* Completed / Past Badge */}
+                      {isPast && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800/95 text-slate-200 border border-slate-600 shadow-sm whitespace-nowrap">
+                          <span>🏁</span>
+                          <span>Completed</span>
+                        </span>
+                      )}
+                    </div>
 
                     {/* Ticket Price Badge */}
                     <span
@@ -414,9 +427,13 @@ export default function StudentEventFeed({
                     {/* View Details & Register Button */}
                     <Link
                       to={`/events/${event.id}`}
-                      className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group/btn"
+                      className={`w-full py-2.5 px-4 font-semibold rounded-xl text-xs sm:text-sm text-center shadow-md transition-all flex items-center justify-center gap-2 group/btn ${
+                        isPast
+                          ? 'bg-slate-700 hover:bg-slate-800 text-slate-200'
+                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-lg'
+                      }`}
                     >
-                      <span>View Details & Register</span>
+                      <span>{isPast ? 'View Event Details (Ended)' : 'View Details & Register'}</span>
                       <svg
                         className="w-4 h-4 transform group-hover/btn:translate-x-1 transition-transform"
                         fill="none"

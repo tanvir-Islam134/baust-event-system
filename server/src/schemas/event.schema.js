@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const EventStatusEnum = z.enum(['pending', 'approved', 'rejected', 'completed']);
+export const EventStatusEnum = z.enum(['pending', 'approved', 'declined', 'rejected', 'completed']);
 
 export const EventItemsSchema = z.object({
   food: z.boolean().default(false),
@@ -103,18 +103,24 @@ export const UpdateEventSchema = EventSchema.partial().omit({
 
 export const UpdateEventStatusSchema = z
   .object({
-    status: z.enum(['approved', 'rejected', 'completed']),
+    status: z.enum(['approved', 'declined', 'rejected', 'completed']),
+    reason: z.string().trim().nullable().optional(),
     rejectionReason: z.string().trim().nullable().optional(),
   })
   .refine(
     (data) => {
-      if (data.status === 'rejected') {
-        return !!data.rejectionReason && data.rejectionReason.length > 0;
+      if (data.status === 'rejected' || data.status === 'declined') {
+        const reasonText = data.rejectionReason || data.reason;
+        return typeof reasonText === 'string' && reasonText.length > 0;
       }
       return true;
     },
     {
-      message: 'Rejection reason is required when rejecting an event',
+      message: 'A reason is required when declining or rejecting an event',
       path: ['rejectionReason'],
     }
-  );
+  )
+  .transform((data) => ({
+    ...data,
+    rejectionReason: data.rejectionReason || data.reason || null,
+  }));

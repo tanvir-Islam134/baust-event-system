@@ -31,7 +31,8 @@ export const createRegistration = async (authUserId, rawData) => {
     if (
       error.message.includes('capacity') ||
       error.message.includes('Duplicate registration') ||
-      error.message.includes('not open for registration')
+      error.message.includes('not open for registration') ||
+      error.message.includes('past events')
     ) {
       throw new AppError(error.message, 400);
     }

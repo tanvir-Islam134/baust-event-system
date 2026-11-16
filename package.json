@@ -16,6 +16,9 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "firebase-admin@13.10.0": true
   }
 }
-

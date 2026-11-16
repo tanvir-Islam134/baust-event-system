@@ -15,19 +15,25 @@ export const eventService = {
 
   /**
    * Get all approved public events with optional filters (clubName, search).
+   * Explicitly requests status: 'approved' to prevent unapproved event leakage.
    * @param {object} [params={}]
    */
   getApprovedEvents: async (params = {}) => {
-    const response = await api.get('/events', { params });
+    const response = await api.get('/events', {
+      params: { status: 'approved', ...params },
+    });
     return response.data?.data || response.data;
   },
 
   /**
    * Get events for calendar view with schedule conflict flags.
+   * Explicitly requests status: 'approved' to ensure calendar only shows approved events.
    * @param {object} [params={}]
    */
   getCalendarEvents: async (params = {}) => {
-    const response = await api.get('/events/calendar', { params });
+    const response = await api.get('/events/calendar', {
+      params: { status: 'approved', ...params },
+    });
     return response.data?.data || response.data;
   },
 
@@ -53,6 +59,25 @@ export const eventService = {
    */
   getEventById: async (id) => {
     const response = await api.get(`/events/${id}`);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Update event details (Organizer or Admin).
+   * @param {string} id - Event ID
+   * @param {object} eventData
+   */
+  updateEvent: async (id, eventData) => {
+    const response = await api.put(`/events/${id}`, eventData);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Delete an event (Organizer or Admin).
+   * @param {string} id - Event ID
+   */
+  deleteEvent: async (id) => {
+    const response = await api.delete(`/events/${id}`);
     return response.data?.data || response.data;
   },
 

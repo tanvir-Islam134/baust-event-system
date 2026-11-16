@@ -19,6 +19,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const isAdmin = user?.role === 'admin';
   const isOrganizer = user?.role === 'organizer';
   const hasFinanceAccess = isAdmin || isOrganizer;
+  const canManageEvents = isOrganizer || isAdmin;
 
   const isTabActive = (tabName) => {
     return location.pathname === '/dashboard' && location.search.includes(`tab=${tabName}`);
@@ -76,8 +77,8 @@ export default function Sidebar({ isOpen, onClose }) {
           <span>Dashboard</span>
         </Link>
 
-        {/* Organizer Section: Create Event & Manage Events */}
-        {isOrganizer && (
+        {/* Event Management Section: Create Event & Manage Events (Organizer & Admin) */}
+        {canManageEvents && (
           <>
             <Link
               to="/dashboard?tab=manage-events"

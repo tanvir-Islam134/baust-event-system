@@ -1,7 +1,7 @@
 import { eventRepository } from '../repositories/event.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { AppError } from '../middlewares/errorHandler.js';
-import { CreateEventInputSchema, UpdateEventStatusSchema } from '../schemas/event.schema.js';
+import { CreateEventInputSchema, UpdateEventStatusSchema, UpdateEventSchema } from '../schemas/event.schema.js';
 import { attachConflictFlags } from '../utils/conflictDetector.js';
 
 /**
@@ -90,15 +90,55 @@ export const createEvent = async (creatorUid, rawEventData) => {
 };
 
 /**
- * List all public approved events with optional query filters (clubName, search/title).
- * Attaches conflict detection flags (`hasConflict: true/false`).
+ * List events with role-aware privacy protection against data leakage:
+ * - By default (or for students/unauthenticated users): strictly returns events where status === 'approved'.
+ * - If status === 'pending' is requested:
+ *    * Admin: returns the administrative review queue.
+ *    * Organizer: returns ONLY the organizer's own pending events.
+ *    * Others: returns an empty list to prevent unapproved event leakage.
  * @param {object} [filters={}]
+ * @param {object|null} [requestingUser=null] - Decoded JWT user payload
  */
-export const getApprovedEvents = async (filters = {}) => {
+export const getEvents = async (filters = {}, requestingUser = null) => {
+  const statusFilter = filters.status;
+
+  // 1. By default, or explicitly requesting approved events:
+  if (!statusFilter || statusFilter === 'approved') {
+    const events = await eventRepository.findApproved(filters);
+    const activeEvents = await getAllActiveEvents();
+    return attachConflictFlags(events, activeEvents);
+  }
+
+  // 2. Requesting 'pending' events:
+  if (statusFilter === 'pending') {
+    if (requestingUser?.role === 'admin') {
+      return getAdminQueue();
+    }
+    if (requestingUser?.role === 'organizer' && requestingUser.uid) {
+      const myEvents = await eventRepository.findByCreator(requestingUser.uid);
+      const myPending = myEvents.filter((ev) => ev.status === 'pending');
+      const activeEvents = await getAllActiveEvents();
+      return attachConflictFlags(myPending, activeEvents);
+    }
+    // Regular students or guests cannot access unapproved events
+    return [];
+  }
+
+  // 3. Admin requesting specific custom status:
+  if (requestingUser?.role === 'admin') {
+    const all = await eventRepository.findAll();
+    const filtered = all.filter((ev) => ev.status === statusFilter);
+    const activeEvents = await getAllActiveEvents();
+    return attachConflictFlags(filtered, activeEvents);
+  }
+
+  // Default fallback for safe public visibility:
   const events = await eventRepository.findApproved(filters);
   const activeEvents = await getAllActiveEvents();
   return attachConflictFlags(events, activeEvents);
 };
+
+export const getApprovedEvents = getEvents;
 
 /**
  * List events created by a specific organizer or admin.
@@ -122,12 +162,29 @@ export const getAdminQueue = async () => {
 };
 
 /**
- * List events for calendar view (approved + pending/organizer events) with conflict flags.
+ * List events for calendar view with strict protection against data leakage:
+ * By default, strictly returns 'approved' events.
+ * Only returns 'pending' if requestingUser is Admin, or Organizer requesting their own events.
  * @param {object} [filters={}]
+ * @param {object|null} [requestingUser=null]
  */
-export const getCalendarEvents = async (filters = {}) => {
-  const allEvents = await getAllActiveEvents();
-  let events = allEvents;
+export const getCalendarEvents = async (filters = {}, requestingUser = null) => {
+  let events = [];
+
+  // Strictly check status permissions
+  if (filters.status === 'pending') {
+    if (requestingUser?.role === 'admin') {
+      events = await eventRepository.findPendingEvents();
+    } else if (requestingUser?.role === 'organizer' && requestingUser.uid) {
+      const myEvents = await eventRepository.findByCreator(requestingUser.uid);
+      events = myEvents.filter((ev) => ev.status === 'pending');
+    } else {
+      events = [];
+    }
+  } else {
+    // Default: strictly approved events only
+    events = await eventRepository.findApproved(filters);
+  }
 
   // Filter if club specified
   if (filters.clubName && filters.clubName !== 'all') {
@@ -144,7 +201,8 @@ export const getCalendarEvents = async (filters = {}) => {
     events = events.filter((ev) => (ev.category || 'General').toLowerCase() === cat);
   }
 
-  return attachConflictFlags(events, allEvents);
+  const allActive = await getAllActiveEvents();
+  return attachConflictFlags(events, allActive);
 };
 
 /**
@@ -181,4 +239,58 @@ export const updateEventStatus = async (eventId, statusData) => {
   );
 
   return updated;
+};
+
+/**
+ * Update event details (Organizer or Admin).
+ * - Admin can update any event.
+ * - Organizer can only update their own events.
+ * @param {string} eventId
+ * @param {object} updateData
+ * @param {object} requestingUser
+ */
+export const updateEvent = async (eventId, updateData, requestingUser) => {
+  const existingEvent = await eventRepository.findById(eventId);
+  if (!existingEvent) {
+    throw new AppError(`Event with ID '${eventId}' not found`, 404);
+  }
+
+  const isAdmin = requestingUser?.role === 'admin';
+  const isOwner =
+    existingEvent.createdBy === requestingUser?.uid ||
+    existingEvent.organizerId === requestingUser?.uid;
+
+  if (!isAdmin && !isOwner) {
+    throw new AppError('Forbidden: You are not authorized to update this event', 403);
+  }
+
+  const validated = UpdateEventSchema.parse(updateData);
+  const updated = await eventRepository.updateEvent(eventId, validated);
+  return updated;
+};
+
+/**
+ * Delete an event (Organizer or Admin).
+ * - Admin can delete any event.
+ * - Organizer can only delete their own events.
+ * @param {string} eventId
+ * @param {object} requestingUser
+ */
+export const deleteEvent = async (eventId, requestingUser) => {
+  const existingEvent = await eventRepository.findById(eventId);
+  if (!existingEvent) {
+    throw new AppError(`Event with ID '${eventId}' not found`, 404);
+  }
+
+  const isAdmin = requestingUser?.role === 'admin';
+  const isOwner =
+    existingEvent.createdBy === requestingUser?.uid ||
+    existingEvent.organizerId === requestingUser?.uid;
+
+  if (!isAdmin && !isOwner) {
+    throw new AppError('Forbidden: You are not authorized to delete this event', 403);
+  }
+
+  await eventRepository.delete(eventId);
+  return { id: eventId, deleted: true };
 };

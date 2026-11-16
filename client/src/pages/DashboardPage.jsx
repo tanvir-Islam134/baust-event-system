@@ -4,10 +4,12 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import registrationService from '../services/registrationService.js';
 import adminService from '../services/adminService.js';
 import eventService from '../services/eventService.js';
+import userService from '../services/userService.js';
 import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
 import OrganizerCreateEvent from '../components/organizer/OrganizerCreateEvent.jsx';
 import OrganizerManageEvents from '../components/organizer/OrganizerManageEvents.jsx';
 import StudentEventFeed from '../components/events/StudentEventFeed.jsx';
+import AdminEventReviewQueue from '../components/admin/AdminEventReviewQueue.jsx';
 
 export default function DashboardPage({ defaultTab = null }) {
   const { user } = useAuth();
@@ -15,12 +17,13 @@ export default function DashboardPage({ defaultTab = null }) {
 
   const isAdmin = user?.role === 'admin';
   const isOrganizer = user?.role === 'organizer';
+  const canManageEvents = isOrganizer || isAdmin;
 
-  // Organizer Dashboard Tab State: 'manage-events' | 'create-event' | 'pending-registrations'
+  // Dashboard Tab State: 'manage-events' | 'create-event' | 'pending-registrations' | 'overview'
   const initialTab =
     defaultTab ||
     searchParams.get('tab') ||
-    (isOrganizer ? 'manage-events' : 'overview');
+    (canManageEvents ? 'manage-events' : 'overview');
   const [organizerTab, setOrganizerTab] = useState(initialTab);
 
   useEffect(() => {
@@ -35,8 +38,9 @@ export default function DashboardPage({ defaultTab = null }) {
     setSearchParams({ tab: newTab });
   };
 
-  // Admin: Organizers Directory count state
+  // Admin: Organizers Directory count state & Pending requests count
   const [organizersCount, setOrganizersCount] = useState(0);
+  const [adminRequestsCount, setAdminRequestsCount] = useState(0);
 
   // Organizer: My Published Events state
   const [myEvents, setMyEvents] = useState([]);
@@ -95,6 +99,16 @@ export default function DashboardPage({ defaultTab = null }) {
     }
   }, [isAdmin]);
 
+  const fetchAdminPendingRequests = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const requests = await userService.getOrganizerRequests();
+      setAdminRequestsCount(Array.isArray(requests) ? requests.length : 0);
+    } catch (err) {
+      console.warn('Failed to load admin pending requests:', err);
+    }
+  }, [isAdmin]);
+
   useEffect(() => {
     fetchMyEvents();
   }, [fetchMyEvents]);
@@ -105,7 +119,43 @@ export default function DashboardPage({ defaultTab = null }) {
 
   useEffect(() => {
     fetchAdminOrganizersCount();
-  }, [fetchAdminOrganizersCount]);
+    fetchAdminPendingRequests();
+  }, [fetchAdminOrganizersCount, fetchAdminPendingRequests]);
+
+  // Real-time Socket.io listener for event approval status changes (reflects immediately on Organizer view)
+  useEffect(() => {
+    if (!user) return;
+
+    let socket = null;
+    let isMounted = true;
+
+    import('socket.io-client')
+      .then(({ io }) => {
+        if (!isMounted || !io) return;
+        const socketUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+        socket = io(socketUrl, { withCredentials: true, autoConnect: true });
+
+        socket.emit('join_user_room', user);
+
+        socket.on('event_status_updated', (data) => {
+          if (!isMounted) return;
+          const isApproved = data?.status === 'approved';
+          showToast(
+            `Event "${data?.title || 'Your event'}" was ${isApproved ? 'Approved & Published! 🎉' : 'Declined ⚠️'}${
+              data?.reason ? ` (Reason: ${data.reason})` : ''
+            }`,
+            isApproved ? 'success' : 'error'
+          );
+          fetchMyEvents();
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+      if (socket) socket.disconnect();
+    };
+  }, [user, fetchMyEvents]);
 
   const handleEventCreated = (created) => {
     showToast('Event created successfully! It is now pending administrative approval.', 'success');
@@ -186,7 +236,7 @@ export default function DashboardPage({ defaultTab = null }) {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {isOrganizer ? (
+            {canManageEvents ? (
               <>
                 <button
                   onClick={() => handleTabChange('create-event')}
@@ -232,6 +282,36 @@ export default function DashboardPage({ defaultTab = null }) {
         <div className="absolute -right-8 -bottom-10 w-64 h-64 bg-white/5 rounded-full pointer-events-none blur-2xl" />
         <div className="absolute right-32 top-0 w-32 h-32 bg-blue-500/20 rounded-full pointer-events-none blur-xl" />
       </div>
+
+      {/* Admin Action Alert: Pending Organizer Applications */}
+      {isAdmin && adminRequestsCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-sm flex-shrink-0">
+              🔔
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-amber-950">
+                  {adminRequestsCount} Pending Organizer Application{adminRequestsCount > 1 ? 's' : ''}
+                </h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200 text-amber-800">
+                  Action Required
+                </span>
+              </div>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Students have applied for Organizer access for BAUST campus clubs and need your approval.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/users?tab=requests"
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-xs whitespace-nowrap self-end sm:self-auto"
+          >
+            Review Requests &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -407,8 +487,8 @@ export default function DashboardPage({ defaultTab = null }) {
         </div>
       </div>
 
-      {/* ORGANIZER SECTION: Tabbed Experience */}
-      {isOrganizer && (
+      {/* EVENT MANAGEMENT SECTION (Organizer & Admin): Tabbed Experience */}
+      {canManageEvents && (
         <div className="space-y-6">
           {/* Tabs Bar */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex flex-wrap gap-2">
@@ -444,6 +524,20 @@ export default function DashboardPage({ defaultTab = null }) {
               <span>➕</span>
               <span>Create Event</span>
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => handleTabChange('review-queue')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  organizerTab === 'review-queue'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <span>⏳</span>
+                <span>Review Queue</span>
+              </button>
+            )}
 
             <button
               onClick={() => handleTabChange('pending-registrations')}
@@ -694,6 +788,15 @@ export default function DashboardPage({ defaultTab = null }) {
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB 4: Admin Event Review Queue */}
+          {isAdmin && organizerTab === 'review-queue' && (
+            <AdminEventReviewQueue
+              onEventReviewed={() => {
+                fetchMyEvents();
+              }}
+            />
           )}
         </div>
       )}

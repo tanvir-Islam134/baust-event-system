@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import eventService from '../../services/eventService.js';
 
 export default function OrganizerManageEvents({
   events = [],
@@ -9,8 +10,48 @@ export default function OrganizerManageEvents({
   onCreateClick,
 }) {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'approved' | 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [decliningEvent, setDecliningEvent] = useState(null);
+  const [declineReason, setDeclineReason] = useState('');
+
+  const handleApprove = async (eventId) => {
+    try {
+      setActionLoadingId(eventId);
+      await eventService.updateEventStatus(eventId, { status: 'approved' });
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to approve event');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleConfirmDecline = async (e) => {
+    e.preventDefault();
+    if (!decliningEvent) return;
+    if (!declineReason.trim()) {
+      alert('Please provide a decline reason');
+      return;
+    }
+    try {
+      setActionLoadingId(decliningEvent.id);
+      await eventService.updateEventStatus(decliningEvent.id, {
+        status: 'declined',
+        reason: declineReason.trim(),
+        rejectionReason: declineReason.trim(),
+      });
+      setDecliningEvent(null);
+      setDeclineReason('');
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || err.message || 'Failed to decline event');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const clubName = user?.clubAffiliation || 'Your Club';
 
@@ -328,6 +369,26 @@ export default function OrganizerManageEvents({
                         >
                           View Public Page &rarr;
                         </Link>
+                      ) : isAdmin && event.status === 'pending' ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <button
+                            disabled={actionLoadingId === event.id}
+                            onClick={() => handleApprove(event.id)}
+                            className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold transition shadow-xs disabled:opacity-50"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            disabled={actionLoadingId === event.id}
+                            onClick={() => {
+                              setDecliningEvent(event);
+                              setDeclineReason('');
+                            }}
+                            className="flex-1 py-1.5 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition disabled:opacity-50"
+                          >
+                            Decline
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-[11px] text-slate-400 italic">
                           {event.status === 'pending'
@@ -341,6 +402,44 @@ export default function OrganizerManageEvents({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Admin Decline Modal */}
+      {decliningEvent && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4">
+            <h3 className="text-base font-bold text-slate-900">Decline Event Proposal</h3>
+            <p className="text-xs text-slate-500">
+              Provide feedback for <strong className="text-slate-800">{decliningEvent.title || decliningEvent.eventName}</strong>.
+            </p>
+            <form onSubmit={handleConfirmDecline} className="space-y-4">
+              <textarea
+                required
+                rows={3}
+                value={declineReason}
+                onChange={(e) => setDeclineReason(e.target.value)}
+                placeholder="Reason for declining..."
+                className="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              />
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDecliningEvent(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoadingId === decliningEvent.id}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl"
+                >
+                  Confirm Decline
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

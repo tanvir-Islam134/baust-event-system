@@ -1,4 +1,5 @@
 import * as userService from '../services/user.service.js';
+import * as notifService from '../services/notification.service.js';
 import { AppError } from '../middlewares/errorHandler.js';
 
 /**
@@ -21,14 +22,57 @@ export const updateProfile = async (req, res, next) => {
 /**
  * POST /api/v1/users/request-organizer & POST /api/v1/users/me/request-organizer
  * Submit organizer role request with club affiliation selection.
+ * Creates an admin notification document and emits Socket.io event.
  */
 export const requestOrganizer = async (req, res, next) => {
   try {
     const updatedUser = await userService.submitOrganizerRequest(req.user.uid, req.body);
+    const targetClub = req.body?.clubAffiliation || req.body?.club || updatedUser.clubAffiliation || 'Club';
+
+    // Create Notification document for Admin
+    let notification = null;
+    try {
+      notification = await notifService.createAdminNotification({
+        senderId: req.user.uid,
+        senderName: updatedUser.name || req.user.name || 'Student Applicant',
+        senderEmail: updatedUser.email || req.user.email,
+        type: 'new_organizer_request',
+        title: 'New Organizer Request',
+        message: `${updatedUser.name || 'A student'} has applied for Organizer role for ${targetClub}.`,
+        data: {
+          clubAffiliation: targetClub,
+          department: updatedUser.department || null,
+          studentId: updatedUser.studentId || null,
+          batch: updatedUser.batch || null,
+        },
+      });
+    } catch (notifErr) {
+      console.warn('[UserController] Notification creation error:', notifErr.message);
+    }
+
+    // Emit real-time Socket.io event if socket instance exists
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        io.to('admin_room').emit('new_organizer_request', {
+          notification,
+          applicant: {
+            id: req.user.uid,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            clubAffiliation: targetClub,
+          },
+        });
+      } catch (socketErr) {
+        console.warn('[UserController] Socket emit error:', socketErr.message);
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Organizer request submitted successfully and is pending administrative review',
       data: updatedUser,
+      notification,
     });
   } catch (error) {
     next(error);

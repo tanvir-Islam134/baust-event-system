@@ -36,7 +36,7 @@ export default function CalendarPage() {
     try {
       setLoading(true);
       setError(null);
-      const params = {};
+      const params = { status: 'approved' };
       if (selectedClub !== 'all') params.clubName = selectedClub;
       if (selectedCategory !== 'all') params.category = selectedCategory;
 
@@ -62,6 +62,29 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchCalendarEvents();
+
+    let socket = null;
+    let isMounted = true;
+
+    // Listen for real-time approvals so approved events appear on calendar instantly
+    import('socket.io-client')
+      .then(({ io }) => {
+        if (!isMounted || !io) return;
+        const socketUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+        socket = io(socketUrl, { withCredentials: true, autoConnect: true });
+
+        socket.on('event_status_updated', (data) => {
+          if (data?.status === 'approved' && isMounted) {
+            fetchCalendarEvents();
+          }
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+      if (socket) socket.disconnect();
+    };
   }, [fetchCalendarEvents]);
 
   // Dynamically extract all available clubs from returned events

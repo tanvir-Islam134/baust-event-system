@@ -76,7 +76,15 @@ export class RegistrationRepository extends BaseRepository {
         throw new Error(`Event is not open for registration (Current status: ${eventData.status}).`);
       }
 
-      // 3. Validate capacity limit
+      // 3. Validate event date has not passed
+      if (eventData.date) {
+        const eventDate = new Date(eventData.date);
+        if (eventDate < new Date()) {
+          throw new Error('Registration is closed for past events.');
+        }
+      }
+
+      // 4. Validate capacity limit
       const currentCount = eventData.registeredCount || 0;
       if (currentCount >= eventData.capacity) {
         throw new Error(`Registration failed: Event capacity (${eventData.capacity}) has been reached.`);
