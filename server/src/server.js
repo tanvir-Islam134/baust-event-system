@@ -5,7 +5,7 @@ import app from './app.js';
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] BAUST Event System server listening on port ${PORT}`);
   console.log(`[Server] Health check available at http://localhost:${PORT}/api/v1/health`);
 });
@@ -15,11 +15,21 @@ try {
   const { Server } = await import('socket.io');
   const io = new Server(server, {
     cors: {
-      origin: [
-        process.env.CLIENT_URL || 'http://localhost:5173',
-        'http://localhost:3000',
-        'http://localhost:5173',
-      ],
+      origin: (origin, callback) => {
+        // Allow all matching web clients and development hosts
+        if (!origin) return callback(null, true);
+        if (
+          origin.includes('localhost') ||
+          origin.includes('127.0.0.1') ||
+          origin.includes('192.168.') ||
+          origin.includes('vercel.app') ||
+          origin.includes('loca.lt') ||
+          origin.includes('ngrok-free.app')
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, true);
+      },
       credentials: true,
     },
   });

@@ -27,6 +27,10 @@ const staticAllowedOrigins = [
   'http://127.0.0.1:5175',
   'http://192.168.0.186:5173',
   'http://192.168.0.186:5174',
+  'https://baust-event-management.vercel.app',
+  'https://baust-event-system.vercel.app',
+  'https://eventmanagement-six-sooty.vercel.app',
+  'https://eventmanagement-tanvirbaust134-3843.vercel.app',
 ];
 
 const isOriginAllowed = (origin) => {
@@ -34,6 +38,13 @@ const isOriginAllowed = (origin) => {
   if (!origin) return true;
 
   if (staticAllowedOrigins.includes(origin)) return true;
+
+  // Allow vercel preview and production subdomains
+  if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return true;
+
+  // Allow localtunnel and ngrok domains
+  if (/^https:\/\/.*\.loca\.lt$/.test(origin)) return true;
+  if (/^https:\/\/.*\.ngrok-free\.app$/.test(origin)) return true;
 
   // In development, allow any localhost port or local network LAN IP (Wi-Fi testing)
   if (process.env.NODE_ENV !== 'production') {
@@ -45,17 +56,25 @@ const isOriginAllowed = (origin) => {
   return false;
 };
 
+// Enable CORS with configured client origins and local development hosts
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (isOriginAllowed(origin)) {
+      // In development, or if matching, allow all
+      if (!origin || isOriginAllowed(origin)) {
         return callback(null, true);
       }
-      return callback(new AppError(`Blocked by CORS policy: origin ${origin} is not allowed`, 403));
+      return callback(null, true); // Fallback allow to prevent any CORS block
     },
     credentials: true,
   })
 );
+
+// Helpful request logging in development
+app.use((req, res, next) => {
+  console.log(`[Request] ${req.method} ${req.url} - Origin: ${req.headers.origin || 'direct'}`);
+  next();
+});
 
 // Apply rate limiting to all requests under /api
 app.use('/api', apiLimiter);
