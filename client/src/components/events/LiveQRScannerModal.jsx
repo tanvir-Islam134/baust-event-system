@@ -118,8 +118,16 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
     isComponentMounted.current = true;
     startCamera('environment');
 
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       isComponentMounted.current = false;
+      window.removeEventListener('keydown', handleKeyDown);
       stopCamera();
     };
   }, []);
@@ -199,37 +207,70 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 my-6">
-        
-        {/* Header */}
-        <div className="bg-[#14213D] text-white p-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-xl bg-[#FCA311]/20 text-[#FCA311] flex items-center justify-center text-xl">
-              📷
-            </span>
-            <div>
-              <span className="text-[10px] tracking-widest font-bold uppercase text-[#FCA311] block">
-                Gate Check-in Scanner
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm p-3 sm:p-6"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && onClose) {
+          onClose();
+        }
+      }}
+    >
+      {/* Floating Viewport Close Button */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-4 right-4 z-[70] px-4 py-2 rounded-full bg-slate-900/95 hover:bg-black text-white text-xs font-bold flex items-center gap-2 shadow-2xl border border-white/20 transition cursor-pointer hover:scale-105 active:scale-95"
+        title="Close (Esc)"
+        aria-label="Close scanner"
+      >
+        <span className="text-sm leading-none font-bold">✕</span>
+        <span>Close Scanner</span>
+      </button>
+
+      {/* Centering wrapper that allows full vertical scroll without cutting off the top */}
+      <div
+        className="min-h-full flex items-center justify-center py-6 sm:py-10"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && onClose) {
+            onClose();
+          }
+        }}
+      >
+        <div
+          className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="bg-[#14213D] text-white p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-[#FCA311]/20 text-[#FCA311] flex items-center justify-center text-xl">
+                📷
               </span>
-              <h3 className="text-base font-bold text-white truncate max-w-xs">
-                {event?.title || 'Event Check-in'}
-              </h3>
+              <div>
+                <span className="text-[10px] tracking-widest font-bold uppercase text-[#FCA311] block">
+                  Gate Check-in Scanner
+                </span>
+                <h3 className="text-base font-bold text-white truncate max-w-xs">
+                  {event?.title || 'Event Check-in'}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Session: {sessionCount}
+              </span>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition cursor-pointer border border-slate-700"
+                title="Close (Esc)"
+                aria-label="Close scanner"
+              >
+                ✕
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              Session: {sessionCount}
-            </span>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
 
         {/* Camera Viewport Area */}
         <div className="relative bg-slate-900 p-4 flex flex-col items-center justify-center min-h-[300px]">
@@ -363,7 +404,14 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
 
         {/* Manual Code Input Bar */}
         <div className="p-4 bg-slate-50 border-t border-slate-200">
-          <form onSubmit={handleManualSubmit} className="flex gap-2">
+          <form onSubmit={handleManualSubmit} className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              Close
+            </button>
             <input
               type="text"
               placeholder="Or enter Ticket Code (e.g. TKT-ABC123)..."
@@ -374,7 +422,7 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
             <button
               type="submit"
               disabled={processing || !manualCode.trim()}
-              className="px-4 py-2.5 bg-[#14213D] hover:bg-[#1E293B] text-white text-xs font-semibold rounded-xl transition shadow disabled:opacity-50"
+              className="px-4 py-2.5 bg-[#14213D] hover:bg-[#1E293B] text-white text-xs font-semibold rounded-xl transition shadow disabled:opacity-50 cursor-pointer"
             >
               Verify
             </button>
@@ -382,5 +430,6 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

@@ -1,8 +1,18 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function DigitalTicketModal({ ticketData, onClose }) {
   const printRef = useRef(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   if (!ticketData) return null;
 
@@ -37,28 +47,70 @@ export default function DigitalTicketModal({ ticketData, onClose }) {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
-  const formattedDate = event?.date
-    ? new Date(event.date).toLocaleDateString('en-US', {
+  const formattedDate = (() => {
+    if (!event?.date) return 'TBD';
+    try {
+      const d = new Date(event.date);
+      if (isNaN(d.getTime())) return event.date;
+      if (d.getFullYear() > 2100 || d.getFullYear() < 2000) {
+        return event.date;
+      }
+      return d.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
         year: 'numeric',
-      })
-    : 'TBD';
+      });
+    } catch {
+      return event.date || 'TBD';
+    }
+  })();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm overflow-y-auto print:p-0 print:bg-white">
-      {/* Modal Container */}
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 my-8 print:border-none print:shadow-none print:m-0 print:max-w-none">
-        
-        {/* Close Button (Hidden in print) */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-slate-900/50 hover:bg-slate-900 text-white flex items-center justify-center transition shadow-md print:hidden"
-          aria-label="Close ticket"
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm p-3 sm:p-6 print:p-0 print:bg-white"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && onClose) {
+          onClose();
+        }
+      }}
+    >
+      {/* Floating Viewport Close Button (always visible on screen) */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-4 right-4 z-[70] px-4 py-2 rounded-full bg-slate-900/95 hover:bg-black text-white text-xs font-bold flex items-center gap-2 shadow-2xl border border-white/20 transition cursor-pointer print:hidden hover:scale-105 active:scale-95"
+        title="Close (Esc)"
+        aria-label="Close pass"
+      >
+        <span className="text-sm leading-none font-bold">✕</span>
+        <span>Close Pass</span>
+      </button>
+
+      {/* Centering wrapper that allows full vertical scroll without cutting off the top */}
+      <div
+        className="min-h-full flex items-center justify-center py-6 sm:py-10"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && onClose) {
+            onClose();
+          }
+        }}
+      >
+        {/* Modal Container */}
+        <div
+          className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 print:border-none print:shadow-none print:m-0 print:max-w-none animate-in fade-in zoom-in-95 duration-200"
+          onClick={(e) => e.stopPropagation()}
         >
-          ✕
-        </button>
+          {/* Top-Right Header Close Button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-sm font-bold transition shadow-sm border border-white/30 cursor-pointer print:hidden"
+            aria-label="Close ticket"
+            title="Close pass (Esc)"
+          >
+            ✕
+          </button>
 
         {/* Printable Ticket Area */}
         <div ref={printRef} className="print:w-full">
@@ -226,21 +278,34 @@ export default function DigitalTicketModal({ ticketData, onClose }) {
         </div>
 
         {/* Action Buttons (Hidden in print) */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2.5 print:hidden">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5 print:hidden">
           <button
-            onClick={handleDownloadQR}
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition shadow-sm flex items-center gap-1.5"
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
-            <span>📥</span> Download QR
+            <span>✕</span> Close
           </button>
-          <button
-            onClick={handlePrint}
-            className="px-4 py-2 text-xs font-semibold text-white bg-[#14213D] hover:bg-[#1E293B] rounded-xl transition shadow-md flex items-center gap-1.5"
-          >
-            <span>🖨️</span> Print / Save PDF
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadQR}
+              className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>📥</span> Download QR
+            </button>
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="px-4 py-2 text-xs font-semibold text-white bg-[#14213D] hover:bg-[#1E293B] rounded-xl transition shadow-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>🖨️</span> Print / Save PDF
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
