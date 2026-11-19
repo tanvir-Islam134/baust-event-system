@@ -79,6 +79,11 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
     }
     if (!formData.date.trim()) {
       errors.date = 'Event Date is required';
+    } else {
+      const year = parseInt(formData.date.split('-')[0], 10);
+      if (isNaN(year) || year < 2020 || year > 2035) {
+        errors.date = 'Please select a valid event date between 2020 and 2035';
+      }
     }
     if (!formData.time.trim()) {
       errors.time = 'Event Time is required';
@@ -341,6 +346,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   name="date"
                   type="date"
                   min={todayStr}
+                  max="2035-12-31"
                   value={formData.date}
                   onChange={handleInputChange}
                   className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${

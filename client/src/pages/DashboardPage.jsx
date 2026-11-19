@@ -197,6 +197,40 @@ export default function DashboardPage({ defaultTab = null }) {
     }
   };
 
+  const formatPassDate = (dateStr) => {
+    if (!dateStr) return 'Date TBD';
+    try {
+      let clean = String(dateStr).trim();
+      if (clean.startsWith('26444-')) clean = clean.replace('26444-', '2026-');
+      const d = new Date(clean);
+      if (isNaN(d.getTime())) return clean;
+      return d.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const isEventPast = (dateStr, timeStr) => {
+    if (!dateStr) return false;
+    try {
+      let clean = String(dateStr).trim();
+      if (clean.startsWith('26444-')) clean = clean.replace('26444-', '2026-');
+      const eventDateObj = new Date(`${clean}T23:59:59`);
+      if (!isNaN(eventDateObj.getTime())) {
+        return eventDateObj < new Date();
+      }
+      const fallback = new Date(clean);
+      return !isNaN(fallback.getTime()) && fallback < new Date();
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchAdminOrganizersCount();
     fetchAdminPendingRequests();
@@ -1093,71 +1127,98 @@ export default function DashboardPage({ defaultTab = null }) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {myRegistrations.map((reg) => (
-                    <div
-                      key={reg.id}
-                      className="p-4 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/60 hover:border-[#FCA311] shadow-xs hover:shadow-sm transition flex flex-col justify-between space-y-3.5"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
-                            {reg.eventCategory || 'Campus Event'}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              reg.attended
-                                ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                                : reg.status === 'approved'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                : reg.status === 'rejected'
-                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                                : 'bg-amber-100 text-amber-800 border border-amber-200'
-                            }`}
-                          >
-                            {reg.attended ? 'Attended ✓' : reg.status || 'Registered'}
-                          </span>
-                        </div>
+                  {myRegistrations.map((reg) => {
+                    const isPast = Boolean(reg.isPastEvent) || isEventPast(reg.eventDate, reg.eventTime);
+                    const isAttended = Boolean(reg.attended);
 
-                        <h4 className="text-sm font-bold text-[#14213D] line-clamp-1 leading-snug">
-                          {reg.eventTitle || 'BAUST Event'}
-                        </h4>
+                    return (
+                      <div
+                        key={reg.id}
+                        className="p-4 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/60 hover:border-[#FCA311] shadow-xs hover:shadow-sm transition flex flex-col justify-between space-y-3.5"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+                              {reg.eventCategory || 'Campus Event'}
+                            </span>
 
-                        <div className="text-[11px] text-slate-500 mt-1.5 space-y-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <span>📅</span>
-                            <span>{reg.eventDate || 'Date TBD'}</span>
+                            {/* Intelligent Status Badge */}
+                            {isAttended ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
+                                Attended ✓
+                              </span>
+                            ) : reg.status === 'rejected' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
+                                Rejected
+                              </span>
+                            ) : isPast ? (
+                              <span
+                                className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-300"
+                                title="Event date has passed"
+                              >
+                                {reg.status === 'pending' || reg.status === 'expired'
+                                  ? 'Expired (Event Ended)'
+                                  : 'Event Ended'}
+                              </span>
+                            ) : reg.status === 'approved' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Confirmed Pass
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                                Pending Review
+                              </span>
+                            )}
                           </div>
-                          {reg.eventVenue && (
-                            <div className="flex items-center gap-1.5 truncate">
-                              <span>📍</span>
-                              <span className="truncate">{reg.eventVenue}</span>
+
+                          <h4 className="text-sm font-bold text-[#14213D] line-clamp-1 leading-snug">
+                            {reg.eventTitle || 'BAUST Event'}
+                          </h4>
+
+                          <div className="text-[11px] text-slate-500 mt-1.5 space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span>📅</span>
+                              <span className="font-medium text-slate-700">
+                                {formatPassDate(reg.eventDate)}
+                              </span>
+                              {isPast && (
+                                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                  Ended
+                                </span>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">
-                            Ticket Code
-                          </span>
-                          <span className="font-mono text-xs font-bold text-slate-700 truncate block">
-                            {reg.ticketCode}
-                          </span>
+                            {reg.eventVenue && (
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span>📍</span>
+                                <span className="truncate">{reg.eventVenue}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleViewTicketPass(reg)}
-                          disabled={loadingTicketPassId === reg.id}
-                          className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50"
-                        >
-                          <span>🎟️</span>
-                          <span>{loadingTicketPassId === reg.id ? 'Loading...' : 'View Pass'}</span>
-                        </button>
+                        <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">
+                              Ticket Code
+                            </span>
+                            <span className="font-mono text-xs font-bold text-slate-700 truncate block">
+                              {reg.ticketCode}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleViewTicketPass(reg)}
+                            disabled={loadingTicketPassId === reg.id}
+                            className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50"
+                          >
+                            <span>🎟️</span>
+                            <span>{loadingTicketPassId === reg.id ? 'Loading...' : 'View Pass'}</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

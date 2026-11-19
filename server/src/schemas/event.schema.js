@@ -7,13 +7,23 @@ export const EventItemsSchema = z.object({
   tshirt: z.boolean().default(false),
 });
 
+export const EventDateSchema = z
+  .string()
+  .trim()
+  .min(1, 'Date is required (e.g. YYYY-MM-DD)')
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be formatted as YYYY-MM-DD')
+  .refine((val) => {
+    const year = parseInt(val.slice(0, 4), 10);
+    return year >= 2020 && year <= 2035;
+  }, 'Event year must be between 2020 and 2035');
+
 export const EventSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
   eventName: z.string().trim().optional(),
   category: z.string().trim().default('General'),
   description: z.string().trim().default(''),
   bannerUrl: z.string().trim().default(''),
-  date: z.string().trim().min(1, 'Date is required (e.g. YYYY-MM-DD)'),
+  date: EventDateSchema,
   time: z.string().trim().default('10:00 AM'),
   startTime: z.string().trim().default('10:00 AM'),
   endTime: z.string().trim().default(''),
@@ -43,7 +53,7 @@ export const CreateEventInputSchema = z
     description: z.string().trim().default(''),
     bannerUrl: z.string().trim().default(''),
     imageUrl: z.string().trim().default(''),
-    date: z.string().trim().min(1, 'Date is required (e.g. YYYY-MM-DD)'),
+    date: EventDateSchema,
     time: z.string().trim().optional(),
     startTime: z.string().trim().optional(),
     endTime: z.string().trim().optional().default(''),

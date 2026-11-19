@@ -47,14 +47,30 @@ export default function DigitalTicketModal({ ticketData, onClose }) {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
+  const isPastEvent = (() => {
+    if (registration?.isPastEvent || event?.isPast) return true;
+    if (!event?.date) return false;
+    try {
+      let clean = String(event.date).trim();
+      if (clean.startsWith('26444-')) clean = clean.replace('26444-', '2026-');
+      const eventDateObj = new Date(`${clean}T${event.endTime || '23:59:59'}`);
+      if (!isNaN(eventDateObj.getTime())) {
+        return eventDateObj < new Date();
+      }
+      const fallback = new Date(clean);
+      return !isNaN(fallback.getTime()) && fallback < new Date();
+    } catch {
+      return false;
+    }
+  })();
+
   const formattedDate = (() => {
     if (!event?.date) return 'TBD';
     try {
-      const d = new Date(event.date);
-      if (isNaN(d.getTime())) return event.date;
-      if (d.getFullYear() > 2100 || d.getFullYear() < 2000) {
-        return event.date;
-      }
+      let clean = String(event.date).trim();
+      if (clean.startsWith('26444-')) clean = clean.replace('26444-', '2026-');
+      const d = new Date(clean);
+      if (isNaN(d.getTime())) return clean;
       return d.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
@@ -137,9 +153,21 @@ export default function DigitalTicketModal({ ticketData, onClose }) {
                 </h2>
               </div>
               <div className="text-right flex-shrink-0">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  VERIFIED PASS
-                </span>
+                {registration.attended ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    ATTENDED PASS ✓
+                  </span>
+                ) : isPastEvent ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-500/20 text-slate-300 border border-slate-500/30">
+                    {registration.status === 'pending' || registration.status === 'expired'
+                      ? 'EXPIRED PASS'
+                      : 'EVENT CONCLUDED'}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    VERIFIED PASS
+                  </span>
+                )}
               </div>
             </div>
 
@@ -264,11 +292,19 @@ export default function DigitalTicketModal({ ticketData, onClose }) {
                 <div className="flex items-center gap-1.5 text-slate-700">
                   <span>🎟️</span>
                   <div>
-                    <span className="font-semibold block text-[11px]">Status</span>
+                    <span className="font-semibold block text-[11px]">Pass Status</span>
                     {registration.attended ? (
                       <span className="text-[10px] font-bold text-emerald-600 block">✓ Attended</span>
+                    ) : isPastEvent ? (
+                      <span className="text-[10px] font-bold text-slate-500 block">
+                        {registration.status === 'pending' || registration.status === 'expired'
+                          ? 'Expired (Event Ended)'
+                          : 'Did Not Attend (Event Ended)'}
+                      </span>
                     ) : (
-                      <span className="text-[10px] text-slate-500 block">Not Checked In</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        {registration.status === 'approved' ? 'Active / Gate Ready' : 'Pending Review'}
+                      </span>
                     )}
                   </div>
                 </div>

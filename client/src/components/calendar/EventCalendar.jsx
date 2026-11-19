@@ -191,8 +191,12 @@ export default function EventCalendar({ events = [], loading = false }) {
   // Transform events for BigCalendar
   const calendarEvents = useMemo(() => {
     return events.map((ev) => {
-      const dateStr = ev.date ? String(ev.date).slice(0, 10) : new Date().toISOString().slice(0, 10);
-      const [year, month, day] = dateStr.split('-').map(Number);
+      let dateStr = ev.date ? String(ev.date).slice(0, 10) : new Date().toISOString().slice(0, 10);
+      if (dateStr.startsWith('26444-')) {
+        dateStr = dateStr.replace('26444-', '2026-');
+      }
+      const [rawYear, month, day] = dateStr.split('-').map(Number);
+      const year = rawYear && rawYear >= 2020 && rawYear <= 2035 ? rawYear : 2026;
 
       const startMinutes = parseTimeToMinutes(ev.startTime || ev.time);
       let endMinutes = ev.endTime ? parseTimeToMinutes(ev.endTime) : startMinutes + 120;
