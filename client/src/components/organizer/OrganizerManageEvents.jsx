@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import eventService from '../../services/eventService.js';
+import LiveQRScannerModal from '../events/LiveQRScannerModal.jsx';
 
 export default function OrganizerManageEvents({
   events = [],
@@ -16,6 +17,7 @@ export default function OrganizerManageEvents({
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [decliningEvent, setDecliningEvent] = useState(null);
   const [declineReason, setDeclineReason] = useState('');
+  const [scanningEvent, setScanningEvent] = useState(null);
 
   const handleApprove = async (eventId) => {
     try {
@@ -363,12 +365,23 @@ export default function OrganizerManageEvents({
                     {/* Actions */}
                     <div className="flex items-center justify-between gap-2 pt-1">
                       {event.status === 'approved' ? (
-                        <Link
-                          to={`/events/${event.id}`}
-                          className="w-full text-center px-3 py-2 bg-slate-100 hover:bg-[#14213D] hover:text-[#FCA311] text-[#14213D] rounded-lg text-xs font-bold border border-[#E5E5E5] transition"
-                        >
-                          View Public Page &rarr;
-                        </Link>
+                        <div className="flex items-center gap-2 w-full">
+                          <Link
+                            to={`/events/${event.id}`}
+                            className="flex-1 text-center px-3 py-2 bg-slate-100 hover:bg-[#14213D] hover:text-[#FCA311] text-[#14213D] rounded-lg text-xs font-bold border border-[#E5E5E5] transition"
+                          >
+                            View Page &rarr;
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setScanningEvent(event)}
+                            className="px-3 py-2 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                            title="Launch Gate QR Scanner for this event"
+                          >
+                            <span>📷</span>
+                            <span>Scanner</span>
+                          </button>
+                        </div>
                       ) : isAdmin && event.status === 'pending' ? (
                         <div className="flex items-center gap-2 w-full">
                           <button
@@ -441,6 +454,16 @@ export default function OrganizerManageEvents({
             </form>
           </div>
         </div>
+      )}
+      {/* Live QR Scanner Modal */}
+      {scanningEvent && (
+        <LiveQRScannerModal
+          event={scanningEvent}
+          onClose={() => setScanningEvent(null)}
+          onCheckInComplete={() => {
+            if (onRefresh) onRefresh();
+          }}
+        />
       )}
     </div>
   );

@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import eventService from '../services/eventService.js';
 import registrationService from '../services/registrationService.js';
+import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
+import LiveQRScannerModal from '../components/events/LiveQRScannerModal.jsx';
 
 export default function EventDetailsPage() {
   const { id } = useParams();
@@ -18,6 +20,13 @@ export default function EventDetailsPage() {
   const [regError, setRegError] = useState(null);
   const [regSuccess, setRegSuccess] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Digital Ticket & Live QR Scanner state
+  const [myRegistration, setMyRegistration] = useState(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [ticketDetails, setTicketDetails] = useState(null);
+  const [loadingTicket, setLoadingTicket] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
 
   const initialFormState = {
     guestName: '',
@@ -44,9 +53,59 @@ export default function EventDetailsPage() {
     }
   }, [id]);
 
+  const fetchUserRegistration = useCallback(async () => {
+    if (!user || !id) {
+      setMyRegistration(null);
+      return;
+    }
+    try {
+      const registrations = await registrationService.getMyRegistrations();
+      const found = (registrations || []).find(
+        (r) => r.eventId === id || r.id === `${id}_${user.uid || user.id}`
+      );
+      if (found) {
+        setMyRegistration(found);
+      }
+    } catch {
+      // Ignored if user not registered
+    }
+  }, [user, id]);
+
   useEffect(() => {
     fetchEvent();
-  }, [fetchEvent]);
+    fetchUserRegistration();
+  }, [fetchEvent, fetchUserRegistration]);
+
+  const handleOpenTicket = async (regObj) => {
+    try {
+      setLoadingTicket(true);
+      const regId = regObj?.id || `${id}_${user?.uid || user?.id}`;
+      const details = await registrationService.getTicket(regId);
+      setTicketDetails(details);
+      setShowTicketModal(true);
+    } catch {
+      // Fallback constructing ticketData with available client-side payload
+      const target = regObj || myRegistration || {};
+      setTicketDetails({
+        registration: {
+          ...target,
+          ticketCode: target.ticketCode || 'TKT-PENDING',
+        },
+        event: event || {},
+        attendee: {
+          name: user?.name || target.guest?.name || 'Attendee',
+          email: user?.email || target.guest?.email || '',
+          studentId: user?.studentId || null,
+          department: user?.department || null,
+          batch: user?.batch || target.batch || null,
+          section: user?.section || target.section || null,
+        },
+      });
+      setShowTicketModal(true);
+    } finally {
+      setLoadingTicket(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -93,13 +152,15 @@ export default function EventDetailsPage() {
       setIsModalOpen(false);
       setFormData(initialFormState);
       setRegSuccess(createdReg);
+      setMyRegistration(createdReg);
       setToastMessage(
         `Registration submitted! Status: Pending Club Organizer Approval (Ticket Code: ${createdReg?.ticketCode || 'Generated'})`
       );
       setTimeout(() => setToastMessage(null), 8000);
 
-      // Refresh capacity count
+      // Refresh capacity count and status
       fetchEvent();
+      fetchUserRegistration();
     } catch (err) {
       setRegError(
         err.response?.data?.error?.message ||
@@ -158,6 +219,13 @@ export default function EventDetailsPage() {
   const isFree = Number(event.fee) === 0;
   const isPastEvent = event?.date ? new Date(event.date) < new Date() : false;
 
+  const isOrganizerForEvent =
+    user?.role === 'organizer' &&
+    (user?.clubAffiliation === event?.clubName ||
+      user?.clubAffiliation === event?.clubId ||
+      event?.createdBy === (user?.uid || user?.id));
+  const canGateScan = user?.role === 'admin' || isOrganizerForEvent;
+
   return (
     <div className="space-y-6">
       {/* Toast Alert */}
@@ -176,7 +244,7 @@ export default function EventDetailsPage() {
       )}
 
       {/* Breadcrumb Back Link */}
-      <div>
+      <div className="flex items-center justify-between">
         <Link
           to="/events"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-[#14213D] hover:text-[#FCA311] transition"
@@ -187,6 +255,41 @@ export default function EventDetailsPage() {
           <span>Back to All Events</span>
         </Link>
       </div>
+
+      {/* Organizer / Admin Gate Scanner Bar */}
+      {canGateScan && isApproved && (
+        <div className="bg-gradient-to-r from-[#14213D] via-[#1E293B] to-[#14213D] text-white p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-[#FCA311]/40 animate-fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-[#FCA311] text-[#14213D] flex items-center justify-center text-2xl font-black shadow-md flex-shrink-0">
+              📷
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#FCA311] px-2 py-0.5 rounded bg-black/40 border border-[#FCA311]/30">
+                  {user?.role === 'admin' ? 'Admin Gate Scanner' : 'Organizer Gate Scanner'}
+                </span>
+                <span className="text-xs text-slate-300 font-medium hidden sm:inline truncate max-w-xs">
+                  {event.title}
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-white mt-0.5">
+                Live Gate Check-in & Ticket Verification
+              </h3>
+              <p className="text-xs text-slate-300">
+                Scan attendee QR passes using your camera to record arrival and distribute items in real time.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowScannerModal(true)}
+            className="px-5 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] text-xs font-black rounded-xl transition shadow-md shadow-[#FCA311]/20 flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
+          >
+            <span>📷</span>
+            <span>Launch Gate Scanner</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Event Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -259,18 +362,41 @@ export default function EventDetailsPage() {
 
         {/* Content Body */}
         <div className="p-6 sm:p-8 space-y-8">
-          {/* Registration Status Banner (Success) */}
-          {regSuccess && (
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900">
-              <div className="flex items-center gap-2 font-bold text-sm">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>You have successfully registered for this event!</span>
+          {/* Registration Status Banner (Success / Already Registered) */}
+          {(regSuccess || myRegistration) && (
+            <div className="p-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-300 rounded-2xl text-emerald-950 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in">
+              <div className="flex items-start gap-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl font-bold flex-shrink-0 shadow-sm">
+                  ✓
+                </span>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-bold text-sm sm:text-base text-emerald-900">
+                      {regSuccess ? 'Registration Confirmed!' : 'You are Registered for this Event'}
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-200 text-emerald-800 border border-emerald-300">
+                      {(regSuccess || myRegistration)?.status || 'Registered'}
+                    </span>
+                    {(regSuccess || myRegistration)?.attended && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                        Gate Checked-in ✓
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    Ticket Code: <strong className="font-mono bg-white px-2 py-0.5 rounded text-emerald-900 border border-emerald-200">{(regSuccess || myRegistration)?.ticketCode}</strong>
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-emerald-700 mt-1">
-                Your Ticket Code: <strong className="font-mono bg-emerald-100 px-2 py-0.5 rounded text-emerald-900">{regSuccess.ticketCode}</strong>
-              </p>
+
+              <button
+                onClick={() => handleOpenTicket(regSuccess || myRegistration)}
+                disabled={loadingTicket}
+                className="px-4 py-2.5 bg-[#14213D] hover:bg-slate-900 text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition shadow flex items-center justify-center gap-2 flex-shrink-0 self-stretch sm:self-auto cursor-pointer"
+              >
+                <span>🎟️</span>
+                <span>{loadingTicket ? 'Loading Pass...' : 'View / Print Ticket Pass'}</span>
+              </button>
             </div>
           )}
 
@@ -336,7 +462,12 @@ export default function EventDetailsPage() {
             {/* Registration Action */}
             <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
               <div className="text-xs text-slate-500">
-                {isPastEvent ? (
+                {myRegistration ? (
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    You hold an active pass for this event.
+                  </span>
+                ) : isPastEvent ? (
                   <span className="text-slate-500 font-semibold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                     Event has ended. Registration is closed.
@@ -350,7 +481,22 @@ export default function EventDetailsPage() {
                 )}
               </div>
 
-              {isPastEvent ? (
+              {myRegistration ? (
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 flex items-center gap-1.5 shadow-xs">
+                    <span>✓</span>
+                    <span>Already Registered</span>
+                  </span>
+                  <button
+                    onClick={() => handleOpenTicket(myRegistration)}
+                    disabled={loadingTicket}
+                    className="px-4 py-2 bg-[#14213D] hover:bg-slate-900 text-[#FCA311] rounded-xl text-xs font-bold transition shadow flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🎟️</span>
+                    <span>View Pass</span>
+                  </button>
+                </div>
+              ) : isPastEvent ? (
                 <button
                   disabled
                   className="px-6 py-2.5 bg-slate-200 text-slate-500 font-bold rounded-lg text-sm cursor-not-allowed shadow-none"
@@ -370,7 +516,7 @@ export default function EventDetailsPage() {
                     setRegError(null);
                     setIsModalOpen(true);
                   }}
-                  className="px-6 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] font-black rounded-lg text-sm shadow-md shadow-[#FCA311]/20 transition"
+                  className="px-6 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] font-black rounded-lg text-sm shadow-md shadow-[#FCA311]/20 transition cursor-pointer"
                 >
                   Register Now
                 </button>
@@ -585,6 +731,26 @@ export default function EventDetailsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Digital QR Ticket Modal */}
+      {showTicketModal && ticketDetails && (
+        <DigitalTicketModal
+          ticketData={ticketDetails}
+          onClose={() => setShowTicketModal(false)}
+        />
+      )}
+
+      {/* Live Camera QR Check-in Scanner Modal */}
+      {showScannerModal && (
+        <LiveQRScannerModal
+          event={event}
+          onClose={() => setShowScannerModal(false)}
+          onCheckInComplete={() => {
+            fetchEvent();
+            fetchUserRegistration();
+          }}
+        />
       )}
     </div>
   );

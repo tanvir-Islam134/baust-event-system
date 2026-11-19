@@ -60,6 +60,42 @@ export const registrationService = {
     });
     return response.data?.data || response.data;
   },
+
+  /**
+   * Fetch all registered events for currently authenticated student.
+   */
+  getMyRegistrations: async () => {
+    const response = await api.get('/registrations/my');
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Fetch full ticket and signed QR code for a specific registration.
+   * @param {string} registrationId
+   */
+  getTicket: async (registrationId) => {
+    const response = await api.get(`/registrations/${registrationId}/ticket`);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Check in an attendee at the gate using scanned QR token or ticket code.
+   * @param {{ qrToken?: string, ticketCode?: string, eventId?: string }} checkInData
+   */
+  checkInAttendee: async (checkInData) => {
+    const response = await api.post('/registrations/check-in', checkInData);
+    return response.data;
+  },
+
+  /**
+   * Mark event item (food / tshirt) as collected by attendee.
+   * @param {string} registrationId
+   * @param {'food' | 'tshirt'} itemType
+   */
+  distributeItem: async (registrationId, itemType) => {
+    const response = await api.post(`/registrations/${registrationId}/items/${itemType}`);
+    return response.data?.data || response.data;
+  },
 };
 
 export default registrationService;

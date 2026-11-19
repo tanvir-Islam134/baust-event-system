@@ -44,6 +44,10 @@ export const RegistrationSchema = z
     paymentStatus: PaymentStatusEnum.default('pending'),
     trxId: z.string().trim().nullable().default(null),
     ticketCode: z.string().min(1, 'Ticket code is required'),
+    qrToken: z.string().nullable().optional().default(null),
+    attended: z.boolean().default(false),
+    attendedAt: z.union([z.date(), z.string(), z.any()]).nullable().default(null),
+    attendedBy: z.string().trim().nullable().default(null),
     received: ReceivedItemsSchema.default({
       food: { done: false, at: null, by: null },
       tshirt: { done: false, at: null, by: null },

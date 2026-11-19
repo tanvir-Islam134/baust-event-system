@@ -194,6 +194,23 @@ export class RegistrationRepository extends BaseRepository {
   }
 
   /**
+   * Atomically mark attendance for a registered participant.
+   * @param {string} registrationId
+   * @param {{ by: string }} metadata
+   */
+  async markAttended(registrationId, { by }) {
+    const timestamp = new Date();
+    const docRef = this.collection.doc(registrationId);
+    await docRef.update({
+      attended: true,
+      attendedAt: timestamp,
+      attendedBy: by,
+      updatedAt: timestamp,
+    });
+    return this.findById(registrationId);
+  }
+
+  /**
    * Mark food or t-shirt item as distributed to attendee.
    * @param {string} registrationId
    * @param {'food' | 'tshirt'} itemType

@@ -10,6 +10,7 @@ import OrganizerCreateEvent from '../components/organizer/OrganizerCreateEvent.j
 import OrganizerManageEvents from '../components/organizer/OrganizerManageEvents.jsx';
 import StudentEventFeed from '../components/events/StudentEventFeed.jsx';
 import AdminEventReviewQueue from '../components/admin/AdminEventReviewQueue.jsx';
+import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
 
 export default function DashboardPage({ defaultTab = null }) {
   const { user, refreshUser } = useAuth();
@@ -52,6 +53,12 @@ export default function DashboardPage({ defaultTab = null }) {
 
   // Toast feedback state
   const [toast, setToast] = useState(null); // { message: string, type: 'success' | 'error' }
+
+  // Student: Registered Events & Passes state
+  const [myRegistrations, setMyRegistrations] = useState([]);
+  const [loadingMyRegistrations, setLoadingMyRegistrations] = useState(false);
+  const [activeTicketData, setActiveTicketData] = useState(null);
+  const [loadingTicketPassId, setLoadingTicketPassId] = useState(null);
 
   // Rejection modal state for participant registrations
   const [rejectingReg, setRejectingReg] = useState(null);
@@ -142,6 +149,53 @@ export default function DashboardPage({ defaultTab = null }) {
   useEffect(() => {
     fetchPendingRegistrations();
   }, [fetchPendingRegistrations]);
+
+  const fetchMyRegistrations = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLoadingMyRegistrations(true);
+      const data = await registrationService.getMyRegistrations();
+      setMyRegistrations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('Failed to fetch user registrations:', err);
+    } finally {
+      setLoadingMyRegistrations(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchMyRegistrations();
+  }, [fetchMyRegistrations]);
+
+  const handleViewTicketPass = async (reg) => {
+    try {
+      setLoadingTicketPassId(reg.id);
+      const fullTicket = await registrationService.getTicket(reg.id);
+      setActiveTicketData(fullTicket);
+    } catch {
+      setActiveTicketData({
+        registration: reg,
+        event: {
+          title: reg.eventTitle || 'Campus Event',
+          date: reg.eventDate,
+          time: reg.eventTime,
+          venue: reg.eventVenue,
+          category: reg.eventCategory,
+          clubName: reg.clubName,
+        },
+        attendee: {
+          name: user?.name || 'Attendee',
+          email: user?.email || '',
+          studentId: user?.studentId || null,
+          department: user?.department || null,
+          batch: user?.batch || reg.batch || null,
+          section: user?.section || reg.section || null,
+        },
+      });
+    } finally {
+      setLoadingTicketPassId(null);
+    }
+  };
 
   useEffect(() => {
     fetchAdminOrganizersCount();
@@ -871,14 +925,14 @@ export default function DashboardPage({ defaultTab = null }) {
                     ? `${organizersCount} Approved`
                     : isOrganizer
                     ? `${pendingRegistrations.length} Pending`
-                    : '1 Ticket'}
+                    : `${myRegistrations.length} ${myRegistrations.length === 1 ? 'Pass' : 'Passes'}`}
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 font-medium">
                   {isAdmin
                     ? 'Active club organizers'
                     : isOrganizer
                     ? 'Applications to review'
-                    : 'Confirmed passes'}
+                    : 'Confirmed digital passes'}
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-[#E5E5E5]">
@@ -900,10 +954,13 @@ export default function DashboardPage({ defaultTab = null }) {
                     <span>&rarr;</span>
                   </button>
                 ) : (
-                  <Link to="/events" className="text-xs font-bold text-[#14213D] hover:text-[#FCA311] flex items-center gap-1 transition">
-                    <span>Check tickets & QR</span>
-                    <span>&rarr;</span>
-                  </Link>
+                  <a
+                    href="#my-tickets-section"
+                    className="text-xs font-bold text-[#14213D] hover:text-[#FCA311] flex items-center gap-1 transition"
+                  >
+                    <span>View my passes ({myRegistrations.length})</span>
+                    <span>&darr;</span>
+                  </a>
                 )}
               </div>
             </div>
@@ -989,6 +1046,120 @@ export default function DashboardPage({ defaultTab = null }) {
                   fetchAdminOrganizersCount();
                 }}
               />
+            </div>
+          )}
+
+          {/* PARTICIPANT DASHBOARD: My Registered Events & Digital Passes */}
+          {!isOrganizer && !isAdmin && (
+            <div id="my-tickets-section" className="bg-white rounded-2xl shadow-xs border border-[#E5E5E5] p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-[#14213D]">My Registered Passes & Tickets</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311]">
+                      {myRegistrations.length} {myRegistrations.length === 1 ? 'Pass' : 'Passes'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Your official university event passes with cryptographically signed QR codes for gate check-in.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={fetchMyRegistrations}
+                  disabled={loadingMyRegistrations}
+                  className="self-start sm:self-auto px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <span className={loadingMyRegistrations ? 'animate-spin' : ''}>🔄</span>
+                  <span>Refresh Passes</span>
+                </button>
+              </div>
+
+              {loadingMyRegistrations ? (
+                <div className="py-8 flex items-center justify-center gap-2 text-xs text-slate-500">
+                  <div className="w-4 h-4 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin"></div>
+                  <span>Loading your registered passes...</span>
+                </div>
+              ) : myRegistrations.length === 0 ? (
+                <div className="p-8 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 text-2xl flex items-center justify-center mx-auto mb-2.5 shadow-xs">
+                    🎟️
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-700">No event passes issued yet</h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5 max-w-sm mx-auto">
+                    When you register for workshops, hackathons, or seminars below, your printable digital pass and QR code will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myRegistrations.map((reg) => (
+                    <div
+                      key={reg.id}
+                      className="p-4 rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/60 hover:border-[#FCA311] shadow-xs hover:shadow-sm transition flex flex-col justify-between space-y-3.5"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+                            {reg.eventCategory || 'Campus Event'}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              reg.attended
+                                ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                : reg.status === 'approved'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : reg.status === 'rejected'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                            }`}
+                          >
+                            {reg.attended ? 'Attended ✓' : reg.status || 'Registered'}
+                          </span>
+                        </div>
+
+                        <h4 className="text-sm font-bold text-[#14213D] line-clamp-1 leading-snug">
+                          {reg.eventTitle || 'BAUST Event'}
+                        </h4>
+
+                        <div className="text-[11px] text-slate-500 mt-1.5 space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span>📅</span>
+                            <span>{reg.eventDate || 'Date TBD'}</span>
+                          </div>
+                          {reg.eventVenue && (
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span>📍</span>
+                              <span className="truncate">{reg.eventVenue}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">
+                            Ticket Code
+                          </span>
+                          <span className="font-mono text-xs font-bold text-slate-700 truncate block">
+                            {reg.ticketCode}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleViewTicketPass(reg)}
+                          disabled={loadingTicketPassId === reg.id}
+                          className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50"
+                        >
+                          <span>🎟️</span>
+                          <span>{loadingTicketPassId === reg.id ? 'Loading...' : 'View Pass'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1117,6 +1288,13 @@ export default function DashboardPage({ defaultTab = null }) {
             </div>
           </div>
         </div>
+      )}
+      {/* Student Digital Pass / Ticket Modal */}
+      {activeTicketData && (
+        <DigitalTicketModal
+          ticketData={activeTicketData}
+          onClose={() => setActiveTicketData(null)}
+        />
       )}
     </div>
   );

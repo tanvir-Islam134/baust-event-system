@@ -3,6 +3,7 @@ import { userRepository } from '../repositories/user.repository.js';
 import { eventRepository } from '../repositories/event.repository.js';
 import { CreateRegistrationInputSchema } from '../schemas/registration.schema.js';
 import { AppError } from '../middlewares/errorHandler.js';
+import { signTicketQr, verifyTicketQr } from '../utils/qr.js';
 
 /**
  * Service handling attendee event registration and cancellation.
@@ -181,5 +182,256 @@ export const cancelRegistration = async (registrationId) => {
     }
     throw error;
   }
+};
+
+/**
+ * Fetch all registrations for the currently authenticated user with signed ticket QR tokens.
+ * @param {string} userId - Firebase UID of attendee
+ */
+export const getMyRegistrations = async (userId) => {
+  if (!userId) {
+    throw new AppError('User ID is required', 400);
+  }
+
+  const registrations = await registrationRepository.findByUser(userId);
+  if (!registrations || !registrations.length) {
+    return [];
+  }
+
+  // Hydrate with event details and sign QR
+  const hydrated = await Promise.all(
+    registrations.map(async (reg) => {
+      const event = await eventRepository.findById(reg.eventId).catch(() => null);
+      const qrToken = signTicketQr(reg, event || {});
+      return {
+        ...reg,
+        qrToken,
+        eventTitle: event?.title || event?.eventName || 'BAUST Event',
+        eventDate: event?.date || null,
+        eventTime: event?.time || `${event?.startTime || ''} - ${event?.endTime || ''}`.trim() || null,
+        eventVenue: event?.venue || null,
+        eventBannerUrl: event?.bannerUrl || '',
+        eventCategory: event?.category || 'General',
+        eventFee: event?.fee ?? event?.ticketPrice ?? 0,
+        clubName: event?.clubName || event?.clubId || reg.clubId || null,
+      };
+    })
+  );
+
+  return hydrated;
+};
+
+/**
+ * Fetch detailed digital ticket information for a single registration.
+ * Accessible by: Attendee themselves, Event Organizer, or Admin.
+ * @param {string} registrationId
+ * @param {string} callerUid
+ * @param {string} callerRole
+ */
+export const getTicketDetails = async (registrationId, callerUid, callerRole) => {
+  const reg = await registrationRepository.findById(registrationId);
+  if (!reg) {
+    throw new AppError(`Registration with ID '${registrationId}' not found`, 404);
+  }
+
+  const event = await eventRepository.findById(reg.eventId);
+  if (!event) {
+    throw new AppError('Associated event not found', 404);
+  }
+
+  // Authorization check
+  const isOwner = reg.userId === callerUid;
+  const isAdmin = callerRole === 'admin';
+  let isClubOrganizer = false;
+
+  if (callerRole === 'organizer') {
+    const organizer = await userRepository.findById(callerUid);
+    const eventClub = event.clubId || event.clubAffiliation;
+    isClubOrganizer = (organizer && organizer.clubAffiliation && organizer.clubAffiliation === eventClub) || event.createdBy === callerUid;
+  }
+
+  if (!isOwner && !isAdmin && !isClubOrganizer) {
+    throw new AppError('Forbidden: You do not have permission to view this ticket.', 403);
+  }
+
+  const user = reg.userId ? await userRepository.findById(reg.userId) : null;
+  const qrToken = signTicketQr(reg, event);
+
+  return {
+    registration: {
+      ...reg,
+      qrToken,
+    },
+    event: {
+      id: event.id,
+      title: event.title || event.eventName || 'BAUST Event',
+      date: event.date || null,
+      time: event.time || `${event.startTime || ''} - ${event.endTime || ''}`.trim() || null,
+      venue: event.venue || null,
+      bannerUrl: event.bannerUrl || '',
+      category: event.category || 'General',
+      fee: event.fee ?? event.ticketPrice ?? 0,
+      clubName: event.clubName || event.clubId || null,
+    },
+    attendee: {
+      name: user?.name || reg.guest?.name || 'Attendee',
+      email: user?.email || reg.guest?.email || 'N/A',
+      studentId: user?.studentId || null,
+      department: user?.department || null,
+      batch: user?.batch || reg.batch || null,
+      section: user?.section || reg.section || null,
+      level: user?.level || reg.level || null,
+      term: user?.term || reg.term || null,
+      mobileNumber: user?.mobileNumber || reg.guest?.phone || null,
+      isGuest: !reg.userId,
+    },
+  };
+};
+
+/**
+ * Gate check-in verification for an attendee at the venue.
+ * Accessible by Event Organizers or Admins.
+ * @param {string} scannerUid - UID of organizer/admin checking in
+ * @param {string} scannerRole - Role of organizer/admin
+ * @param {{ qrToken?: string, ticketCode?: string, eventId?: string }} checkInData
+ */
+export const checkInAttendee = async (scannerUid, scannerRole, checkInData) => {
+  let regId = null;
+  let targetEventId = checkInData.eventId || null;
+  let targetTicketCode = checkInData.ticketCode ? checkInData.ticketCode.trim().toUpperCase() : null;
+
+  // 1. If QR token string provided, verify cryptographic signature
+  if (checkInData.qrToken) {
+    const decoded = verifyTicketQr(checkInData.qrToken);
+    regId = decoded.regId;
+    targetEventId = targetEventId || decoded.eventId;
+    targetTicketCode = targetTicketCode || decoded.ticketCode;
+  }
+
+  let reg = null;
+  if (regId) {
+    reg = await registrationRepository.findById(regId);
+  } else if (targetEventId && targetTicketCode) {
+    reg = await registrationRepository.findByTicketCode(targetEventId, targetTicketCode);
+  }
+
+  if (!reg) {
+    throw new AppError('Ticket not found: No matching registration record found in database.', 404);
+  }
+
+  // 2. Fetch event details
+  const event = await eventRepository.findById(reg.eventId);
+  if (!event) {
+    throw new AppError('Event associated with this ticket not found', 404);
+  }
+
+  // 3. Organizer authorization check (only event's club organizers or admins can check in)
+  if (scannerRole === 'organizer') {
+    const organizer = await userRepository.findById(scannerUid);
+    const eventClub = event.clubId || event.clubAffiliation;
+    const isAuthorized =
+      (organizer && organizer.clubAffiliation && organizer.clubAffiliation === eventClub) ||
+      event.createdBy === scannerUid;
+
+    if (!isAuthorized) {
+      throw new AppError('Unauthorized: You can only check in attendees for events created by your assigned club.', 403);
+    }
+  }
+
+  // 4. Validate registration status
+  if (reg.status === 'rejected') {
+    throw new AppError('Entry Denied: This registration was previously rejected by the organizer.', 400);
+  }
+  if (reg.status === 'cancelled') {
+    throw new AppError('Entry Denied: This registration was cancelled.', 400);
+  }
+
+  // Hydrate attendee info
+  const user = reg.userId ? await userRepository.findById(reg.userId) : null;
+  const attendeeInfo = {
+    name: user?.name || reg.guest?.name || 'Attendee',
+    email: user?.email || reg.guest?.email || 'N/A',
+    studentId: user?.studentId || null,
+    department: user?.department || null,
+    batch: user?.batch || reg.batch || null,
+    section: user?.section || reg.section || null,
+    phone: user?.mobileNumber || reg.guest?.phone || null,
+    isGuest: !reg.userId,
+    tshirtSize: reg.tshirtSize || null,
+    foodType: reg.foodType || null,
+    received: reg.received || {
+      food: { done: false, at: null, by: null },
+      tshirt: { done: false, at: null, by: null },
+    },
+  };
+
+  const eventInfo = {
+    id: event.id,
+    title: event.title || event.eventName || 'BAUST Event',
+    venue: event.venue || 'Venue Hall',
+    date: event.date || null,
+  };
+
+  // 5. Duplicate Check-in Prevention
+  if (reg.attended) {
+    const checkInTime = reg.attendedAt
+      ? new Date(reg.attendedAt.toDate ? reg.attendedAt.toDate() : reg.attendedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : 'earlier today';
+
+    return {
+      success: true,
+      alreadyAttended: true,
+      message: `⚠️ Attendee was ALREADY checked in at ${checkInTime}.`,
+      attendee: attendeeInfo,
+      registration: reg,
+      event: eventInfo,
+    };
+  }
+
+  // 6. Mark attendance atomically
+  const updatedReg = await registrationRepository.markAttended(reg.id, { by: scannerUid });
+
+  return {
+    success: true,
+    alreadyAttended: false,
+    message: `✅ Check-in verified! Welcome, ${attendeeInfo.name}.`,
+    attendee: attendeeInfo,
+    registration: updatedReg,
+    event: eventInfo,
+  };
+};
+
+/**
+ * Distribute event items (Food / T-shirt) to attendee at the gate/counter.
+ * @param {string} scannerUid
+ * @param {string} scannerRole
+ * @param {string} registrationId
+ * @param {'food' | 'tshirt'} itemType
+ */
+export const distributeItem = async (scannerUid, scannerRole, registrationId, itemType) => {
+  if (!['food', 'tshirt'].includes(itemType)) {
+    throw new AppError("Invalid item type. Must be 'food' or 'tshirt'.", 400);
+  }
+
+  const reg = await registrationRepository.findById(registrationId);
+  if (!reg) {
+    throw new AppError(`Registration with ID '${registrationId}' not found`, 404);
+  }
+
+  const event = await eventRepository.findById(reg.eventId);
+  if (scannerRole === 'organizer') {
+    const organizer = await userRepository.findById(scannerUid);
+    const eventClub = event?.clubId || event?.clubAffiliation;
+    const isAuthorized =
+      (organizer && organizer.clubAffiliation && organizer.clubAffiliation === eventClub) ||
+      event?.createdBy === scannerUid;
+
+    if (!isAuthorized) {
+      throw new AppError('Unauthorized: You do not have permission to distribute items for this event.', 403);
+    }
+  }
+
+  const updated = await registrationRepository.markItemReceived(registrationId, itemType, { by: scannerUid });
+  return updated;
 };
 

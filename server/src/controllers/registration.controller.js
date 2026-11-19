@@ -136,3 +136,78 @@ export const cancel = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/v1/registrations/my
+ * Protected: Fetch all registrations for current logged-in user.
+ */
+export const getMyRegistrations = async (req, res, next) => {
+  try {
+    const registrations = await registrationService.getMyRegistrations(req.user.uid);
+    res.status(200).json({
+      success: true,
+      data: registrations,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/registrations/:id/ticket
+ * Protected: Get full digital ticket details for a specific registration.
+ */
+export const getTicket = async (req, res, next) => {
+  try {
+    const ticketData = await registrationService.getTicketDetails(
+      req.params.id,
+      req.user.uid,
+      req.user.role
+    );
+    res.status(200).json({
+      success: true,
+      data: ticketData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/registrations/check-in
+ * Protected (Organizer | Admin): Verify and check-in an attendee via QR token or ticket code.
+ */
+export const checkIn = async (req, res, next) => {
+  try {
+    const result = await registrationService.checkInAttendee(
+      req.user.uid,
+      req.user.role,
+      req.body
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/registrations/:id/items/:itemType
+ * Protected (Organizer | Admin): Mark an event item (food / tshirt) as collected.
+ */
+export const distributeItem = async (req, res, next) => {
+  try {
+    const updated = await registrationService.distributeItem(
+      req.user.uid,
+      req.user.role,
+      req.params.id,
+      req.params.itemType
+    );
+    res.status(200).json({
+      success: true,
+      message: `${req.params.itemType === 'food' ? 'Food token' : 'T-shirt'} marked as collected.`,
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
