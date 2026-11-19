@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,4 +6,14 @@
 
 :root {
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --color-gold: #FCA311;
+  --color-navy: #14213D;
+  --color-silver: #E5E5E5;
+  --color-black: #000000;
+  --color-white: #FFFFFF;
+}
+
+::selection {
+  background-color: #FCA311;
+  color: #14213D;
 }

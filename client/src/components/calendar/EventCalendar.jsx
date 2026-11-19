@@ -347,7 +347,7 @@ export default function EventCalendar({ events = [], loading = false }) {
           <button
             type="button"
             onClick={() => toolbar.onNavigate('TODAY')}
-            className="px-4 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all duration-150 shadow-xs active:scale-95"
+            className="px-4 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#14213D] hover:border-[#FCA311] transition-all duration-150 shadow-xs active:scale-95"
           >
             Today
           </button>
@@ -356,7 +356,7 @@ export default function EventCalendar({ events = [], loading = false }) {
             <button
               type="button"
               onClick={() => toolbar.onNavigate('PREV')}
-              className="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all duration-150 shadow-xs active:scale-95"
+              className="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-100 hover:text-[#14213D] hover:border-[#FCA311] transition-all duration-150 shadow-xs active:scale-95"
               aria-label="Previous Period"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,7 +367,7 @@ export default function EventCalendar({ events = [], loading = false }) {
             <button
               type="button"
               onClick={() => toolbar.onNavigate('NEXT')}
-              className="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all duration-150 shadow-xs active:scale-95"
+              className="w-8 h-8 rounded-full border border-gray-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-100 hover:text-[#14213D] hover:border-[#FCA311] transition-all duration-150 shadow-xs active:scale-95"
               aria-label="Next Period"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,10 +404,10 @@ export default function EventCalendar({ events = [], loading = false }) {
                   toolbar.onView(v.id);
                   setCurrentView(v.id);
                 }}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 ${
+                className={`px-4 py-1.5 rounded-full text-xs transition-all duration-150 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50/80'
+                    ? 'bg-[#14213D] text-[#FCA311] shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-[#14213D] hover:bg-white font-medium'
                 }`}
               >
                 {v.label}
@@ -596,7 +596,7 @@ export default function EventCalendar({ events = [], loading = false }) {
 
         {loading ? (
           <div className="py-28 flex flex-col items-center justify-center gap-3">
-            <div className="w-9 h-9 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-9 h-9 border-4 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
             <p className="text-sm font-medium text-slate-500">Loading campus schedule...</p>
           </div>
         ) : (
@@ -822,7 +822,7 @@ export default function EventCalendar({ events = [], loading = false }) {
                 </button>
                 <Link
                   to={`/events/${selectedEventModal.id}`}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
+                  className="px-5 py-2.5 rounded-xl text-xs font-black bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] shadow-md shadow-[#FCA311]/20 transition"
                 >
                   Open Full Event Page &rarr;
                 </Link>

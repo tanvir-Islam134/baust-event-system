@@ -205,6 +205,13 @@ export const updateStatus = async (req, res, next) => {
       ? `Your event "${eventTitle}" has been approved by the Administration and is now live on the campus calendar.`
       : `Your event "${eventTitle}" was declined. Reason: ${reason || 'Does not comply with university event policy.'}`;
 
+    // Auto-mark any pending admin notifications for this event as read
+    try {
+      await notifService.markEventRequestsAsRead(eventId);
+    } catch (readErr) {
+      console.warn('[EventController] markEventRequestsAsRead error:', readErr.message);
+    }
+
     // 1. Create Notification document for the Organizer
     let notification = null;
     if (organizerUid) {
@@ -230,7 +237,7 @@ export const updateStatus = async (req, res, next) => {
       }
     }
 
-    // 2. Emit real-time Socket.io event to notify the Organizer
+    // 2. Emit real-time Socket.io event to notify the Organizer and update admin queue
     const io = req.app.get('io');
     if (io) {
       try {
@@ -247,6 +254,7 @@ export const updateStatus = async (req, res, next) => {
           io.to(`user_${organizerUid}`).emit('event_status_updated', socketPayload);
         }
         io.to('organizer_room').emit('event_status_updated', socketPayload);
+        io.to('admin_room').emit('event_request_processed', { eventId, status: updated.status });
         io.emit('event_status_updated', socketPayload);
       } catch (socketErr) {
         console.warn('[EventController] Socket emit error:', socketErr.message);

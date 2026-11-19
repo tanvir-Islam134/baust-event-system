@@ -156,7 +156,7 @@ export default function ClubOrganizersDirectory({ onNotify }) {
       {/* Local Toast Alert if rendered standalone */}
       {localToast && (
         <div
-          className={`fixed top-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in border ${
+          className={`fixed top-20 right-4 sm:right-6 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in border ${
             localToast.type === 'error'
               ? 'bg-rose-600 text-white border-rose-700'
               : 'bg-emerald-600 text-white border-emerald-700'
@@ -174,11 +174,11 @@ export default function ClubOrganizersDirectory({ onNotify }) {
       {/* Main Container Card */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Header & Controls */}
-        <div className="p-5 sm:p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-indigo-50/20 to-blue-50/30">
+        <div className="p-5 sm:p-6 border-b border-slate-200 bg-slate-50/80">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-indigo-600 text-white rounded-lg shadow-sm">
+                <div className="p-2 bg-[#14213D] text-[#FCA311] rounded-lg shadow-sm">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
@@ -196,8 +196,8 @@ export default function ClubOrganizersDirectory({ onNotify }) {
 
             {/* Quick Metrics Pills */}
             <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] border border-[#FCA311]/40 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-[#FCA311] animate-pulse"></span>
                 <span>{stats.total} Active Organizers</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">

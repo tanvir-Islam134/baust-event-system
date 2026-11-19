@@ -31,6 +31,14 @@ export const userService = {
   },
 
   /**
+   * Dismiss and acknowledge an organizer application rejection notice.
+   */
+  dismissRejectionNotice: async () => {
+    const response = await api.post('/users/me/dismiss-rejection');
+    return response.data?.data || response.data;
+  },
+
+  /**
    * Fetch all users where organizerRequestStatus === 'pending' (Admin only).
    */
   getOrganizerRequests: async () => {
@@ -53,7 +61,11 @@ export const userService = {
    * @param {string} [rejectionReason]
    */
   rejectOrganizer: async (userId, rejectionReason = null) => {
-    const response = await api.post('/users/reject-organizer', { userId, rejectionReason });
+    const payload = { userId };
+    if (rejectionReason && typeof rejectionReason === 'string' && rejectionReason.trim()) {
+      payload.rejectionReason = rejectionReason.trim();
+    }
+    const response = await api.post('/users/reject-organizer', payload);
     return response.data?.data || response.data;
   },
 

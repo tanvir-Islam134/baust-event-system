@@ -112,13 +112,13 @@ export default function OrganizerManageEvents({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-slate-800">Published Club Events</h2>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] border border-[#FCA311]/40">
               {events.length} Total
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Manage, monitor approvals, and view participant metrics for events created for{' '}
-            <strong className="text-indigo-700 font-semibold">🏛️ {clubName}</strong>.
+            <strong className="text-[#14213D] font-bold">🏛️ {clubName}</strong>.
           </p>
         </div>
 
@@ -147,7 +147,7 @@ export default function OrganizerManageEvents({
 
           <button
             onClick={onCreateClick}
-            className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center justify-center gap-1.5"
+            className="flex-1 sm:flex-none px-4 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs font-black shadow-md shadow-[#FCA311]/20 transition flex items-center justify-center gap-1.5"
           >
             <span>➕</span>
             <span>Create New Event</span>
@@ -199,9 +199,9 @@ export default function OrganizerManageEvents({
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
                 statusFilter === tab.id
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-[#14213D] text-[#FCA311] shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
@@ -218,7 +218,7 @@ export default function OrganizerManageEvents({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by title or venue..."
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FCA311]/20 focus:border-[#FCA311] transition"
           />
         </div>
       </div>
@@ -226,12 +226,12 @@ export default function OrganizerManageEvents({
       {/* Events Grid / List */}
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-slate-200">
-          <div className="w-9 h-9 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-9 h-9 border-3 border-[#FCA311] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-xs font-semibold text-slate-500">Loading your published events...</p>
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 text-[#14213D] flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
             📅
           </div>
           <h3 className="text-base font-bold text-slate-800">
@@ -246,7 +246,7 @@ export default function OrganizerManageEvents({
             <div className="mt-5">
               <button
                 onClick={onCreateClick}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md transition inline-flex items-center gap-1.5"
+                className="px-5 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs font-black shadow-md shadow-[#FCA311]/20 transition inline-flex items-center gap-1.5"
               >
                 <span>➕</span>
                 <span>Create Your First Event</span>
@@ -277,7 +277,7 @@ export default function OrganizerManageEvents({
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-900 flex flex-col items-center justify-center p-4 text-center">
+                    <div className="w-full h-full bg-gradient-to-br from-black via-[#14213D] to-black flex flex-col items-center justify-center p-4 text-center">
                       <span className="text-3xl mb-1">🏛️</span>
                       <span className="text-xs font-bold text-white uppercase tracking-wider line-clamp-1">
                         {event.clubName || clubName}
@@ -298,7 +298,7 @@ export default function OrganizerManageEvents({
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div>
                     {/* Club Tag */}
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 mb-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#14213D] mb-1.5">
                       <span>🏛️</span>
                       <span className="truncate">{event.clubName || clubName}</span>
                     </div>
@@ -354,7 +354,7 @@ export default function OrganizerManageEvents({
                       </div>
                       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                          className="h-full bg-[#FCA311] rounded-full transition-all duration-300"
                           style={{ width: `${percentFilled}%` }}
                         />
                       </div>
@@ -365,7 +365,7 @@ export default function OrganizerManageEvents({
                       {event.status === 'approved' ? (
                         <Link
                           to={`/events/${event.id}`}
-                          className="w-full text-center px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition"
+                          className="w-full text-center px-3 py-2 bg-slate-100 hover:bg-[#14213D] hover:text-[#FCA311] text-[#14213D] rounded-lg text-xs font-bold border border-[#E5E5E5] transition"
                         >
                           View Public Page &rarr;
                         </Link>

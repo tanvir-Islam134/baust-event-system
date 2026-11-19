@@ -71,8 +71,58 @@ export class BaseRepository {
     if (options.limit) {
       query = query.limit(options.limit);
     }
-    const snapshot = await query.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    try {
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      // If Firestore reports a missing composite index (code 9 / FAILED_PRECONDITION),
+      // gracefully fallback to executing without orderBy in Firestore and sort in-memory in Node.js
+      const isIndexError =
+        err.code === 9 ||
+        (typeof err.message === 'string' && err.message.toLowerCase().includes('requires an index')) ||
+        (typeof err.details === 'string' && err.details.toLowerCase().includes('requires an index'));
+
+      if (options.orderBy && isIndexError) {
+        console.warn(
+          `[Firestore] Missing composite index for collection '${this.collectionName}'. Falling back to in-memory sorting.`
+        );
+        let fallbackQuery = this.collection;
+        for (const [field, op, val] of filters) {
+          if (val !== undefined) {
+            fallbackQuery = fallbackQuery.where(field, op, val);
+          }
+        }
+        const snapshot = await fallbackQuery.get();
+        let docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+        const [field, direction] = options.orderBy;
+        const dir = (direction || 'asc').toLowerCase();
+        docs.sort((a, b) => {
+          let valA = a[field];
+          let valB = b[field];
+
+          // Handle Date strings or Firestore timestamps
+          if (valA?.toDate && typeof valA.toDate === 'function') valA = valA.toDate();
+          if (valB?.toDate && typeof valB.toDate === 'function') valB = valB.toDate();
+          if (typeof valA === 'string' && !isNaN(Date.parse(valA))) valA = new Date(valA);
+          if (typeof valB === 'string' && !isNaN(Date.parse(valB))) valB = new Date(valB);
+
+          if (valA == null && valB == null) return 0;
+          if (valA == null) return dir === 'asc' ? 1 : -1;
+          if (valB == null) return dir === 'asc' ? -1 : 1;
+          if (valA < valB) return dir === 'asc' ? -1 : 1;
+          if (valA > valB) return dir === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        if (options.limit) {
+          docs = docs.slice(0, options.limit);
+        }
+        return docs;
+      }
+      throw err;
+    }
   }
 
   /**

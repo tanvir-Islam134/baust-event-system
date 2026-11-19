@@ -66,6 +66,52 @@ export default function ProfilePage() {
   const [organizerMsg, setOrganizerMsg] = useState(null);
   const [organizerErrorMsg, setOrganizerErrorMsg] = useState(null);
 
+  // Acknowledged / Dismissed organizer rejection notice state
+  const getIsRejectionDismissed = () => {
+    if (typeof window === 'undefined' || !user) return false;
+    return localStorage.getItem(`baust_rejection_ack_${user.uid || user.id}`) === 'true';
+  };
+
+  const [rejectionDismissed, setRejectionDismissed] = useState(getIsRejectionDismissed);
+  const [dismissingRejection, setDismissingRejection] = useState(false);
+
+  useEffect(() => {
+    if (user?.uid || user?.id) {
+      setRejectionDismissed(
+        localStorage.getItem(`baust_rejection_ack_${user.uid || user.id}`) === 'true'
+      );
+    }
+  }, [user?.uid, user?.id]);
+
+  const handleDismissRejection = async () => {
+    setRejectionDismissed(true);
+    if (user?.uid || user?.id) {
+      localStorage.setItem(`baust_rejection_ack_${user.uid || user.id}`, 'true');
+    }
+    try {
+      setDismissingRejection(true);
+      await userService.dismissRejectionNotice();
+      if (refreshUser) await refreshUser();
+    } catch (err) {
+      console.warn('Failed to dismiss rejection notice:', err);
+    } finally {
+      setDismissingRejection(false);
+    }
+  };
+
+  // If user visits Profile page and checks/sees the rejection, automatically dismiss when navigating away
+  useEffect(() => {
+    const raw = user?.organizerRequestStatus || user?.organizerStatus;
+    if (raw === 'rejected') {
+      return () => {
+        if (user?.uid || user?.id) {
+          localStorage.setItem(`baust_rejection_ack_${user.uid || user.id}`, 'true');
+        }
+        userService.dismissRejectionNotice().catch(() => {});
+      };
+    }
+  }, [user?.uid, user?.id, user?.organizerRequestStatus, user?.organizerStatus]);
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -126,6 +172,9 @@ export default function ProfilePage() {
       setRequestingOrganizer(true);
       setOrganizerMsg(null);
       setOrganizerErrorMsg(null);
+      if (user?.uid || user?.id) {
+        localStorage.removeItem(`baust_rejection_ack_${user.uid || user.id}`);
+      }
 
       await userService.requestOrganizer({ clubAffiliation: selectedClub });
       await refreshUser();
@@ -158,29 +207,30 @@ export default function ProfilePage() {
     }
   };
 
-  const currentStatus = user?.organizerRequestStatus || user?.organizerStatus || 'none';
+  const rawStatus = user?.organizerRequestStatus || user?.organizerStatus || 'none';
+  const currentStatus = rawStatus === 'rejected' && rejectionDismissed ? 'none' : rawStatus;
 
   const getRoleBadge = (role) => {
     switch (role) {
       case 'admin':
-        return <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">Admin</span>;
+        return <span className="px-3 py-1 text-xs font-bold rounded-full bg-[#14213D] text-[#FCA311] border border-[#FCA311]/40 shadow-xs">Admin</span>;
       case 'organizer':
-        return <span className="px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200">Organizer</span>;
+        return <span className="px-3 py-1 text-xs font-bold rounded-full bg-[#FCA311]/20 text-[#14213D] border border-[#FCA311] shadow-xs">Organizer</span>;
       default:
-        return <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">Participant</span>;
+        return <span className="px-3 py-1 text-xs font-semibold rounded-full bg-[#E5E5E5] text-[#14213D] border border-[#E5E5E5]">Participant</span>;
     }
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'approved':
-        return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Approved</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Approved</span>;
       case 'pending':
-        return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">Pending Review</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[#fff8eb] text-[#14213D] border border-[#FCA311] animate-pulse">Pending Review</span>;
       case 'rejected':
-        return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-rose-100 text-rose-800 border border-rose-200">Rejected</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-rose-100 text-rose-800 border border-rose-200">Rejected</span>;
       default:
-        return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-600 border border-slate-200">None</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[#E5E5E5] text-slate-700 border border-[#E5E5E5]">None</span>;
     }
   };
 
@@ -190,19 +240,19 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       {/* Header Profile Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-2xl shadow-xs border border-[#E5E5E5] p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-2xl shadow-inner">
+            <div className="w-16 h-16 rounded-full bg-[#14213D] text-[#FCA311] ring-4 ring-[#FCA311]/30 flex items-center justify-center font-black text-2xl shadow-inner">
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">{user?.name}</h1>
-              <p className="text-sm text-slate-500">{user?.email}</p>
+              <h1 className="text-xl font-extrabold text-[#14213D]">{user?.name}</h1>
+              <p className="text-sm text-slate-500 font-medium">{user?.email}</p>
               <div className="flex items-center gap-2 mt-2">
                 {getRoleBadge(user?.role)}
                 {user?.clubAffiliation && (
-                  <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                  <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[#14213D]/10 text-[#14213D] border border-[#14213D]/20">
                     🏛️ {user.clubAffiliation}
                   </span>
                 )}
@@ -210,8 +260,8 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm">
-            <span className="text-xs text-slate-400 block font-medium">Organizer Status</span>
+          <div className="bg-[#F8F9FA] border border-[#E5E5E5] rounded-xl p-3 text-sm">
+            <span className="text-xs text-slate-400 block font-bold uppercase tracking-wider">Organizer Status</span>
             <div className="mt-1">{getStatusBadge(currentStatus)}</div>
           </div>
         </div>
@@ -264,10 +314,36 @@ export default function ProfilePage() {
 
         {/* Status: Rejected */}
         {currentStatus === 'rejected' && canApplyForOrganizer && (
-          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">
-            <p className="font-semibold">Previous Request Status: Rejected</p>
-            <p className="mt-0.5">
-              Your previous application was not approved. You may submit a new application for a club below.
+          <div className="mb-4 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-xs space-y-2 relative transition-all shadow-xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 font-bold text-rose-800 text-sm">
+                <svg className="w-4 h-4 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span>Previous Application Status: Declined</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissRejection}
+                disabled={dismissingRejection}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-rose-100 hover:bg-rose-200 rounded-lg transition"
+                title="Dismiss this notice (won't show again)"
+              >
+                <span>Dismiss</span>
+                <span className="text-base leading-none">&times;</span>
+              </button>
+            </div>
+            <p className="text-xs text-rose-800">
+              Your previous organizer request for <strong>{user?.clubAffiliation || 'the club'}</strong> was not approved by administration.
+            </p>
+            {user?.organizerRejectionReason && (
+              <div className="p-2.5 bg-white rounded-lg border border-rose-200 text-slate-700 text-xs">
+                <span className="font-semibold text-rose-900">Administrative Feedback: </span>
+                {user.organizerRejectionReason}
+              </div>
+            )}
+            <p className="text-slate-600 text-[11px] pt-1">
+              You remain active as a Student Participant. You may submit a new application for a club below.
             </p>
           </div>
         )}
@@ -296,7 +372,7 @@ export default function ProfilePage() {
                 value={selectedClub}
                 onChange={(e) => setSelectedClub(e.target.value)}
                 disabled={requestingOrganizer}
-                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
               >
                 <option value="">-- Choose an Official Club --</option>
                 {BAUST_CLUBS.map((club) => (
@@ -314,7 +390,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={requestingOrganizer || !selectedClub}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition disabled:opacity-50"
+                className="px-5 py-2.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-sm font-bold shadow-md transition disabled:opacity-50"
               >
                 {requestingOrganizer ? 'Submitting Application...' : 'Submit Organizer Request'}
               </button>
@@ -324,9 +400,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Academic Profile Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-2xl shadow-xs border border-[#E5E5E5] p-6">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-slate-800">Academic Profile</h2>
+          <h2 className="text-lg font-extrabold text-[#14213D]">Academic Profile</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Keep your university cohort details up to date for seamless event registration.
           </p>
@@ -356,7 +432,7 @@ export default function ProfilePage() {
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-transparent transition bg-white"
               >
                 <option value="">-- Select Your Department --</option>
                 {BAUST_DEPARTMENTS.map((dept) => (
@@ -379,7 +455,7 @@ export default function ProfilePage() {
                 value={formData.studentId}
                 onChange={handleChange}
                 placeholder="e.g. 210201001"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-transparent transition"
               />
             </div>
 
@@ -395,7 +471,7 @@ export default function ProfilePage() {
                 value={formData.mobileNumber}
                 onChange={handleChange}
                 placeholder="e.g. 01700000000"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-transparent transition"
               />
             </div>
 
@@ -411,7 +487,7 @@ export default function ProfilePage() {
                 value={formData.batch}
                 onChange={handleChange}
                 placeholder="e.g. 11th Batch, 12th Batch"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-transparent transition"
               />
             </div>
 
@@ -427,7 +503,7 @@ export default function ProfilePage() {
                 value={formData.section}
                 onChange={handleChange}
                 placeholder="e.g. A, B, C"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-transparent transition"
               />
             </div>
 
@@ -441,7 +517,7 @@ export default function ProfilePage() {
                 name="level"
                 value={formData.level}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-transparent transition bg-white"
               >
                 <option value="">Select Level</option>
                 <option value="1">Level 1</option>
@@ -461,7 +537,7 @@ export default function ProfilePage() {
                 name="term"
                 value={formData.term}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-transparent transition bg-white"
               >
                 <option value="">Select Term</option>
                 <option value="1">Term I</option>
@@ -474,7 +550,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={savingProfile}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm transition disabled:opacity-50"
+              className="px-5 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-lg text-sm font-black shadow-md shadow-[#FCA311]/20 transition disabled:opacity-50"
             >
               {savingProfile ? 'Saving...' : 'Save Profile Changes'}
             </button>

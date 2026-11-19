@@ -102,7 +102,7 @@ export default function CalendarPage() {
       {/* Header Actions & Filter Bar */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#14213D] border border-[#FCA311]/40 text-[#FCA311] text-xs font-bold">
             <span>📅</span>
             <span>Interactive Campus Calendar</span>
           </div>
@@ -124,7 +124,7 @@ export default function CalendarPage() {
           {isStaff && (
             <Link
               to="/dashboard?tab=create-event"
-              className="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm flex items-center gap-1.5"
+              className="px-4 py-2 text-xs font-black rounded-lg bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] transition shadow-md shadow-[#FCA311]/20 flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -143,7 +143,7 @@ export default function CalendarPage() {
             id="filter-club"
             value={selectedClub}
             onChange={(e) => setSelectedClub(e.target.value)}
-            className="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FCA311]"
           >
             <option value="all">All Clubs</option>
             {availableClubs.map((club) => (
@@ -160,7 +160,7 @@ export default function CalendarPage() {
             id="filter-category"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#FCA311]"
           >
             <option value="all">All Categories</option>
             {categories.map((cat) => (
@@ -177,7 +177,7 @@ export default function CalendarPage() {
               setSelectedClub('all');
               setSelectedCategory('all');
             }}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline ml-auto"
+            className="text-xs font-bold text-[#14213D] hover:text-[#FCA311] underline ml-auto"
           >
             Reset Filters
           </button>

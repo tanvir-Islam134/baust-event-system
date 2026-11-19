@@ -31,13 +31,13 @@ export default function LoginPage() {
           <p className="text-sm text-slate-500 mb-6">
             Signed in as <span className="font-semibold text-slate-800">{user.email}</span>
             <br />
-            Role: <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 capitalize">{user.role}</span>
+            Role: <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] capitalize">{user.role}</span>
           </p>
 
           <div className="flex flex-col gap-3">
             <button
               onClick={() => navigate(from, { replace: true })}
-              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+              className="w-full py-2.5 px-4 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-lg text-sm font-black shadow-md shadow-[#FCA311]/20 transition"
             >
               Continue to {from === '/dashboard' ? 'Dashboard' : 'Page'} &rarr;
             </button>
@@ -82,10 +82,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-slate-50">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white text-xl mx-auto mb-3 shadow">
-            B
+          <div className="w-20 h-20 rounded-full bg-white shadow-md border-2 border-slate-100 p-2 mx-auto mb-3 flex items-center justify-center">
+            <img
+              src="/baust-logo.png"
+              alt="BAUST University Crest"
+              className="w-full h-full object-contain rounded-full drop-shadow-xs"
+            />
           </div>
-          <span className="inline-block py-1 px-3 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 uppercase tracking-wider mb-2">
+          <span className="inline-block py-1 px-3 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] uppercase tracking-wider mb-2">
             BAUST Event System
           </span>
           <h1 className="text-2xl font-bold text-slate-800">Account Login</h1>

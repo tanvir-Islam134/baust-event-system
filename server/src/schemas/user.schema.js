@@ -53,8 +53,8 @@ export const RejectOrganizerSchema = z
   .object({
     userId: z.string().trim().min(1, 'userId is required').optional(),
     id: z.string().trim().min(1, 'id is required').optional(),
-    rejectionReason: z.string().trim().optional(),
-    reason: z.string().trim().optional(),
+    rejectionReason: z.string().trim().nullable().optional(),
+    reason: z.string().trim().nullable().optional(),
   })
   .refine((data) => data.userId || data.id, {
     message: 'User ID (userId) is required',

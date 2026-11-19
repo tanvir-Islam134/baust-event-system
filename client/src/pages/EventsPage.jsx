@@ -87,7 +87,7 @@ export default function EventsPage() {
     <div className="space-y-6">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 max-w-md bg-emerald-600 text-white p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in">
+        <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-md bg-emerald-600 text-white p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in border border-emerald-700">
           <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
           </svg>
@@ -121,7 +121,7 @@ export default function EventsPage() {
           {canCreateEvent && (
             <Link
               to="/dashboard?tab=create-event"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs sm:text-sm font-black shadow-md shadow-[#FCA311]/20 transition whitespace-nowrap"
             >
               <span>➕</span>
               <span>Create New Event</span>
@@ -137,7 +137,7 @@ export default function EventsPage() {
             onClick={() => setActiveTab('approved')}
             className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 ${
               activeTab === 'approved'
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-[#14213D] text-[#14213D]'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -170,7 +170,7 @@ export default function EventsPage() {
             <button
               onClick={fetchPendingEvents}
               disabled={loadingPending}
-              className="text-blue-600 hover:underline font-semibold"
+              className="text-[#14213D] hover:text-[#FCA311] hover:underline font-bold"
             >
               Refresh Queue
             </button>
@@ -207,7 +207,7 @@ export default function EventsPage() {
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                         Pending Review
                       </span>
-                      <span className="text-xs text-indigo-700 font-semibold">
+                      <span className="text-xs text-[#14213D] font-bold">
                         🏛️ {event.clubName || 'Assigned Club'}
                       </span>
                     </div>

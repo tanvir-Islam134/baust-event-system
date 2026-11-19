@@ -106,6 +106,47 @@ export const approveOrganizer = async (req, res, next) => {
       throw new AppError('userId is required', 400);
     }
     const updatedUser = await userService.approveOrganizerRequest(targetUserId);
+
+    // Auto-mark any pending admin notifications for this applicant as read
+    try {
+      await notifService.markOrganizerRequestsAsRead(targetUserId);
+    } catch (readErr) {
+      console.warn('[UserController] markOrganizerRequestsAsRead error:', readErr.message);
+    }
+
+    // Notify applicant
+    try {
+      await notifService.createOrganizerNotification({
+        recipientId: targetUserId,
+        type: 'organizer_request_approved',
+        title: 'Organizer Application Approved',
+        message: `Congratulations! Your organizer privileges for ${updatedUser.clubAffiliation || 'your club'} have been approved.`,
+        data: {
+          role: 'organizer',
+          clubAffiliation: updatedUser.clubAffiliation,
+        },
+      });
+    } catch (notifErr) {
+      console.warn('[UserController] Approve notification error:', notifErr.message);
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        io.to(`user_${targetUserId}`).emit('organizer_status_updated', {
+          status: 'approved',
+          role: 'organizer',
+          clubAffiliation: updatedUser.clubAffiliation,
+        });
+        io.to('admin_room').emit('organizer_request_processed', {
+          userId: targetUserId,
+          status: 'approved',
+        });
+      } catch (ioErr) {
+        console.warn('[UserController] Socket emit error:', ioErr.message);
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Organizer request approved successfully',
@@ -128,10 +169,71 @@ export const rejectOrganizer = async (req, res, next) => {
     }
     const rejectionReason = req.body?.rejectionReason || req.body?.reason || null;
     const updatedUser = await userService.rejectOrganizerRequest(targetUserId, rejectionReason);
+
+    // Auto-mark any pending admin notifications for this applicant as read
+    try {
+      await notifService.markOrganizerRequestsAsRead(targetUserId);
+    } catch (readErr) {
+      console.warn('[UserController] markOrganizerRequestsAsRead error:', readErr.message);
+    }
+
+    // Notify applicant
+    try {
+      await notifService.createOrganizerNotification({
+        recipientId: targetUserId,
+        type: 'organizer_request_rejected',
+        title: 'Organizer Request Declined',
+        message: rejectionReason
+          ? `Your organizer request for ${updatedUser.clubAffiliation || 'the club'} was declined: ${rejectionReason}`
+          : `Your organizer request for ${updatedUser.clubAffiliation || 'the club'} was not approved by administration.`,
+        data: {
+          status: 'rejected',
+          rejectionReason,
+          clubAffiliation: updatedUser.clubAffiliation,
+        },
+      });
+    } catch (notifErr) {
+      console.warn('[UserController] Reject notification error:', notifErr.message);
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        io.to(`user_${targetUserId}`).emit('organizer_status_updated', {
+          status: 'rejected',
+          rejectionReason,
+          clubAffiliation: updatedUser.clubAffiliation,
+        });
+        io.to('admin_room').emit('organizer_request_processed', {
+          userId: targetUserId,
+          status: 'rejected',
+        });
+      } catch (ioErr) {
+        console.warn('[UserController] Socket emit error:', ioErr.message);
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Organizer request rejected successfully',
       data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/users/me/dismiss-rejection
+ * Dismiss/acknowledge a declined organizer request notice.
+ */
+export const dismissOrganizerRejection = async (req, res, next) => {
+  try {
+    const updated = await userService.dismissOrganizerRejection(req.user.uid);
+    res.status(200).json({
+      success: true,
+      message: 'Declined notice dismissed successfully',
+      data: updated,
     });
   } catch (error) {
     next(error);

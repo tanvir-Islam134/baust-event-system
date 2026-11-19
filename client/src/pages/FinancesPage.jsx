@@ -154,7 +154,7 @@ export default function FinancesPage() {
     <div className="space-y-6">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 max-w-md bg-emerald-600 text-white p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in">
+        <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-md bg-emerald-600 text-white p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in border border-emerald-700">
           <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
           </svg>
@@ -189,7 +189,7 @@ export default function FinancesPage() {
             <select
               value={selectedEventId}
               onChange={(e) => setSelectedEventId(e.target.value)}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm bg-white font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#FCA311]"
             >
               {events.map((ev) => (
                 <option key={ev.id} value={ev.id}>
@@ -228,7 +228,7 @@ export default function FinancesPage() {
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Net Balance</span>
               <p
                 className={`text-2xl font-bold mt-1 ${
-                  netBalance >= 0 ? 'text-blue-600' : 'text-rose-600'
+                  netBalance >= 0 ? 'text-[#14213D]' : 'text-rose-600'
                 }`}
               >
                 ৳ {Number(netBalance).toLocaleString()}
@@ -276,7 +276,7 @@ export default function FinancesPage() {
 
           {loadingFinances ? (
             <div className="py-16 flex flex-col items-center justify-center gap-3">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-[#FCA311] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-xs font-medium text-slate-500">Loading financial statements...</p>
             </div>
           ) : financeError ? (
@@ -316,10 +316,10 @@ export default function FinancesPage() {
                             <td className="py-3 px-3.5 font-medium text-slate-800">{inc.source}</td>
                             <td className="py-3 px-3.5">
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                                   inc.type === 'sponsor'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-purple-100 text-purple-800'
+                                    ? 'bg-[#14213D] text-[#FCA311]'
+                                    : 'bg-[#FCA311]/20 text-[#14213D]'
                                 }`}
                               >
                                 {inc.type}
@@ -372,7 +372,7 @@ export default function FinancesPage() {
                                   href={exp.receiptUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[10px] text-blue-600 hover:underline"
+                                  className="text-[10px] text-[#14213D] hover:text-[#FCA311] font-bold hover:underline"
                                 >
                                   View Receipt &rarr;
                                 </a>

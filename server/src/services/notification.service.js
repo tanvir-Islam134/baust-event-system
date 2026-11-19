@@ -131,6 +131,9 @@ export const getAdminNotifications = async ({ unreadOnly = false } = {}) => {
  * @param {string} id
  */
 export const markNotificationAsRead = async (id) => {
+  if (!id || typeof id !== 'string' || id.startsWith('temp_')) {
+    return { id, isRead: true };
+  }
   try {
     if (NotificationModel && NotificationModel.db?.readyState === 1) {
       await NotificationModel.findByIdAndUpdate(id, { isRead: true });
@@ -140,6 +143,54 @@ export const markNotificationAsRead = async (id) => {
   }
 
   return notificationRepository.markAsRead(id);
+};
+
+/**
+ * Mark all organizer request notifications for an applicant as read
+ * @param {string} senderId
+ */
+export const markOrganizerRequestsAsRead = async (senderId) => {
+  if (!senderId) return false;
+  try {
+    if (NotificationModel && NotificationModel.db?.readyState === 1) {
+      await NotificationModel.updateMany(
+        {
+          type: 'new_organizer_request',
+          $or: [{ senderId }, { 'data.userId': senderId }, { 'data.applicantId': senderId }],
+          isRead: false,
+        },
+        { isRead: true }
+      );
+    }
+  } catch (err) {
+    console.warn('[NotificationService] Mongoose markOrganizerRequestsAsRead warning:', err.message);
+  }
+
+  return notificationRepository.markOrganizerRequestsAsRead(senderId);
+};
+
+/**
+ * Mark all event approval notifications for an event as read
+ * @param {string} eventId
+ */
+export const markEventRequestsAsRead = async (eventId) => {
+  if (!eventId) return false;
+  try {
+    if (NotificationModel && NotificationModel.db?.readyState === 1) {
+      await NotificationModel.updateMany(
+        {
+          type: 'event_pending_approval',
+          $or: [{ 'data.eventId': eventId }, { eventId }],
+          isRead: false,
+        },
+        { isRead: true }
+      );
+    }
+  } catch (err) {
+    console.warn('[NotificationService] Mongoose markEventRequestsAsRead warning:', err.message);
+  }
+
+  return notificationRepository.markEventRequestsAsRead(eventId);
 };
 
 /**

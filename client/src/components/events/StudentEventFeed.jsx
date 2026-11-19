@@ -95,17 +95,17 @@ export default function StudentEventFeed({
   return (
     <div className="space-y-6">
       {/* Feed Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+      <div className="bg-white rounded-2xl shadow-xs border border-[#E5E5E5] p-6 sm:p-8">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#14213D] border border-[#FCA311]/40 text-[#FCA311] text-xs font-bold mb-3 shadow-xs">
             <span>🎓 Student Experience</span>
             <span>•</span>
             <span>Campus Activities</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#14213D] tracking-tight">
             {title}
           </h2>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">{subtitle}</p>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed font-normal">{subtitle}</p>
         </div>
 
         {/* Search Bar & Club Category Filters */}
@@ -157,10 +157,10 @@ export default function StudentEventFeed({
 
             <button
               onClick={() => setSelectedClub('all')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shadow-sm ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shadow-xs ${
                 selectedClub === 'all'
-                  ? 'bg-blue-600 text-white shadow-blue-500/20'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                  ? 'bg-[#14213D] text-[#FCA311] shadow-md shadow-[#14213D]/25'
+                  : 'bg-slate-100 text-slate-700 hover:bg-[#E5E5E5] hover:text-[#14213D]'
               }`}
             >
               🏛️ All Clubs
@@ -172,10 +172,10 @@ export default function StudentEventFeed({
                 <button
                   key={club}
                   onClick={() => setSelectedClub(club)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shadow-sm ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shadow-xs ${
                     isSelected
-                      ? 'bg-blue-600 text-white shadow-blue-500/20'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                      ? 'bg-[#14213D] text-[#FCA311] shadow-md shadow-[#14213D]/25'
+                      : 'bg-slate-100 text-slate-700 hover:bg-[#E5E5E5] hover:text-[#14213D]'
                   }`}
                 >
                   {club}
@@ -188,18 +188,18 @@ export default function StudentEventFeed({
           <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
             <div>
               <span>Found </span>
-              <strong className="text-slate-800 font-bold">{events.length}</strong>
+              <strong className="text-[#14213D] font-extrabold">{events.length}</strong>
               <span> {events.length === 1 ? 'event' : 'events'}</span>
               {selectedClub !== 'all' && (
                 <span>
                   {' '}
-                  hosted by <strong className="text-blue-700">{selectedClub}</strong>
+                  hosted by <strong className="text-[#14213D] font-bold">{selectedClub}</strong>
                 </span>
               )}
               {searchTerm && (
                 <span>
                   {' '}
-                  matching &ldquo;<span className="text-slate-800">{searchTerm}</span>&rdquo;
+                  matching &ldquo;<span className="text-[#14213D] font-bold">{searchTerm}</span>&rdquo;
                 </span>
               )}
             </div>
@@ -207,7 +207,7 @@ export default function StudentEventFeed({
             {(selectedClub !== 'all' || searchTerm) && (
               <button
                 onClick={handleClearFilters}
-                className="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 hover:underline"
+                className="text-[#14213D] hover:text-[#FCA311] font-bold flex items-center gap-1 hover:underline transition"
               >
                 <span>Reset Filters</span>
               </button>
@@ -287,12 +287,12 @@ export default function StudentEventFeed({
             return (
               <div
                 key={event.id}
-                className={`bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group ${
+                className={`bg-white rounded-2xl shadow-xs border border-[#E5E5E5] hover:border-[#FCA311] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group ${
                   isPast ? 'opacity-80' : ''
                 }`}
               >
                 {/* 1. Banner Image Header */}
-                <div className="relative h-48 w-full bg-slate-900 overflow-hidden">
+                <div className="relative h-48 w-full bg-[#14213D] overflow-hidden">
                   {event.bannerUrl ? (
                     <img
                       src={event.bannerUrl}
@@ -301,26 +301,26 @@ export default function StudentEventFeed({
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-950 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-                      <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl mb-2 border border-white/20 shadow">
+                    <div className="w-full h-full bg-gradient-to-br from-[#14213D] via-[#1e2f52] to-black flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+                      <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl mb-2 border border-[#FCA311]/30 shadow text-[#FCA311]">
                         🏛️
                       </div>
                       <span className="text-xs font-bold text-white tracking-wider uppercase line-clamp-1">
                         {hostingClub}
                       </span>
                       {/* Decorative backdrop glow */}
-                      <div className="absolute -bottom-10 -right-10 w-36 h-36 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+                      <div className="absolute -bottom-10 -right-10 w-36 h-36 bg-[#FCA311]/15 rounded-full blur-2xl pointer-events-none" />
                     </div>
                   )}
 
                   {/* Gradient overlay for text contrast */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-black/30 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30 pointer-events-none" />
 
                   {/* Badges Overlay */}
                   <div className="absolute top-3 inset-x-3 flex items-start justify-between gap-2 pointer-events-none">
                     <div className="flex items-center gap-1.5 truncate max-w-[70%]">
                       {/* Club Name Badge */}
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-900/85 text-white backdrop-blur-md border border-white/20 shadow-sm truncate">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#14213D]/90 text-white backdrop-blur-md border border-white/20 shadow-sm truncate">
                         <span className="text-xs">🏛️</span>
                         <span className="truncate">{hostingClub}</span>
                       </span>
@@ -336,10 +336,10 @@ export default function StudentEventFeed({
 
                     {/* Ticket Price Badge */}
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold shadow-md whitespace-nowrap ${
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black shadow-md whitespace-nowrap ${
                         isFree
                           ? 'bg-emerald-500 text-white'
-                          : 'bg-blue-600 text-white'
+                          : 'bg-[#FCA311] text-[#14213D]'
                       }`}
                     >
                       {isFree ? 'Free Admission' : `৳${ticketPrice}`}
@@ -348,11 +348,11 @@ export default function StudentEventFeed({
 
                   {/* Capacity indicator tag at bottom of banner */}
                   <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-[10px] text-white/90 font-medium pointer-events-none">
-                    <span className="bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-md">
+                    <span className="bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md">
                       {registeredCount} / {capacity} Registered
                     </span>
                     {event.status && event.status !== 'approved' && (
-                      <span className="bg-amber-500/80 backdrop-blur-sm px-2 py-0.5 rounded-md capitalize font-bold text-white">
+                      <span className="bg-[#FCA311] text-[#14213D] px-2 py-0.5 rounded-md capitalize font-extrabold">
                         {event.status}
                       </span>
                     )}
@@ -363,7 +363,7 @@ export default function StudentEventFeed({
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div>
                     {/* Event Title */}
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold text-[#14213D] group-hover:text-[#FCA311] transition-colors line-clamp-2 leading-snug">
                       {event.title || event.eventName}
                     </h3>
 
@@ -374,14 +374,14 @@ export default function StudentEventFeed({
                     </p>
 
                     {/* Metadata: Date, Time & Venue */}
-                    <div className="mt-4 pt-3.5 border-t border-slate-100 space-y-2 text-xs text-slate-700">
+                    <div className="mt-4 pt-3.5 border-t border-[#E5E5E5] space-y-2 text-xs text-slate-700">
                       {/* Date & Time */}
                       <div className="flex items-center gap-2">
-                        <span className="text-base text-blue-600 flex-shrink-0">📅</span>
-                        <span className="font-semibold">{formatDate(event.date)}</span>
+                        <span className="text-base text-[#14213D] flex-shrink-0">📅</span>
+                        <span className="font-bold text-[#14213D]">{formatDate(event.date)}</span>
                         <span className="text-slate-300">•</span>
-                        <span className="text-indigo-600 flex-shrink-0">⏰</span>
-                        <span>{event.time || event.startTime || 'TBA'}</span>
+                        <span className="text-[#FCA311] flex-shrink-0">⏰</span>
+                        <span className="font-medium">{event.time || event.startTime || 'TBA'}</span>
                       </div>
 
                       {/* Venue */}
@@ -411,13 +411,13 @@ export default function StudentEventFeed({
                   </div>
 
                   {/* 3. Card Footer with "View Details & Register" button */}
-                  <div className="pt-3 border-t border-slate-100 space-y-3">
+                  <div className="pt-3 border-t border-[#E5E5E5] space-y-3">
                     {/* Capacity Progress Bar */}
                     <div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-[#E5E5E5] rounded-full h-1.5 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            percentFilled >= 90 ? 'bg-rose-500' : 'bg-blue-600'
+                            percentFilled >= 90 ? 'bg-rose-500' : 'bg-[#FCA311]'
                           }`}
                           style={{ width: `${percentFilled}%` }}
                         />
@@ -427,10 +427,10 @@ export default function StudentEventFeed({
                     {/* View Details & Register Button */}
                     <Link
                       to={`/events/${event.id}`}
-                      className={`w-full py-2.5 px-4 font-semibold rounded-xl text-xs sm:text-sm text-center shadow-md transition-all flex items-center justify-center gap-2 group/btn ${
+                      className={`w-full py-2.5 px-4 font-bold rounded-xl text-xs sm:text-sm text-center shadow-md transition-all flex items-center justify-center gap-2 group/btn ${
                         isPast
                           ? 'bg-slate-700 hover:bg-slate-800 text-slate-200'
-                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-lg'
+                          : 'bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 hover:border-[#FCA311] hover:shadow-lg'
                       }`}
                     >
                       <span>{isPast ? 'View Event Details (Ended)' : 'View Details & Register'}</span>

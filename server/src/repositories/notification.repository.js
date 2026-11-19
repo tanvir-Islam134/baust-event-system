@@ -33,7 +33,61 @@ export class NotificationRepository extends BaseRepository {
    * @param {string} id
    */
   async markAsRead(id) {
-    return this.update(id, { isRead: true });
+    if (!id || typeof id !== 'string' || id.startsWith('temp_')) {
+      return { id, isRead: true };
+    }
+    try {
+      return await this.update(id, { isRead: true });
+    } catch (err) {
+      console.warn(`[NotificationRepository] markAsRead(${id}) warning:`, err.message);
+      return { id, isRead: true };
+    }
+  }
+
+  /**
+   * Mark all organizer request notifications for a sender as read
+   * @param {string} senderId
+   */
+  async markOrganizerRequestsAsRead(senderId) {
+    if (!senderId) return false;
+    try {
+      const all = await this.findAll();
+      const matching = all.filter(
+        (n) =>
+          n.type === 'new_organizer_request' &&
+          (n.senderId === senderId || n.data?.userId === senderId || n.data?.applicantId === senderId) &&
+          !n.isRead
+      );
+      const updates = matching.map((n) => this.update(n.id, { isRead: true }));
+      await Promise.all(updates);
+      return true;
+    } catch (err) {
+      console.warn('[NotificationRepository] markOrganizerRequestsAsRead warning:', err.message);
+      return false;
+    }
+  }
+
+  /**
+   * Mark all event approval notifications for an eventId as read
+   * @param {string} eventId
+   */
+  async markEventRequestsAsRead(eventId) {
+    if (!eventId) return false;
+    try {
+      const all = await this.findAll();
+      const matching = all.filter(
+        (n) =>
+          n.type === 'event_pending_approval' &&
+          (n.data?.eventId === eventId || n.eventId === eventId) &&
+          !n.isRead
+      );
+      const updates = matching.map((n) => this.update(n.id, { isRead: true }));
+      await Promise.all(updates);
+      return true;
+    } catch (err) {
+      console.warn('[NotificationRepository] markEventRequestsAsRead warning:', err.message);
+      return false;
+    }
   }
 
   /**

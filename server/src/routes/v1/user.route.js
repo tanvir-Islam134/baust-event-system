@@ -22,6 +22,9 @@ router.patch('/me', validate(UpdateStudentProfileSchema), userController.updateP
 // DELETE /api/v1/users/me - Permanently delete current user account
 router.delete('/me', userController.deleteMyAccount);
 
+// POST /api/v1/users/me/dismiss-rejection - Dismiss and acknowledge organizer application decline notice
+router.post('/me/dismiss-rejection', userController.dismissOrganizerRejection);
+
 // POST /api/v1/users/request-organizer - Allows logged-in users to submit their club selection (sets organizerRequestStatus to pending)
 router.post(
   '/request-organizer',

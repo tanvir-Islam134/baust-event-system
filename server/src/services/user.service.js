@@ -170,6 +170,25 @@ export const rejectOrganizerRequest = async (targetUserId, rejectionReason = nul
 };
 
 /**
+ * Acknowledge and dismiss an organizer application rejection notice.
+ * Resets organizerRequestStatus and organizerStatus to 'none'.
+ * @param {string} userId - Target user Firebase UID
+ */
+export const dismissOrganizerRejection = async (userId) => {
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new AppError(`User with ID '${userId}' not found`, 404);
+  }
+
+  const updated = await userRepository.update(userId, {
+    organizerRequestStatus: 'none',
+    organizerStatus: 'none',
+    organizerRejectionReason: null,
+  });
+  return updated;
+};
+
+/**
  * List all users with optional query filtering (Admin only).
  * @param {object} queryFilters
  */

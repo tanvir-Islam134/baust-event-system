@@ -178,7 +178,7 @@ export default function AdminEventReviewQueue({ onEventReviewed }) {
                       <span>⏳</span>
                       <span>Pending Approval</span>
                     </span>
-                    <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                    <span className="text-xs font-bold text-[#14213D] bg-slate-100 px-2.5 py-0.5 rounded-md border border-[#E5E5E5]">
                       🏛️ {event.clubName || event.clubAffiliation || 'Campus Club'}
                     </span>
                     <span className="text-xs text-slate-400">•</span>

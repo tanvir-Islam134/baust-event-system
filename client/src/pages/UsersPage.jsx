@@ -18,6 +18,10 @@ export default function UsersPage() {
   // Mutation state
   const [updatingUserId, setUpdatingUserId] = useState(null);
 
+  // Rejection modal state
+  const [rejectingUser, setRejectingUser] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -93,16 +97,33 @@ export default function UsersPage() {
     }
   };
 
+  const handleConfirmReject = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!rejectingUser) return;
+    try {
+      setUpdatingUserId(rejectingUser.id);
+      await userService.rejectOrganizer(rejectingUser.id, rejectionReason.trim() || null);
+      showToast('Organizer request has been rejected.');
+      setRejectingUser(null);
+      setRejectionReason('');
+      await fetchUsers();
+    } catch (err) {
+      showToast(err.response?.data?.error?.message || err.message || 'Failed to reject organizer request', 'error');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
   const getRoleBadge = (role) => {
     switch (role) {
       case 'admin':
-        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">Admin</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[#14213D] text-[#FCA311] border border-[#FCA311]/40">Admin</span>;
       case 'organizer':
-        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200">Organizer</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[#FCA311]/20 text-[#14213D] border border-[#FCA311]/50">Organizer</span>;
       case 'guest':
-        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200">Guest</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200">Guest</span>;
       default:
-        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">Participant</span>;
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-[#14213D] border border-[#E5E5E5]">Participant</span>;
     }
   };
 
@@ -136,7 +157,7 @@ export default function UsersPage() {
       {/* Toast Alert */}
       {toast && (
         <div
-          className={`fixed top-5 right-5 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in border ${
+          className={`fixed top-20 right-4 sm:right-6 z-50 max-w-md p-4 rounded-xl shadow-xl flex items-start gap-3 animate-fade-in border ${
             toast.type === 'error'
               ? 'bg-rose-600 text-white border-rose-700'
               : 'bg-emerald-600 text-white border-emerald-700'
@@ -165,7 +186,7 @@ export default function UsersPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+            <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-[#14213D] text-[#FCA311] border border-[#FCA311]/40">
               Admin Console
             </span>
           </div>
@@ -178,9 +199,9 @@ export default function UsersPage() {
         <div className="flex items-center bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
               activeTab === 'all'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-[#14213D] text-[#FCA311] shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -188,24 +209,24 @@ export default function UsersPage() {
           </button>
           <button
             onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
               activeTab === 'requests'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-[#14213D] text-[#FCA311] shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>Role Requests</span>
             {pendingCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FCA311] text-[#14213D] animate-pulse">
                 {pendingCount}
               </span>
             )}
           </button>
           <button
             onClick={() => setActiveTab('organizers')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
               activeTab === 'organizers'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-[#14213D] text-[#FCA311] shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -230,7 +251,7 @@ export default function UsersPage() {
 
           {loading && (
             <div className="py-20 flex flex-col items-center justify-center gap-3">
-              <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-10 h-10 border-4 border-[#FCA311] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-sm font-medium text-slate-500">Loading pending requests...</p>
             </div>
           )}
@@ -269,7 +290,7 @@ export default function UsersPage() {
                           {/* User */}
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                              <div className="w-9 h-9 rounded-full bg-[#14213D] text-[#FCA311] flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
                                 {reqUser.name ? reqUser.name.charAt(0) : 'U'}
                               </div>
                               <div className="min-w-0">
@@ -307,7 +328,7 @@ export default function UsersPage() {
 
                           {/* Club Affiliation */}
                           <td className="py-4 px-4">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-xs">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 border border-[#E5E5E5] text-[#14213D] font-bold text-xs">
                               <span>🏛️</span>
                               <span>{reqUser.clubAffiliation || 'Unspecified Club'}</span>
                             </div>
@@ -330,10 +351,13 @@ export default function UsersPage() {
                               </button>
                               <button
                                 disabled={isUpdating}
-                                onClick={() => handleRejectRequest(reqUser.id)}
+                                onClick={() => {
+                                  setRejectingUser(reqUser);
+                                  setRejectionReason('');
+                                }}
                                 className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
                               >
-                                {isUpdating ? '...' : 'Reject'}
+                                Reject
                               </button>
                             </div>
                           </td>
@@ -369,7 +393,7 @@ export default function UsersPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by name, email, batch, club..."
-                  className="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FCA311]"
                 />
               </div>
 
@@ -378,7 +402,7 @@ export default function UsersPage() {
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311]"
                 >
                   <option value="">All Roles</option>
                   <option value="participant">Participant</option>
@@ -393,7 +417,7 @@ export default function UsersPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311]"
                 >
                   <option value="">All Organizer Statuses</option>
                   <option value="pending">Pending Review Only</option>
@@ -408,7 +432,7 @@ export default function UsersPage() {
           {/* Main Content Area */}
           {loading && (
             <div className="py-20 flex flex-col items-center justify-center gap-3">
-              <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-10 h-10 border-4 border-[#FCA311] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-sm font-medium text-slate-500">Loading user records...</p>
             </div>
           )}
@@ -460,7 +484,7 @@ export default function UsersPage() {
                           {/* User Info */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-[#14213D] text-[#FCA311] flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
                                 {u.name ? u.name.charAt(0) : 'U'}
                               </div>
                               <div className="min-w-0">
@@ -515,7 +539,7 @@ export default function UsersPage() {
                                 disabled={isUpdating}
                                 value={u.role || 'participant'}
                                 onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                className="text-xs border border-slate-200 rounded px-2 py-1 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                                className="text-xs border border-slate-200 rounded px-2 py-1 bg-white hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#FCA311] cursor-pointer disabled:opacity-50"
                               >
                                 <option value="participant">Set: Participant</option>
                                 <option value="organizer">Set: Organizer</option>
@@ -543,7 +567,10 @@ export default function UsersPage() {
                                 </button>
                                 <button
                                   disabled={isUpdating}
-                                  onClick={() => handleRejectRequest(u.id)}
+                                  onClick={() => {
+                                    setRejectingUser(u);
+                                    setRejectionReason('');
+                                  }}
                                   className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold transition shadow-sm disabled:opacity-50"
                                 >
                                   Reject
@@ -567,6 +594,73 @@ export default function UsersPage() {
       {/* TAB 3: CLUB ORGANIZERS DIRECTORY */}
       {activeTab === 'organizers' && (
         <ClubOrganizersDirectory onNotify={showToast} />
+      )}
+
+      {/* Admin Rejection Modal */}
+      {rejectingUser && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Decline Organizer Request</h3>
+                <p className="text-xs text-slate-500">
+                  {rejectingUser.name || rejectingUser.email}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mb-4 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Requested Club:</span>
+                <span className="font-semibold text-slate-800">{rejectingUser.clubAffiliation || 'Unspecified'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Email:</span>
+                <span className="text-slate-700">{rejectingUser.email}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmReject} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Reason for Decline (Optional feedback for student)
+                </label>
+                <textarea
+                  rows="3"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="e.g. Club organizer quota of 2 is full, or please update your student profile."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectingUser(null);
+                    setRejectionReason('');
+                  }}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingUserId === rejectingUser.id}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50"
+                >
+                  {updatingUserId === rejectingUser.id ? 'Processing...' : 'Confirm Decline'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

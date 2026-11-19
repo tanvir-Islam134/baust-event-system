@@ -5,7 +5,7 @@ export default function NotFoundPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 py-12">
       <div className="max-w-md w-full text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-blue-100 text-blue-600 font-extrabold text-3xl mb-6 shadow-inner">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[#14213D] text-[#FCA311] border border-[#FCA311]/40 font-extrabold text-3xl mb-6 shadow-inner">
           404
         </div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
@@ -17,7 +17,7 @@ export default function NotFoundPage() {
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             to="/"
-            className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition"
+            className="w-full sm:w-auto px-6 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-lg text-sm font-black shadow-md shadow-[#FCA311]/20 transition"
           >
             Go Back Home
           </Link>

@@ -164,18 +164,18 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       {/* Top Banner Header */}
-      <div className="p-6 bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white relative">
+      <div className="p-6 bg-gradient-to-r from-black via-[#14213D] to-black text-white relative">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold text-blue-100 mb-2 border border-white/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#14213D] backdrop-blur-md text-xs font-bold text-[#FCA311] mb-2 border border-[#FCA311]/40 shadow-xs">
             <span>🏛️ {clubName || 'Organizer Portal'}</span>
             <span>•</span>
             <span>Event Creator</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">Create New Campus Event</h2>
-          <p className="mt-1 text-xs sm:text-sm text-blue-100/90 leading-relaxed">
+          <p className="mt-1 text-xs sm:text-sm text-slate-300 leading-relaxed">
             Fill in the details below to publish an official event. Upon creation, it will be submitted for
             review and linked directly to{' '}
-            <strong className="text-white font-semibold">{clubName || 'your assigned club'}</strong>.
+            <strong className="text-[#FCA311] font-bold">{clubName || 'your assigned club'}</strong>.
           </p>
         </div>
       </div>
@@ -229,7 +229,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
                     fieldErrors.title
                       ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
-                      : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                      : 'border-slate-300 focus:ring-[#FCA311]/25 focus:border-[#FCA311]'
                   }`}
                 />
                 {fieldErrors.title && (
@@ -246,7 +246,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311]/25 focus:border-[#FCA311]"
                 >
                   <option value="Tech">Tech / Hackathon</option>
                   <option value="Workshop">Workshop</option>
@@ -274,7 +274,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                 className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
                   fieldErrors.description
                     ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
-                    : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                    : 'border-slate-300 focus:ring-[#FCA311]/25 focus:border-[#FCA311]'
                 }`}
               />
               {fieldErrors.description && (
@@ -298,7 +298,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   value={formData.bannerUrl}
                   onChange={handleInputChange}
                   placeholder="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#FCA311]/25 focus:border-[#FCA311] transition"
                 />
               </div>
 
@@ -346,7 +346,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
                     fieldErrors.date
                       ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
-                      : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                      : 'border-slate-300 focus:ring-[#FCA311]/25 focus:border-[#FCA311]'
                   }`}
                 />
                 {fieldErrors.date && (
@@ -369,7 +369,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
                     fieldErrors.time
                       ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
-                      : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                      : 'border-slate-300 focus:ring-[#FCA311]/25 focus:border-[#FCA311]'
                   }`}
                 />
                 {fieldErrors.time && (
@@ -389,7 +389,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   value={formData.endTime}
                   onChange={handleInputChange}
                   placeholder="e.g. 12:00 PM or 04:30 PM"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm transition focus:outline-none focus:ring-2 focus:ring-[#FCA311]/25 focus:border-[#FCA311]"
                 />
               </div>
 
@@ -407,7 +407,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                         ticketPrice: 0,
                       }))
                     }
-                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
+                    className="text-[11px] font-bold text-[#14213D] hover:text-[#FCA311] underline"
                   >
                     Set Free (৳0)
                   </button>
@@ -426,7 +426,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                     className={`w-full pl-7 pr-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
                       fieldErrors.ticketPrice
                         ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
-                        : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                        : 'border-slate-300 focus:ring-[#FCA311]/25 focus:border-[#FCA311]'
                     }`}
                   />
                 </div>
@@ -452,7 +452,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   className={`w-full px-3.5 py-2.5 rounded-lg border text-xs sm:text-sm transition focus:outline-none focus:ring-2 ${
                     fieldErrors.venue
                       ? 'border-rose-400 focus:ring-rose-500/20 bg-rose-50/30'
-                      : 'border-slate-300 focus:ring-blue-500/20 focus:border-blue-600'
+                      : 'border-slate-300 focus:ring-[#FCA311]/25 focus:border-[#FCA311]'
                   }`}
                 />
                 {fieldErrors.venue && (
@@ -472,7 +472,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   value={formData.capacity}
                   onChange={handleInputChange}
                   placeholder="100"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#FCA311]/25 focus:border-[#FCA311] transition"
                 />
               </div>
             </div>
@@ -490,7 +490,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   name="item_food"
                   checked={formData.items.food}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                  className="w-4 h-4 accent-[#FCA311] rounded border-slate-300"
                 />
                 <span className="text-xs font-medium text-slate-700">🍲 Food / Refreshments Provided</span>
               </label>
@@ -501,7 +501,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
                   name="item_tshirt"
                   checked={formData.items.tshirt}
                   onChange={handleInputChange}
-                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                  className="w-4 h-4 accent-[#FCA311] rounded border-slate-300"
                 />
                 <span className="text-xs font-medium text-slate-700">👕 Event T-Shirt / Kit Included</span>
               </label>
@@ -522,7 +522,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
             <button
               type="submit"
               disabled={submitting || !isApproved}
-              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs sm:text-sm font-black shadow-md shadow-[#FCA311]/20 hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? (
                 <>

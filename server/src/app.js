@@ -90,6 +90,7 @@ app.get('/health', (req, res) => {
 
 // Mount API routes
 app.use('/api', apiRouter);
+app.use('/v1', apiRouter);
 
 // 404 Handler for undefined routes
 app.use((req, res, next) => {
