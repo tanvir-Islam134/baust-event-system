@@ -225,6 +225,22 @@ export const updateUserRoleAndStatus = async (targetUserId, updateData) => {
   const payload = {};
   if (validated.role) {
     payload.role = validated.role;
+    // When changing/demoting role away from organizer, automatically revoke organizer status & club affiliation
+    if (validated.role !== 'organizer') {
+      if (validated.organizerRequestStatus === undefined && validated.organizerStatus === undefined) {
+        payload.organizerRequestStatus = 'none';
+        payload.organizerStatus = 'none';
+      }
+      if (validated.clubAffiliation === undefined) {
+        payload.clubAffiliation = null;
+      }
+    } else {
+      // If setting directly to organizer role, ensure status is approved
+      if (validated.organizerRequestStatus === undefined && validated.organizerStatus === undefined) {
+        payload.organizerRequestStatus = 'approved';
+        payload.organizerStatus = 'approved';
+      }
+    }
   }
   if (validated.clubAffiliation !== undefined) {
     payload.clubAffiliation = validated.clubAffiliation;
@@ -234,8 +250,9 @@ export const updateUserRoleAndStatus = async (targetUserId, updateData) => {
     payload.organizerStatus = status;
     if (status === 'approved' && !validated.role) {
       payload.role = 'organizer';
-    } else if (status === 'rejected' && user.role === 'organizer' && !validated.role) {
+    } else if ((status === 'rejected' || status === 'none') && !validated.role && user.role === 'organizer') {
       payload.role = 'participant';
+      payload.clubAffiliation = null;
     }
   }
 

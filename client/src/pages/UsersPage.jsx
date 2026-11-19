@@ -56,7 +56,16 @@ export default function UsersPage() {
   const handleRoleChange = async (userId, newRole) => {
     try {
       setUpdatingUserId(userId);
-      await userService.updateUserRole(userId, { role: newRole });
+      const payload = { role: newRole };
+      if (newRole !== 'organizer') {
+        payload.organizerStatus = 'none';
+        payload.organizerRequestStatus = 'none';
+        payload.clubAffiliation = null;
+      } else {
+        payload.organizerStatus = 'approved';
+        payload.organizerRequestStatus = 'approved';
+      }
+      await userService.updateUserRole(userId, payload);
       showToast(`User role updated to ${newRole}`);
       await fetchUsers();
     } catch (err) {

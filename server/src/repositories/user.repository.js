@@ -130,12 +130,14 @@ export class UserRepository extends BaseRepository {
 
     const userMap = new Map();
     for (const u of [...byRole, ...byApprovedReq, ...byApprovedStatus]) {
+      // Must have role === 'organizer' to be listed as an active approved organizer
+      if (u.role !== 'organizer') {
+        continue;
+      }
       const isPending = u.organizerRequestStatus === 'pending' || u.organizerStatus === 'pending';
       const isRejected = u.organizerRequestStatus === 'rejected' || u.organizerStatus === 'rejected';
-      const isApprovedRole = u.role === 'organizer';
-      const isApprovedStatus = u.organizerRequestStatus === 'approved' || u.organizerStatus === 'approved';
 
-      if ((isApprovedRole || isApprovedStatus) && !isPending && !isRejected) {
+      if (!isPending && !isRejected) {
         userMap.set(u.id, u);
       }
     }
