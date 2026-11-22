@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import campusBanner from '../assets/baust-campus.jpg';
 
 export default function HomePage() {
   const { isAuthenticated, user } = useAuth();
@@ -68,7 +69,7 @@ export default function HomePage() {
         {/* Background Campus Photo with Left-to-Right Black to Transparent Gradient */}
         <div className="absolute inset-0 z-0">
           <img
-            src="/baust-campus.jpg"
+            src={campusBanner}
             alt="BAUST Campus"
             className="w-full h-full object-cover object-[center_right] sm:object-right filter brightness-95"
           />

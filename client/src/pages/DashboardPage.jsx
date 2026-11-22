@@ -11,6 +11,7 @@ import OrganizerManageEvents from '../components/organizer/OrganizerManageEvents
 import StudentEventFeed from '../components/events/StudentEventFeed.jsx';
 import AdminEventReviewQueue from '../components/admin/AdminEventReviewQueue.jsx';
 import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
+import campusBanner from '../assets/baust-campus.jpg';
 
 export default function DashboardPage({ defaultTab = null }) {
   const { user, refreshUser } = useAuth();
@@ -725,7 +726,7 @@ export default function DashboardPage({ defaultTab = null }) {
             {/* Background Campus Photo with Left-to-Right Black Gradient */}
             <div className="absolute inset-0 z-0">
               <img
-                src="/baust-campus.jpg"
+                src={campusBanner}
                 alt="BAUST Campus"
                 className="w-full h-full object-cover object-[center_right] sm:object-right filter brightness-95"
               />
