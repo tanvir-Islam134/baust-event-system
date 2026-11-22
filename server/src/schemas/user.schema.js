@@ -8,6 +8,7 @@ export const UserSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   email: z.string().trim().email('Invalid email address'),
   role: UserRoleEnum.default('participant'),
+  photoURL: z.string().nullable().optional().default(null),
   department: z.string().trim().nullable().optional().default(null),
   studentId: z.string().trim().nullable().optional().default(null),
   mobileNumber: z.string().trim().nullable().optional().default(null),
@@ -62,6 +63,7 @@ export const RejectOrganizerSchema = z
 
 export const UpdateStudentProfileSchema = z.object({
   name: z.string().trim().min(1).optional(),
+  photoURL: z.string().nullable().optional(),
   department: z.string().trim().nullable().optional(),
   studentId: z.string().trim().nullable().optional(),
   mobileNumber: z.string().trim().nullable().optional(),

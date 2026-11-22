@@ -299,8 +299,12 @@ export default function UsersPage() {
                           {/* User */}
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-[#14213D] text-[#FCA311] flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                                {reqUser.name ? reqUser.name.charAt(0) : 'U'}
+                              <div className="w-9 h-9 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-1 ring-[#FCA311]/30 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                                {reqUser.photoURL ? (
+                                  <img src={reqUser.photoURL} alt={reqUser.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  reqUser.name ? reqUser.name.charAt(0) : 'U'
+                                )}
                               </div>
                               <div className="min-w-0">
                                 <span className="font-semibold text-slate-900 block truncate">{reqUser.name}</span>
@@ -493,8 +497,12 @@ export default function UsersPage() {
                           {/* User Info */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-[#14213D] text-[#FCA311] flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                                {u.name ? u.name.charAt(0) : 'U'}
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-1 ring-[#FCA311]/30 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                                {u.photoURL ? (
+                                  <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  u.name ? u.name.charAt(0) : 'U'
+                                )}
                               </div>
                               <div className="min-w-0">
                                 <span className="font-semibold text-slate-800 block truncate">{u.name}</span>

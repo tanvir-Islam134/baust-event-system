@@ -108,6 +108,7 @@ export const getOrganizerPendingRegistrations = async (organizerUid) => {
         participantName: user?.name || reg.guest?.name || 'Unknown Attendee',
         participantEmail: user?.email || reg.guest?.email || 'N/A',
         participantPhone: user?.mobileNumber || reg.guest?.phone || 'N/A',
+        participantPhotoURL: user?.photoURL || null,
         department: user?.department || null,
         studentId: user?.studentId || null,
         isGuest: !reg.userId,

@@ -85,8 +85,12 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                 </span>
               </div>
 
-              <div className="w-8 h-8 rounded-full bg-[#14213D] text-[#FCA311] group-hover:bg-[#FCA311] group-hover:text-[#14213D] group-hover:ring-2 group-hover:ring-[#FCA311]/40 flex items-center justify-center font-bold text-xs uppercase shadow-inner transition">
-                {user.name ? user.name.charAt(0) : 'U'}
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] group-hover:ring-2 group-hover:ring-[#FCA311]/50 ring-1 ring-[#FCA311]/30 flex items-center justify-center font-bold text-xs uppercase shadow-inner transition flex-shrink-0">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user.name ? user.name.charAt(0) : 'U'
+                )}
               </div>
             </Link>
 

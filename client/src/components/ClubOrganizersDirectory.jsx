@@ -402,8 +402,12 @@ export default function ClubOrganizersDirectory({ onNotify }) {
                       {/* Column 2: Organizer Name */}
                       <td className="py-3.5 px-4 align-middle">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-blue-500 text-white font-bold text-xs flex items-center justify-center uppercase shadow-xs flex-shrink-0">
-                            {org.name ? org.name.charAt(0) : 'O'}
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-indigo-600 to-blue-500 text-white font-bold text-xs flex items-center justify-center uppercase shadow-xs flex-shrink-0">
+                            {org.photoURL ? (
+                              <img src={org.photoURL} alt={org.name} className="w-full h-full object-cover" />
+                            ) : (
+                              org.name ? org.name.charAt(0) : 'O'
+                            )}
                           </div>
                           <div className="min-w-0">
                             <span className="font-semibold text-slate-800 block truncate">
@@ -551,8 +555,12 @@ export default function ClubOrganizersDirectory({ onNotify }) {
                               className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/70 hover:bg-slate-50 flex items-center justify-between gap-2"
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center uppercase flex-shrink-0">
-                                  {org.name ? org.name.charAt(0) : 'O'}
+                                <div className="w-7 h-7 rounded-full overflow-hidden bg-indigo-600 text-white font-bold text-[11px] flex items-center justify-center uppercase flex-shrink-0">
+                                  {org.photoURL ? (
+                                    <img src={org.photoURL} alt={org.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    org.name ? org.name.charAt(0) : 'O'
+                                  )}
                                 </div>
                                 <div className="min-w-0">
                                   <span className="font-semibold text-slate-800 text-xs block truncate">

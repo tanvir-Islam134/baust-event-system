@@ -205,8 +205,12 @@ export default function Sidebar({
               className="flex items-center gap-2.5 min-w-0 pr-2 hover:opacity-90 transition group flex-1 cursor-pointer"
               title="View your profile"
             >
-              <div className="w-8 h-8 rounded-full bg-[#1e2f52] text-[#FCA311] border border-[#FCA311]/40 group-hover:bg-[#FCA311] group-hover:text-[#14213D] flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 transition shadow-inner">
-                {user.name ? user.name.charAt(0) : 'U'}
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1e2f52] text-[#FCA311] border border-[#FCA311]/40 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 transition shadow-inner">
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.name ? user.name.charAt(0) : 'U'
+                )}
               </div>
               <div className="min-w-0 truncate">
                 <p className="text-xs font-semibold text-white group-hover:text-[#FCA311] transition truncate">{user?.name || 'Logged In'}</p>

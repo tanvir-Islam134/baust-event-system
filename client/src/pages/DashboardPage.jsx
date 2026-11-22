@@ -606,8 +606,12 @@ export default function DashboardPage({ defaultTab = null }) {
                           {/* Participant Name & Contact */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-[#14213D] text-[#FCA311] flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                                {reg.participantName ? reg.participantName.charAt(0) : 'U'}
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-1 ring-[#FCA311]/30 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                                {reg.participantPhotoURL ? (
+                                  <img src={reg.participantPhotoURL} alt={reg.participantName} className="w-full h-full object-cover" />
+                                ) : (
+                                  reg.participantName ? reg.participantName.charAt(0) : 'U'
+                                )}
                               </div>
                               <div className="min-w-0">
                                 <span className="font-semibold text-[#14213D] block truncate">

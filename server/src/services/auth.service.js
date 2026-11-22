@@ -29,6 +29,7 @@ const generateAuthResponse = (user, uid) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      photoURL: user.photoURL || null,
       department: user.department || null,
       studentId: user.studentId || null,
       mobileNumber: user.mobileNumber || null,
@@ -63,7 +64,7 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
     throw new AppError(`Firebase token verification failed: ${error.message}`, 401);
   }
 
-  const { uid, email, name: tokenName } = decodedToken;
+  const { uid, email, name: tokenName, picture: tokenPicture } = decodedToken;
 
   if (!email) {
     throw new AppError('Authenticated Firebase account does not have an associated email address', 400);
@@ -84,6 +85,7 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
       name: finalName,
       email: normalizedEmail,
       role: finalRole,
+      photoURL: tokenPicture || null,
       department: null,
       studentId: null,
       mobileNumber: null,
@@ -98,8 +100,16 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
     });
   } else {
     // Ensure admin role for tanvirbaust134@gmail.com
+    const updates = {};
     if (isAdminEmail && user.role !== 'admin') {
-      user = await userRepository.update(uid, { role: 'admin' });
+      updates.role = 'admin';
+    }
+    // If user doesn't have a photoURL yet, populate with Google profile picture
+    if (!user.photoURL && tokenPicture) {
+      updates.photoURL = tokenPicture;
+    }
+    if (Object.keys(updates).length > 0) {
+      user = await userRepository.update(uid, updates);
     }
   }
 
@@ -125,7 +135,7 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
     throw new AppError(`Firebase token verification failed: ${error.message}`, 401);
   }
 
-  const { uid, email, name: tokenName } = decodedToken;
+  const { uid, email, name: tokenName, picture: tokenPicture } = decodedToken;
 
   if (!email) {
     throw new AppError('Authenticated Firebase account does not have an associated email address', 400);
@@ -155,6 +165,7 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
   const finalLevel = registrationData.level !== undefined && registrationData.level !== null ? String(registrationData.level).trim() : null;
   const finalTerm = registrationData.term !== undefined && registrationData.term !== null ? String(registrationData.term).trim() : null;
   const finalMobileNumber = registrationData.mobileNumber?.trim() || null;
+  const finalPhotoURL = registrationData.photoURL || tokenPicture || null;
 
   // Strict condition: if the registering user's email matches tanvirbaust134@gmail.com, assign 'admin' role
   const isAdminEmail = email && email.trim().toLowerCase() === 'tanvirbaust134@gmail.com';
@@ -174,6 +185,7 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
     name: finalName,
     email,
     role: finalRole,
+    photoURL: finalPhotoURL,
     department: finalDepartment,
     studentId: finalStudentId,
     mobileNumber: finalMobileNumber,

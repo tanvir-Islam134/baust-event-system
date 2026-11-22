@@ -198,12 +198,21 @@ export default function DigitalTicketModal({ ticketData, onClose }) {
             {/* Attendee Details Card */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-6">
               <div className="flex items-center justify-between mb-3 border-b border-slate-200 pb-2.5">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase block">Attendee</span>
-                  <span className="font-bold text-slate-800 text-sm sm:text-base truncate block">
-                    {attendee?.name || 'Student Attendee'}
-                  </span>
-                  <span className="text-xs text-slate-500 truncate block">{attendee?.email}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-2 ring-[#FCA311]/40 flex items-center justify-center font-bold text-sm uppercase flex-shrink-0 shadow-sm">
+                    {attendee?.photoURL ? (
+                      <img src={attendee.photoURL} alt={attendee.name} className="w-full h-full object-cover" />
+                    ) : (
+                      attendee?.name ? attendee.name.charAt(0).toUpperCase() : 'U'
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase block">Attendee</span>
+                    <span className="font-bold text-slate-800 text-sm sm:text-base truncate block">
+                      {attendee?.name || 'Student Attendee'}
+                    </span>
+                    <span className="text-xs text-slate-500 truncate block">{attendee?.email}</span>
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase block">Pass ID</span>
