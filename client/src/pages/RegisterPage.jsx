@@ -175,11 +175,16 @@ export default function RegisterPage() {
       if (err.code === 'auth/popup-closed-by-user') {
         return;
       }
-      const message =
+      let message =
         err.response?.data?.error?.message ||
         err.response?.data?.message ||
         err.message ||
         'Google authentication failed';
+
+      if (err?.code === 'auth/unauthorized-domain' || (typeof message === 'string' && message.includes('unauthorized-domain'))) {
+        message = `Firebase Unauthorized Domain: The current domain (${window.location.hostname}) must be added to your Firebase Console > Authentication > Settings > Authorized domains.`;
+      }
+
       setErrorMsg(message);
     } finally {
       setLoading(false);
