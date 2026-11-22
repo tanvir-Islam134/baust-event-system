@@ -150,7 +150,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                 <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-3.5 py-2 border-b border-slate-100">
                     <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      Supervisor Test Switcher
+                      Switch Active Role
                     </p>
                     <p className="text-xs text-slate-700 font-semibold truncate mt-0.5">
                       {user.email}

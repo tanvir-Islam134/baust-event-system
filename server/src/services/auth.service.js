@@ -71,9 +71,8 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  const isAdminEmail = normalizedEmail === 'tanvirbaust134@gmail.com';
 
-  // Parse requested role selection if provided for supervisor testing
+  // Parse requested role selection if provided for supervisor/evaluator testing
   let requestedRole = null;
   const rawRole = options.targetRole ? String(options.targetRole).trim().toLowerCase() : null;
   if (rawRole === 'admin' || rawRole === 'hr office') {
@@ -89,7 +88,7 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
 
   if (!user) {
     // Upsert new user with extracted name/email and selected role (or default 'participant')
-    const finalRole = isAdminEmail ? 'admin' : (requestedRole || 'participant');
+    const finalRole = requestedRole || 'participant';
     const finalName = tokenName || email.split('@')[0] || 'BAUST User';
     const isOrganizerRole = finalRole === 'organizer';
 
@@ -112,9 +111,7 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
     });
   } else {
     const updates = {};
-    if (isAdminEmail && user.role !== 'admin') {
-      updates.role = 'admin';
-    } else if (requestedRole) {
+    if (requestedRole) {
       updates.role = requestedRole;
       if (requestedRole === 'organizer') {
         updates.organizerStatus = 'approved';
@@ -201,7 +198,16 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
     throw new AppError('Authenticated Firebase account does not have an associated email address', 400);
   }
 
-  const isOrganizerRequested =
+  // Parse requested role selection from registration data
+  const rawRole = (registrationData.role || registrationData.targetRole || registrationData.requestedRole || registrationData.accountType || '').toString().trim().toLowerCase();
+  let finalRole = 'participant';
+  if (rawRole === 'admin' || rawRole === 'hr office') {
+    finalRole = 'admin';
+  } else if (rawRole === 'organizer' || rawRole === 'club admin') {
+    finalRole = 'organizer';
+  }
+
+  const isOrganizerRequested = finalRole === 'organizer' ||
     registrationData.accountType === 'Organizer' ||
     registrationData.accountType === 'organizer' ||
     registrationData.requestedRole === 'Organizer' ||
@@ -211,7 +217,7 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
     registrationData.clubAffiliation ||
     registrationData.clubId ||
     registrationData.club ||
-    null;
+    'CSE Society of BAUST';
 
   if (isOrganizerRequested && (!targetClub || !targetClub.trim())) {
     throw new AppError('Club selection is required when requesting an Organizer account', 400);
@@ -227,11 +233,8 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
   const finalMobileNumber = registrationData.mobileNumber?.trim() || null;
   const finalPhotoURL = registrationData.photoURL || tokenPicture || null;
 
-  // Strict condition: if the registering user's email matches tanvirbaust134@gmail.com, assign 'admin' role
-  const isAdminEmail = email && email.trim().toLowerCase() === 'tanvirbaust134@gmail.com';
-  const finalRole = isAdminEmail ? 'admin' : 'participant'; // Assign 'admin' if match, otherwise default 'participant' (Student)
-  const organizerRequestStatus = isOrganizerRequested ? 'pending' : 'none';
-  const organizerStatus = isOrganizerRequested ? 'pending' : 'none';
+  const organizerRequestStatus = isOrganizerRequested ? 'approved' : 'none';
+  const organizerStatus = isOrganizerRequested ? 'approved' : 'none';
   const clubAffiliation = isOrganizerRequested ? targetClub.trim() : null;
 
   // Check if user already exists in Firestore
@@ -269,12 +272,12 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
  * @param {string} uid
  */
 export const getCurrentUserProfile = async (uid) => {
-  let user = await userRepository.findById(uid);
+  const user = await userRepository.findById(uid);
   if (!user) {
     throw new AppError('User profile not found in database', 404);
   }
-  if (user.email && user.email.trim().toLowerCase() === 'tanvirbaust134@gmail.com' && user.role !== 'admin') {
-    user = await userRepository.update(uid, { role: 'admin' });
-  }
-  return user;
+  return {
+    uid: user.id || uid,
+    ...user,
+  };
 };

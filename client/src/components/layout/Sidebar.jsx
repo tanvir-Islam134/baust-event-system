@@ -130,6 +130,38 @@ export default function Sidebar({
           </>
         )}
 
+        {/* Organizer: Club Registrations Review */}
+        {isOrganizer && (
+          <Link
+            to="/dashboard?tab=pending-registrations"
+            className={`${linkBaseClasses} ${isTabActive('pending-registrations') ? activeClasses : inactiveClasses}`}
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+            </svg>
+            <span className="truncate">Review Registrations</span>
+          </Link>
+        )}
+
+        {/* Admin: Pending Events Review Queue */}
+        {isAdmin && (
+          <Link
+            to="/dashboard?tab=review-queue"
+            className={`${linkBaseClasses} ${isTabActive('review-queue') ? activeClasses : inactiveClasses}`}
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="truncate">Review Queue</span>
+          </Link>
+        )}
+
         {/* Events Catalog */}
         <NavLink
           to="/events"

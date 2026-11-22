@@ -4,17 +4,20 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import campusBanner from '../assets/baust-campus.jpg';
 
 export default function HomePage() {
-  const { isAuthenticated, user, logout, loginWithGoogle } = useAuth();
+  const { isAuthenticated, user, logout, loginWithGoogle, switchRole } = useAuth();
   const navigate = useNavigate();
 
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [navRoleMenuOpen, setNavRoleMenuOpen] = useState(false);
+  const [activeRoleMenuOpen, setActiveRoleMenuOpen] = useState(false);
+  const [switchingRole, setSwitchingRole] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authRole, setAuthRole] = useState(null);
   const [authError, setAuthError] = useState(null);
 
   const heroDropdownRef = useRef(null);
   const navDropdownRef = useRef(null);
+  const activeRoleRef = useRef(null);
 
   // Close menus on outside click
   useEffect(() => {
@@ -25,10 +28,29 @@ export default function HomePage() {
       if (navDropdownRef.current && !navDropdownRef.current.contains(event.target)) {
         setNavRoleMenuOpen(false);
       }
+      if (activeRoleRef.current && !activeRoleRef.current.contains(event.target)) {
+        setActiveRoleMenuOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleRoleSwitch = async (newRole) => {
+    if (newRole === user?.role) {
+      setActiveRoleMenuOpen(false);
+      return;
+    }
+    try {
+      setSwitchingRole(true);
+      await switchRole(newRole, 'CSE Society of BAUST');
+      setActiveRoleMenuOpen(false);
+    } catch (err) {
+      console.error('Failed to switch role:', err);
+    } finally {
+      setSwitchingRole(false);
+    }
+  };
 
   const handleSignIn = async (role) => {
     try {
@@ -303,6 +325,104 @@ export default function HomePage() {
                         {user?.role}
                       </span>
                     </Link>
+
+                    {/* Quick Active Role Switcher */}
+                    <div className="relative" ref={activeRoleRef}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveRoleMenuOpen(!activeRoleMenuOpen)}
+                        className="px-3.5 py-3 bg-[#14213D]/90 hover:bg-[#14213D] text-[#FCA311] border border-[#FCA311]/50 hover:border-[#FCA311] rounded-xl text-xs sm:text-sm font-bold transition shadow-sm flex items-center gap-2 cursor-pointer"
+                        title="Switch role directly (Participant / Organizer / Admin)"
+                      >
+                        <span>🔄</span>
+                        <span className="text-slate-300 text-xs hidden sm:inline">Role:</span>
+                        <span className="capitalize font-black text-white">{user?.role}</span>
+                        <svg
+                          className={`w-3.5 h-3.5 text-[#FCA311] transition-transform duration-200 ${
+                            activeRoleMenuOpen ? 'rotate-180' : ''
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {activeRoleMenuOpen && (
+                        <div className="absolute left-0 mt-2 w-64 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311] p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 ring-2 ring-[#FCA311]/30 text-left">
+                          <div className="px-3 py-1.5 border-b border-white/10 mb-1">
+                            <p className="text-[10px] font-extrabold text-[#FCA311] uppercase tracking-wider">
+                              Switch Active Role
+                            </p>
+                            <p className="text-xs text-slate-300 font-semibold truncate mt-0.5">
+                              {user?.email}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => handleRoleSwitch('participant')}
+                              disabled={switchingRole}
+                              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs transition cursor-pointer ${
+                                user?.role === 'participant' ? 'bg-[#FCA311]/20 text-[#FCA311] font-bold border border-[#FCA311]/40' : 'text-slate-200 hover:bg-white/10'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">🎓</span>
+                                <div className="text-left">
+                                  <div className="font-bold text-white">Participant</div>
+                                  <div className="text-[10px] text-slate-400">Join events & passes</div>
+                                </div>
+                              </div>
+                              {user?.role === 'participant' && <span className="text-emerald-400 font-bold">✓</span>}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRoleSwitch('organizer')}
+                              disabled={switchingRole}
+                              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs transition cursor-pointer ${
+                                user?.role === 'organizer' ? 'bg-[#FCA311]/20 text-[#FCA311] font-bold border border-[#FCA311]/40' : 'text-slate-200 hover:bg-white/10'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">🛡️</span>
+                                <div className="text-left">
+                                  <div className="font-bold text-white">Organizer</div>
+                                  <div className="text-[10px] text-slate-400">Manage club, create events</div>
+                                </div>
+                              </div>
+                              {user?.role === 'organizer' && <span className="text-emerald-400 font-bold">✓</span>}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRoleSwitch('admin')}
+                              disabled={switchingRole}
+                              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs transition cursor-pointer ${
+                                user?.role === 'admin' ? 'bg-[#FCA311]/20 text-[#FCA311] font-bold border border-[#FCA311]/40' : 'text-slate-200 hover:bg-white/10'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">🏛️</span>
+                                <div className="text-left">
+                                  <div className="font-bold text-white">Admin</div>
+                                  <div className="text-[10px] text-slate-400">Governance & approvals</div>
+                                </div>
+                              </div>
+                              {user?.role === 'admin' && <span className="text-emerald-400 font-bold">✓</span>}
+                            </button>
+                          </div>
+                          {switchingRole && (
+                            <div className="px-3 py-1.5 text-center text-xs text-[#FCA311] bg-white/5 rounded-lg mt-1 flex items-center justify-center gap-2">
+                              <div className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+                              <span>Switching role...</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     <button
                       type="button"

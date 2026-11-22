@@ -762,16 +762,43 @@ export default function DashboardPage({ defaultTab = null }) {
                 )}
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white drop-shadow-sm">
-                Welcome back, {user?.name || 'Organizer'}!
+                Welcome back, {user?.name || (isAdmin ? 'Admin' : isOrganizer ? 'Organizer' : 'Student')}!
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-200 leading-relaxed max-w-xl drop-shadow-sm">
-                {isOrganizer
+                {isAdmin
+                  ? 'Oversee university-wide campus clubs, review pending event submissions, and manage platform governance.'
+                  : isOrganizer
                   ? `Manage your events, publish announcements, and review participant registrations for ${user?.clubAffiliation || 'your assigned club'}.`
                   : 'Stay updated with all campus conferences, academic competitions, cultural fests, and sports tournaments.'}
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                {canManageEvents ? (
+                {isAdmin ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('review-queue')}
+                      className="px-4 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] font-extrabold rounded-lg text-sm transition shadow-md flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>⚖️</span>
+                      <span>Review Queue</span>
+                    </button>
+                    <a
+                      href="#organizers-directory"
+                      className="px-4 py-2 bg-[#14213D]/70 hover:bg-[#14213D] backdrop-blur-md text-white border border-[#E5E5E5]/30 font-bold rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>👥</span>
+                      <span>Organizers Directory</span>
+                    </a>
+                    <Link
+                      to="/users"
+                      className="px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md text-[#FCA311] font-semibold rounded-lg text-sm transition border border-[#FCA311]/30 flex items-center gap-1.5"
+                    >
+                      <span>🛡️</span>
+                      <span>User Management</span>
+                    </Link>
+                  </>
+                ) : isOrganizer ? (
                   <>
                     <button
                       type="button"
@@ -789,12 +816,14 @@ export default function DashboardPage({ defaultTab = null }) {
                       <span>📋</span>
                       <span>Manage Events ({myEvents.length})</span>
                     </button>
-                    <Link
-                      to="/events"
-                      className="px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md text-[#FCA311] font-semibold rounded-lg text-sm transition border border-[#FCA311]/30"
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('pending-registrations')}
+                      className="px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md text-[#FCA311] font-semibold rounded-lg text-sm transition border border-[#FCA311]/30 flex items-center gap-1.5 cursor-pointer"
                     >
-                      Browse Campus Events
-                    </Link>
+                      <span>🎫</span>
+                      <span>Pending Registrations ({pendingRegistrations.length})</span>
+                    </button>
                   </>
                 ) : (
                   <>
