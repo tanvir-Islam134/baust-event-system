@@ -52,7 +52,7 @@ const generateAuthResponse = (user, uid) => {
  * - Generates and returns custom JWT containing uid, email, and role.
  * @param {string} firebaseToken
  */
-export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
+export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) => {
   if (!firebaseAuth) {
     throw new AppError('Firebase Auth service is uninitialized on server', 500);
   }
@@ -73,13 +73,25 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
   const normalizedEmail = email.trim().toLowerCase();
   const isAdminEmail = normalizedEmail === 'tanvirbaust134@gmail.com';
 
+  // Parse requested role selection if provided for supervisor testing
+  let requestedRole = null;
+  const rawRole = options.targetRole ? String(options.targetRole).trim().toLowerCase() : null;
+  if (rawRole === 'admin' || rawRole === 'hr office') {
+    requestedRole = 'admin';
+  } else if (rawRole === 'organizer' || rawRole === 'club admin') {
+    requestedRole = 'organizer';
+  } else if (rawRole === 'participant' || rawRole === 'student') {
+    requestedRole = 'participant';
+  }
+
   // Check if user already exists in Firestore
   let user = await userRepository.findById(uid);
 
   if (!user) {
-    // Upsert new user with extracted name/email and default role 'participant' (or 'admin' for primary admin)
-    const finalRole = isAdminEmail ? 'admin' : 'participant';
+    // Upsert new user with extracted name/email and selected role (or default 'participant')
+    const finalRole = isAdminEmail ? 'admin' : (requestedRole || 'participant');
     const finalName = tokenName || email.split('@')[0] || 'BAUST User';
+    const isOrganizerRole = finalRole === 'organizer';
 
     user = await userRepository.upsertUser(uid, {
       name: finalName,
@@ -93,16 +105,26 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
       section: null,
       level: null,
       term: null,
-      clubAffiliation: null,
-      organizerRequestStatus: 'none',
-      organizerStatus: 'none',
+      clubAffiliation: isOrganizerRole ? (options.targetClub || 'CSE Society of BAUST') : null,
+      organizerRequestStatus: isOrganizerRole ? 'approved' : 'none',
+      organizerStatus: isOrganizerRole ? 'approved' : 'none',
       organizerRejectionReason: null,
     });
   } else {
-    // Ensure admin role for tanvirbaust134@gmail.com
     const updates = {};
     if (isAdminEmail && user.role !== 'admin') {
       updates.role = 'admin';
+    } else if (requestedRole) {
+      updates.role = requestedRole;
+      if (requestedRole === 'organizer') {
+        updates.organizerStatus = 'approved';
+        updates.organizerRequestStatus = 'approved';
+        if (options.targetClub && options.targetClub.trim()) {
+          updates.clubAffiliation = options.targetClub.trim();
+        } else if (!user.clubAffiliation) {
+          updates.clubAffiliation = 'CSE Society of BAUST';
+        }
+      }
     }
     // If user doesn't have a photoURL yet, populate with Google profile picture
     if (!user.photoURL && tokenPicture) {
@@ -114,6 +136,44 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken) => {
   }
 
   return generateAuthResponse(user, uid);
+};
+
+/**
+ * Switch authenticated user's role on the fly for project testing/evaluation.
+ * Allows supervisor to test Participant, Organizer, and Admin workflows seamlessly.
+ * @param {string} userId - Firebase UID
+ * @param {string} targetRole - 'participant' | 'organizer' | 'admin'
+ * @param {string|null} [targetClub] - Club affiliation for organizer role
+ */
+export const switchUserRole = async (userId, targetRole, targetClub = null) => {
+  let requestedRole = 'participant';
+  const raw = targetRole ? String(targetRole).trim().toLowerCase() : 'participant';
+  if (raw === 'admin' || raw === 'hr office') {
+    requestedRole = 'admin';
+  } else if (raw === 'organizer' || raw === 'club admin') {
+    requestedRole = 'organizer';
+  } else if (raw === 'participant' || raw === 'student') {
+    requestedRole = 'participant';
+  }
+
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new AppError('User profile not found in database', 404);
+  }
+
+  const updates = { role: requestedRole };
+  if (requestedRole === 'organizer') {
+    updates.organizerStatus = 'approved';
+    updates.organizerRequestStatus = 'approved';
+    if (targetClub && targetClub.trim()) {
+      updates.clubAffiliation = targetClub.trim();
+    } else if (!user.clubAffiliation) {
+      updates.clubAffiliation = 'CSE Society of BAUST';
+    }
+  }
+
+  const updatedUser = await userRepository.update(userId, updates);
+  return generateAuthResponse(updatedUser, userId);
 };
 
 /**

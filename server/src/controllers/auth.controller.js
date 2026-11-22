@@ -5,8 +5,8 @@ import * as authService from '../services/auth.service.js';
  */
 export const login = async (req, res, next) => {
   try {
-    const { firebaseToken } = req.body;
-    const authData = await authService.verifyFirebaseTokenAndLogin(firebaseToken);
+    const { firebaseToken, targetRole, targetClub } = req.body;
+    const authData = await authService.verifyFirebaseTokenAndLogin(firebaseToken, { targetRole, targetClub });
 
     res.status(200).json({
       success: true,
@@ -29,6 +29,24 @@ export const register = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Registration successful',
+      data: authData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Switch current user's role on the fly (Demo / Supervisor testing mode).
+ */
+export const switchRole = async (req, res, next) => {
+  try {
+    const { role, clubAffiliation } = req.body;
+    const authData = await authService.switchUserRole(req.user.uid, role, clubAffiliation);
+
+    res.status(200).json({
+      success: true,
+      message: `Switched to ${authData.user.role} role successfully`,
       data: authData,
     });
   } catch (error) {

@@ -2,6 +2,13 @@ import { z } from 'zod';
 
 export const LoginInputSchema = z.object({
   firebaseToken: z.string().min(1, 'Firebase ID token is required'),
+  targetRole: z.string().trim().optional(),
+  targetClub: z.string().trim().optional(),
+});
+
+export const SwitchRoleSchema = z.object({
+  role: z.string().trim().min(1, 'Target role is required'),
+  clubAffiliation: z.string().trim().nullable().optional(),
 });
 
 export const RegisterInputSchema = z.object({

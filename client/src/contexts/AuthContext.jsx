@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
    * 3. Exchange with backend /api/v1/auth/login for custom JWT and user profile
    * 4. Persist custom JWT to localStorage and state
    */
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (targetRole = null, targetClub = null) => {
     try {
       setError(null);
       setLoading(true);
@@ -70,7 +70,11 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithPopup(auth, googleAuthProvider);
       const firebaseToken = await result.user.getIdToken();
 
-      const response = await api.post('/auth/login', { firebaseToken });
+      const payload = { firebaseToken };
+      if (targetRole) payload.targetRole = targetRole;
+      if (targetClub) payload.targetClub = targetClub;
+
+      const response = await api.post('/auth/login', payload);
       const { token: customToken, user: userProfile } = response.data.data;
 
       localStorage.setItem('token', customToken);
@@ -222,6 +226,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Switch active user role on the fly for project testing/evaluation.
+   */
+  const switchRole = async (targetRole, targetClub = null) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await api.post('/auth/switch-role', {
+        role: targetRole,
+        clubAffiliation: targetClub,
+      });
+      const { token: customToken, user: userProfile } = res.data.data;
+
+      localStorage.setItem('token', customToken);
+      setToken(customToken);
+      setUser(userProfile);
+      return { success: true, user: userProfile };
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Role switch failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isPendingOrganizer =
     !!user &&
     (user.organizerRequestStatus === 'pending' || user.organizerStatus === 'pending') &&
@@ -238,6 +272,7 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     registerWithGoogle,
     completeRegistration,
+    switchRole,
     logout,
     deleteAccount,
     refreshUser,

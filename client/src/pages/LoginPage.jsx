@@ -1,24 +1,74 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { BAUST_CLUBS } from './RegisterPage.jsx';
 
 /**
- * Temporary Login Page
- * Features a direct "Login with Google" button to test the Firebase Google Sign-In -> backend JWT flow.
+ * Role Selection Options matching the UI design specifications:
+ * 1. Student (participant): Join clubs and manage your applications
+ * 2. Club Admin (organizer): Manage your club, members, and events
+ * 3. HR Office (admin): Oversee clubs and approve admins
  */
+const ROLE_OPTIONS = [
+  {
+    id: 'participant',
+    title: 'Student',
+    description: 'Join clubs and manage your applications',
+    icon: (
+      <svg className="w-6 h-6 text-slate-700" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'organizer',
+    title: 'Club Admin',
+    description: 'Manage your club, members, and events',
+    icon: (
+      <svg className="w-6 h-6 text-slate-700" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 4a2.5 2.5 0 110 5 2.5 2.5 0 010-5zm4 9.5c0 .83-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5 0-1.66 2.34-2.5 4-2.5s4 .84 4 2.5z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'admin',
+    title: 'HR Office',
+    description: 'Oversee clubs and approve admins',
+    icon: (
+      <svg className="w-6 h-6 text-slate-700" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
+      </svg>
+    ),
+  },
+];
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
+  const { loginWithGoogle, switchRole, logout, isAuthenticated, user } = useAuth();
 
   const from = location.state?.from?.pathname || '/dashboard';
+  const [selectedRole, setSelectedRole] = useState('participant');
+  const [selectedClub, setSelectedClub] = useState('CSE Society of BAUST');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // If already authenticated, display status & quick navigation
+  // If already authenticated, display status & quick navigation / instant role switch
   if (isAuthenticated && user) {
+    const handleQuickSwitch = async (role) => {
+      try {
+        setLoading(true);
+        setErrorMsg(null);
+        await switchRole(role, selectedClub);
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to switch role');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
@@ -28,11 +78,60 @@ export default function LoginPage() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-1">Already Authenticated</h2>
-          <p className="text-sm text-slate-500 mb-6">
+          <p className="text-sm text-slate-500 mb-4">
             Signed in as <span className="font-semibold text-slate-800">{user.email}</span>
             <br />
-            Role: <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] capitalize">{user.role}</span>
+            Active Role: <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] capitalize">{user.role}</span>
+            {user.clubAffiliation && user.role === 'organizer' && (
+              <span className="block text-xs text-slate-600 mt-1 font-medium">({user.clubAffiliation})</span>
+            )}
           </p>
+
+          {/* Quick Role Switcher for Testing / Evaluation */}
+          <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200 text-left">
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <span>🔄 Switch Role (Demo Mode):</span>
+              {loading && <span className="text-[11px] text-amber-600 font-medium">Updating...</span>}
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickSwitch('participant')}
+                disabled={loading}
+                className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
+                  user.role === 'participant'
+                    ? 'bg-[#14213D] text-[#FCA311] border-[#14213D] shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+                }`}
+              >
+                🎓 Student
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSwitch('organizer')}
+                disabled={loading}
+                className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
+                  user.role === 'organizer'
+                    ? 'bg-[#14213D] text-[#FCA311] border-[#14213D] shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+                }`}
+              >
+                🛡️ Club Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSwitch('admin')}
+                disabled={loading}
+                className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
+                  user.role === 'admin'
+                    ? 'bg-[#14213D] text-[#FCA311] border-[#14213D] shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+                }`}
+              >
+                🏛️ HR Office
+              </button>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-3">
             <button
@@ -59,7 +158,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
-      await loginWithGoogle();
+      await loginWithGoogle(selectedRole, selectedRole === 'organizer' ? selectedClub : null);
       navigate(from, { replace: true });
     } catch (err) {
       try {
@@ -83,28 +182,35 @@ export default function LoginPage() {
     }
   };
 
+  const getRoleDisplayName = (r) => {
+    if (r === 'admin') return 'HR Office';
+    if (r === 'organizer') return 'Club Admin';
+    return 'Student';
+  };
+
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-6 bg-slate-50">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <div className="min-h-screen flex flex-col justify-center items-center p-4 sm:p-6 bg-slate-50">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        {/* Header Branding */}
         <div className="text-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-white shadow-md border-2 border-slate-100 p-2 mx-auto mb-3 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-white shadow-sm border border-slate-200 p-1.5 mx-auto mb-3 flex items-center justify-center">
             <img
               src="/baust-logo.png"
               alt="BAUST University Crest"
-              className="w-full h-full object-contain rounded-full drop-shadow-xs"
+              className="w-full h-full object-contain rounded-full"
             />
           </div>
-          <span className="inline-block py-1 px-3 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] uppercase tracking-wider mb-2">
+          <span className="inline-block py-1 px-3 rounded-full text-[11px] font-bold bg-[#14213D] text-[#FCA311] uppercase tracking-wider mb-2">
             BAUST Event System
           </span>
-          <h1 className="text-2xl font-bold text-slate-800">Account Login</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Select Your Role</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Sign in with your Google account to test the Phase 1 Authentication flow.
+            Choose how you want to access the platform
           </p>
         </div>
 
         {errorMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start gap-3">
+          <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-start gap-2.5">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -112,10 +218,87 @@ export default function LoginPage() {
           </div>
         )}
 
+        {/* 3 Role Selection Cards */}
+        <div className="space-y-3 mb-5">
+          {ROLE_OPTIONS.map((opt) => {
+            const isSelected = selectedRole === opt.id;
+            return (
+              <button
+                type="button"
+                key={opt.id}
+                onClick={() => setSelectedRole(opt.id)}
+                className={`w-full text-left p-3.5 sm:p-4 rounded-2xl transition flex items-center justify-between border cursor-pointer ${
+                  isSelected
+                    ? 'border-[#14213D] bg-slate-50/70 shadow-xs ring-2 ring-[#14213D]/15'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/40 bg-white'
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition ${
+                      isSelected ? 'bg-slate-200/80' : 'bg-slate-100'
+                    }`}
+                  >
+                    {opt.icon}
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                      {opt.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {opt.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex-shrink-0 ml-3">
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center transition ${
+                      isSelected
+                        ? 'border-[#14213D] bg-[#14213D] text-white'
+                        : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {isSelected && (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Optional Club Selector when Club Admin is selected */}
+        {selectedRole === 'organizer' && (
+          <div className="mb-5 p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 text-left">
+            <label className="block text-xs font-bold text-amber-950 mb-1.5 flex items-center gap-1.5">
+              <span>🏛️</span> Assigned Club for Club Admin:
+            </label>
+            <select
+              value={selectedClub}
+              onChange={(e) => setSelectedClub(e.target.value)}
+              className="w-full text-xs font-semibold px-3 py-2 bg-white border border-amber-300 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#FCA311]"
+            >
+              {BAUST_CLUBS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-amber-800/80 mt-1.5 font-medium">
+              Verified organizer permissions will be automatically assigned for seamless evaluation.
+            </p>
+          </div>
+        )}
+
+        {/* Google Login Action Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition font-medium text-slate-700 text-sm shadow-sm disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 hover:border-slate-400 transition font-bold text-slate-700 text-sm shadow-xs disabled:opacity-50 cursor-pointer"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
@@ -139,7 +322,9 @@ export default function LoginPage() {
               />
             </svg>
           )}
-          <span>{loading ? 'Signing in with Google...' : 'Login with Google'}</span>
+          <span>
+            {loading ? 'Authenticating...' : `Login as ${getRoleDisplayName(selectedRole)} with Google`}
+          </span>
         </button>
 
         <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2 text-center text-xs text-slate-500">
