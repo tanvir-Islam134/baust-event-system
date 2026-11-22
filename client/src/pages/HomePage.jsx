@@ -450,39 +450,42 @@ export default function HomePage() {
 
             {/* Right Column: Expanded Campus Showcase Frame (7 Cols on Large Screens) */}
             <div className="lg:col-span-7 relative w-full">
-              <div className="relative mx-auto w-full">
-                
-                {/* Showcase Container Frame with Expanded Bounds */}
-                <div className="relative rounded-3xl p-3 sm:p-4 bg-gradient-to-b from-white/20 via-white/10 to-white/5 border border-white/20 shadow-2xl backdrop-blur-md overflow-hidden group">
-                  
-                  {/* Full 16:9 Aspect Video Container to Show 100% of the Image without Any Cropping */}
-                  <div className="relative rounded-2xl overflow-hidden aspect-video w-full bg-slate-900 shadow-inner">
-                    <img
-                      src={campusBanner}
-                      alt="BAUST Campus Academic Building"
-                      className="w-full h-full object-cover object-center transform group-hover:scale-101 transition duration-500 ease-out filter brightness-100 contrast-102"
-                    />
-                  </div>
+              <div className="relative mx-auto w-full group">
+                {/* Soft ambient atmospheric glow behind the artwork */}
+                <div className="absolute -inset-1.5 rounded-3xl bg-gradient-to-r from-[#FCA311]/30 via-purple-600/25 to-blue-600/25 blur-2xl opacity-75 group-hover:opacity-100 transition duration-700 pointer-events-none" />
 
-                  {/* Clean Caption Bar Underneath the Photo */}
-                  <div className="px-2 pt-3 pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
-                    <div className="flex items-center gap-2">
+                {/* Showcase Container: Sleek 1px Gradient Border without awkward bulky padding */}
+                <div className="relative rounded-2xl sm:rounded-3xl p-[1px] bg-gradient-to-b from-[#FCA311]/60 via-white/20 to-purple-500/30 shadow-2xl overflow-hidden ring-1 ring-white/10">
+                  <div className="rounded-2xl sm:rounded-3xl overflow-hidden bg-[#0A1224]">
+                    {/* Full 16:9 Aspect Video Container - 100% Edge-to-Edge */}
+                    <div className="relative rounded-t-2xl sm:rounded-t-3xl overflow-hidden aspect-video w-full bg-slate-900">
                       <img
-                        src="/baust-logo.png"
-                        alt="BAUST Logo"
-                        className="w-5 h-5 rounded-full object-contain bg-white p-0.5 shadow-xs flex-shrink-0"
+                        src={campusBanner}
+                        alt="BAUST Campus Academic Building"
+                        className="w-full h-full object-cover object-center transform group-hover:scale-102 transition duration-700 ease-out"
                       />
-                      <span className="font-bold text-white tracking-wide">
-                        Bangladesh Army University of Science and Technology
+                      {/* Subtle Cinematic Vignette */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A1224] via-transparent to-black/20 pointer-events-none" />
+                    </div>
+
+                    {/* Integrated University Caption Bar */}
+                    <div className="px-4 py-3 bg-[#0A1224] border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src="/baust-logo.png"
+                          alt="BAUST Logo"
+                          className="w-5 h-5 rounded-full object-contain bg-white p-0.5 shadow-sm flex-shrink-0 ring-1 ring-[#FCA311]/40"
+                        />
+                        <span className="font-extrabold text-white tracking-wide">
+                          Bangladesh Army University of Science and Technology
+                        </span>
+                      </div>
+                      <span className="text-[#FCA311] font-bold text-[11px] tracking-wider sm:self-center">
+                        Saidpur Cantonment
                       </span>
                     </div>
-                    <span className="text-[#FCA311] font-semibold text-[11px] sm:self-center">
-                      Saidpur Cantonment
-                    </span>
                   </div>
-
                 </div>
-
               </div>
             </div>
 
