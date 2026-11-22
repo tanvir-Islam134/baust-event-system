@@ -730,9 +730,9 @@ export default function DashboardPage({ defaultTab = null }) {
                 alt="BAUST Campus"
                 className="w-full h-full object-cover object-[center_right] sm:object-right filter brightness-95"
               />
-              {/* Left-to-right black to transparent gradient */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 via-50% to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/25" />
+              {/* Left-to-right deep navy to transparent gradient */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0B132B] via-[#0B132B]/75 via-55% to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B]/70 via-transparent to-black/20" />
             </div>
 
             {/* Official BAUST Crest Emblem (glass badge on the right) */}
