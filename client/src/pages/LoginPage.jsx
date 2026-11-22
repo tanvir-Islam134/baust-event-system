@@ -6,16 +6,16 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import { BAUST_CLUBS } from './RegisterPage.jsx';
 
 /**
- * Role Selection Options matching the UI design specifications:
- * 1. Student (participant): Join clubs and manage your applications
- * 2. Club Admin (organizer): Manage your club, members, and events
- * 3. HR Office (admin): Oversee clubs and approve admins
+ * Role Selection Options:
+ * 1. Participant: Browse events, register, and get digital QR passes
+ * 2. Organizer: Manage club, publish events, gate scanner, and finances
+ * 3. Admin: University admin, oversee clubs, and approve organizers
  */
 const ROLE_OPTIONS = [
   {
     id: 'participant',
-    title: 'Student',
-    description: 'Join clubs and manage your applications',
+    title: 'Participant',
+    description: 'Join clubs, browse campus events, and manage passes',
     icon: (
       <svg className="w-6 h-6 text-slate-700" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
@@ -24,8 +24,8 @@ const ROLE_OPTIONS = [
   },
   {
     id: 'organizer',
-    title: 'Club Admin',
-    description: 'Manage your club, members, and events',
+    title: 'Organizer',
+    description: 'Manage club, publish events, gate scanner, and finances',
     icon: (
       <svg className="w-6 h-6 text-slate-700" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 4a2.5 2.5 0 110 5 2.5 2.5 0 010-5zm4 9.5c0 .83-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5 0-1.66 2.34-2.5 4-2.5s4 .84 4 2.5z" />
@@ -34,8 +34,8 @@ const ROLE_OPTIONS = [
   },
   {
     id: 'admin',
-    title: 'HR Office',
-    description: 'Oversee clubs and approve admins',
+    title: 'Admin',
+    description: 'Oversee clubs, approve organizers, and site governance',
     icon: (
       <svg className="w-6 h-6 text-slate-700" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
@@ -71,15 +71,15 @@ export default function LoginPage() {
 
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 text-center">
           <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-1">Already Authenticated</h2>
+          <h2 className="text-xl font-bold text-slate-800 mb-1">Signed In Successfully</h2>
           <p className="text-sm text-slate-500 mb-4">
-            Signed in as <span className="font-semibold text-slate-800">{user.email}</span>
+            Account: <span className="font-semibold text-slate-800">{user.email}</span>
             <br />
             Active Role: <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#14213D] text-[#FCA311] capitalize">{user.role}</span>
             {user.clubAffiliation && user.role === 'organizer' && (
@@ -87,10 +87,10 @@ export default function LoginPage() {
             )}
           </p>
 
-          {/* Quick Role Switcher for Testing / Evaluation */}
-          <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200 text-left">
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center justify-between">
-              <span>🔄 Switch Role (Demo Mode):</span>
+          {/* Quick Role Switcher */}
+          <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left">
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+              <span>🔄 Select Role for Platform:</span>
               {loading && <span className="text-[11px] text-amber-600 font-medium">Updating...</span>}
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -98,37 +98,37 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => handleQuickSwitch('participant')}
                 disabled={loading}
-                className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
+                className={`py-2 px-1 text-xs font-bold rounded-xl border transition text-center cursor-pointer ${
                   user.role === 'participant'
                     ? 'bg-[#14213D] text-[#FCA311] border-[#14213D] shadow-xs'
                     : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
                 }`}
               >
-                🎓 Student
+                🎓 Participant
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickSwitch('organizer')}
                 disabled={loading}
-                className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
+                className={`py-2 px-1 text-xs font-bold rounded-xl border transition text-center cursor-pointer ${
                   user.role === 'organizer'
                     ? 'bg-[#14213D] text-[#FCA311] border-[#14213D] shadow-xs'
                     : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
                 }`}
               >
-                🛡️ Club Admin
+                🛡️ Organizer
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickSwitch('admin')}
                 disabled={loading}
-                className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
+                className={`py-2 px-1 text-xs font-bold rounded-xl border transition text-center cursor-pointer ${
                   user.role === 'admin'
                     ? 'bg-[#14213D] text-[#FCA311] border-[#14213D] shadow-xs'
                     : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
                 }`}
               >
-                🏛️ HR Office
+                🏛️ Admin
               </button>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-3">
             <button
               onClick={() => navigate(from, { replace: true })}
-              className="w-full py-2.5 px-4 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-lg text-sm font-black shadow-md shadow-[#FCA311]/20 transition"
+              className="w-full py-2.5 px-4 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-sm font-black shadow-md shadow-[#FCA311]/20 transition cursor-pointer"
             >
               Continue to {from === '/dashboard' ? 'Dashboard' : 'Page'} &rarr;
             </button>
@@ -144,7 +144,7 @@ export default function LoginPage() {
               onClick={async () => {
                 await logout();
               }}
-              className="w-full py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition"
+              className="w-full py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-sm font-medium transition cursor-pointer"
             >
               Sign out
             </button>
@@ -183,9 +183,9 @@ export default function LoginPage() {
   };
 
   const getRoleDisplayName = (r) => {
-    if (r === 'admin') return 'HR Office';
-    if (r === 'organizer') return 'Club Admin';
-    return 'Student';
+    if (r === 'admin') return 'Admin';
+    if (r === 'organizer') return 'Organizer';
+    return 'Participant';
   };
 
   return (
@@ -218,7 +218,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* 3 Role Selection Cards */}
+        {/* 3 Role Selection Cards: Participant, Organizer, Admin */}
         <div className="space-y-3 mb-5">
           {ROLE_OPTIONS.map((opt) => {
             const isSelected = selectedRole === opt.id;
@@ -271,11 +271,11 @@ export default function LoginPage() {
           })}
         </div>
 
-        {/* Optional Club Selector when Club Admin is selected */}
+        {/* Optional Club Selector when Organizer is selected */}
         {selectedRole === 'organizer' && (
           <div className="mb-5 p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 text-left">
             <label className="block text-xs font-bold text-amber-950 mb-1.5 flex items-center gap-1.5">
-              <span>🏛️</span> Assigned Club for Club Admin:
+              <span>🏛️</span> Assigned Club for Organizer:
             </label>
             <select
               value={selectedClub}
@@ -294,7 +294,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Google Login Action Button */}
+        {/* Google Sign In Action Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
@@ -323,7 +323,7 @@ export default function LoginPage() {
             </svg>
           )}
           <span>
-            {loading ? 'Authenticating...' : `Login as ${getRoleDisplayName(selectedRole)} with Google`}
+            {loading ? 'Signing in...' : `Sign In with Google as ${getRoleDisplayName(selectedRole)}`}
           </span>
         </button>
 

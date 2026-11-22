@@ -58,9 +58,9 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
   };
 
   const getRoleLabel = (role) => {
-    if (role === 'admin') return 'HR Office';
-    if (role === 'organizer') return 'Club Admin';
-    return 'Student';
+    if (role === 'admin') return 'Admin';
+    if (role === 'organizer') return 'Organizer';
+    return 'Participant';
   };
 
   return (
@@ -135,7 +135,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                   </div>
 
                   <div className="py-1">
-                    {/* Option 1: Student */}
+                    {/* Option 1: Participant */}
                     <button
                       type="button"
                       onClick={() => handleRoleSwitch('participant')}
@@ -147,7 +147,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                       <div className="flex items-center gap-2.5">
                         <span className="text-base">🎓</span>
                         <div className="text-left">
-                          <div className="font-bold">Student</div>
+                          <div className="font-bold">Participant</div>
                           <div className="text-[10px] text-slate-400">Join events & browse clubs</div>
                         </div>
                       </div>
@@ -156,7 +156,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                       )}
                     </button>
 
-                    {/* Option 2: Club Admin */}
+                    {/* Option 2: Organizer */}
                     <button
                       type="button"
                       onClick={() => handleRoleSwitch('organizer')}
@@ -168,7 +168,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                       <div className="flex items-center gap-2.5">
                         <span className="text-base">🛡️</span>
                         <div className="text-left">
-                          <div className="font-bold">Club Admin</div>
+                          <div className="font-bold">Organizer</div>
                           <div className="text-[10px] text-slate-400">Manage club, create events</div>
                         </div>
                       </div>
@@ -177,7 +177,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                       )}
                     </button>
 
-                    {/* Option 3: HR Office */}
+                    {/* Option 3: Admin */}
                     <button
                       type="button"
                       onClick={() => handleRoleSwitch('admin')}
@@ -189,7 +189,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
                       <div className="flex items-center gap-2.5">
                         <span className="text-base">🏛️</span>
                         <div className="text-left">
-                          <div className="font-bold">HR Office</div>
+                          <div className="font-bold">Admin</div>
                           <div className="text-[10px] text-slate-400">Oversee clubs & approvals</div>
                         </div>
                       </div>
