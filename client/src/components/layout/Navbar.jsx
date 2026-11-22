@@ -4,18 +4,26 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import AdminNotificationBell from '../admin/AdminNotificationBell.jsx';
 
 export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
-  const { user, switchRole, logout } = useAuth();
+  const { user, switchRole, logout, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
   const [switchingRole, setSwitchingRole] = useState(false);
   const roleMenuRef = useRef(null);
 
+  const [signInMenuOpen, setSignInMenuOpen] = useState(false);
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signInRole, setSignInRole] = useState(null);
+  const signInMenuRef = useRef(null);
+
   // Close dropdown when clicked outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (roleMenuRef.current && !roleMenuRef.current.contains(event.target)) {
         setIsRoleMenuOpen(false);
+      }
+      if (signInMenuRef.current && !signInMenuRef.current.contains(event.target)) {
+        setSignInMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -35,6 +43,20 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
       console.error('Failed to switch role:', err);
     } finally {
       setSwitchingRole(false);
+    }
+  };
+
+  const handleDirectSignIn = async (role) => {
+    try {
+      setSignInLoading(true);
+      setSignInRole(role);
+      await loginWithGoogle(role, role === 'organizer' ? 'CSE Society of BAUST' : null);
+      setSignInMenuOpen(false);
+    } catch (err) {
+      console.error('Direct sign-in failed:', err);
+    } finally {
+      setSignInLoading(false);
+      setSignInRole(null);
     }
   };
 
@@ -249,12 +271,92 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
             </button>
           </div>
         ) : (
-          <Link
-            to="/login"
-            className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-lg text-xs font-bold transition shadow-sm"
-          >
-            Sign In with Google
-          </Link>
+          <div className="relative" ref={signInMenuRef}>
+            <button
+              type="button"
+              onClick={() => setSignInMenuOpen(!signInMenuOpen)}
+              className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Sign In with Google</span>
+              <svg
+                className={`w-3 h-3 transition-transform duration-200 ${
+                  signInMenuOpen ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {signInMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311]/50 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-left">
+                <div className="px-3 py-1.5 border-b border-white/10 mb-1">
+                  <p className="text-[10px] font-black text-[#FCA311] uppercase tracking-wider">
+                    Sign in as
+                  </p>
+                  <p className="text-[10px] text-slate-300">Select active role to sign in</p>
+                </div>
+
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => handleDirectSignIn('participant')}
+                    disabled={signInLoading}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
+                  >
+                    <span className="text-base">🎓</span>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Participant</span>
+                        {signInLoading && signInRole === 'participant' && (
+                          <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400">Join events & browse clubs</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDirectSignIn('organizer')}
+                    disabled={signInLoading}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
+                  >
+                    <span className="text-base">🛡️</span>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Organizer</span>
+                        {signInLoading && signInRole === 'organizer' && (
+                          <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400">Manage club, create events</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDirectSignIn('admin')}
+                    disabled={signInLoading}
+                    className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
+                  >
+                    <span className="text-base">🏛️</span>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-white flex items-center justify-between">
+                        <span>Admin</span>
+                        {signInLoading && signInRole === 'admin' && (
+                          <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400">University administration</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </header>
