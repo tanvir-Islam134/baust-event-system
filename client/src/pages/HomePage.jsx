@@ -225,10 +225,12 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section: 2-Column High-End Showcase Layout */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#070E1E] via-[#0B132B] to-[#14213D] py-12 sm:py-16 lg:py-20 border-b border-white/10">
-        {/* Subtle Ambient Background Glows */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FCA311]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <section className="relative bg-gradient-to-b from-[#070E1E] via-[#0B132B] to-[#14213D] py-12 sm:py-16 lg:py-20 border-b border-white/10">
+        {/* Subtle Ambient Background Glows strictly wrapped with overflow-hidden */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FCA311]/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -342,10 +344,13 @@ export default function HomePage() {
                       </svg>
                     </button>
 
-                    {/* Popover Menu matching user drawing: Sign in as Participant / Organizer / Admin */}
+                    {/* Popover Menu matching user drawing: positioned on the SIDE (to the right) */}
                     {roleMenuOpen && (
-                      <div className="absolute left-0 mt-2.5 w-72 sm:w-80 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311]/50 p-3 z-50 animate-in fade-in zoom-in-95 duration-150 ring-1 ring-white/10 text-left">
-                        <div className="px-3 py-2 border-b border-white/10 mb-2">
+                      <div className="absolute z-50 left-0 top-full mt-2.5 sm:left-full sm:top-1/2 sm:-translate-y-1/2 sm:mt-0 sm:ml-4 w-72 sm:w-80 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311] p-3 animate-in fade-in zoom-in-95 duration-150 ring-2 ring-[#FCA311]/30 text-left">
+                        {/* Visual indicator arrow pointing directly left to the Sign In with Google button */}
+                        <div className="hidden sm:block absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#0d162a] border-l border-b border-[#FCA311] rotate-45 pointer-events-none" />
+
+                        <div className="px-3 py-1.5 border-b border-white/10 mb-2">
                           <span className="text-xs font-black text-[#FCA311] uppercase tracking-wider block">
                             Sign in as
                           </span>
