@@ -68,6 +68,37 @@ export const normalizeDate = (dateVal) => {
 };
 
 /**
+ * Check if an event date and time is in the past (already ended / over).
+ * Past events have already concluded and must NEVER be flagged as active schedule conflicts.
+ * @param {object} event
+ * @returns {boolean}
+ */
+export const isEventInPast = (event) => {
+  if (!event) return false;
+  if (event.status === 'completed') return true;
+
+  const dateStr = normalizeDate(event.date);
+  if (!dateStr) return false;
+
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return false;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+
+  const { end } = getEventTimeInterval(event);
+  const endHours = Math.floor(end / 60);
+  const endMinutes = end % 60;
+
+  // Event end date-time in local time
+  const eventEnd = new Date(y, m - 1, d, endHours, endMinutes, 0, 0);
+  const now = new Date();
+
+  return eventEnd.getTime() < now.getTime();
+};
+
+/**
  * Check if two events overlap in venue or organizer schedule.
  * @param {object} e1
  * @param {object} e2
@@ -76,6 +107,11 @@ export const normalizeDate = (dateVal) => {
 export const checkEventConflict = (e1, e2) => {
   if (e1.id && e2.id && e1.id === e2.id) return null;
   if (e1.status === 'rejected' || e2.status === 'rejected') return null;
+  if (e1.status === 'declined' || e2.status === 'declined') return null;
+  if (e1.status === 'completed' || e2.status === 'completed') return null;
+
+  // Once an event date/time has passed, it has already taken place and cannot conflict
+  if (isEventInPast(e1) || isEventInPast(e2)) return null;
 
   const date1 = normalizeDate(e1.date);
   const date2 = normalizeDate(e2.date);
@@ -122,6 +158,7 @@ export const checkEventConflict = (e1, e2) => {
 
 /**
  * Computes conflicts against all active events and attaches hasConflict & conflict details.
+ * Ignores past/concluded events so past events never trigger conflict alerts.
  * @param {Array<object>} targetEvents - The events being returned to the caller
  * @param {Array<object>} [allActiveEvents=null] - Pool of active events to check against
  * @returns {Array<object>}
@@ -132,11 +169,11 @@ export const attachConflictFlags = (targetEvents, allActiveEvents = null) => {
 
   for (let i = 0; i < pool.length; i++) {
     const e1 = pool[i];
-    if (e1.status === 'rejected') continue;
+    if (e1.status === 'rejected' || e1.status === 'declined' || isEventInPast(e1)) continue;
 
     for (let j = i + 1; j < pool.length; j++) {
       const e2 = pool[j];
-      if (e2.status === 'rejected') continue;
+      if (e2.status === 'rejected' || e2.status === 'declined' || isEventInPast(e2)) continue;
 
       const conflictInfo = checkEventConflict(e1, e2);
       if (conflictInfo && conflictInfo.conflict) {
@@ -163,12 +200,14 @@ export const attachConflictFlags = (targetEvents, allActiveEvents = null) => {
   }
 
   return targetEvents.map((event) => {
-    const conflicts = conflictMap.get(event.id) || [];
+    const isPast = isEventInPast(event);
+    const conflicts = isPast ? [] : (conflictMap.get(event.id) || []);
     return {
       ...event,
-      hasConflict: conflicts.length > 0,
-      conflictReasons: conflicts.map((c) => c.reason),
-      conflictingWith: conflicts,
+      isPast,
+      hasConflict: !isPast && conflicts.length > 0,
+      conflictReasons: !isPast ? conflicts.map((c) => c.reason) : [],
+      conflictingWith: !isPast ? conflicts : [],
     };
   });
 };

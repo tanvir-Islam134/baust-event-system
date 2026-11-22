@@ -208,8 +208,14 @@ export default function EventCalendar({ events = [], loading = false }) {
       const end = new Date(year, (month || 1) - 1, day || 1, Math.floor(endMinutes / 60), endMinutes % 60);
 
       const now = new Date();
-      // Past event check based on date/time
-      const isPast = end < now || start < now;
+      // Past event check based on date/time: event has concluded
+      const isPast = end < now;
+
+      // Schedule conflict is strictly for ACTIVE / FUTURE events.
+      // Concluded / past events must NEVER be marked as conflicts.
+      const hasConflict = !isPast && Boolean(ev.hasConflict);
+      const conflictReasons = !isPast ? (ev.conflictReasons || []) : [];
+      const conflictingWith = !isPast ? (ev.conflictingWith || []) : [];
 
       return {
         id: ev.id,
@@ -223,9 +229,9 @@ export default function EventCalendar({ events = [], loading = false }) {
         endTimeStr: ev.endTime || '',
         clubName: ev.clubName || ev.clubAffiliation || 'BAUST Club',
         description: ev.description || '',
-        hasConflict: Boolean(ev.hasConflict),
-        conflictReasons: ev.conflictReasons || [],
-        conflictingWith: ev.conflictingWith || [],
+        hasConflict,
+        conflictReasons,
+        conflictingWith,
         original: ev,
       };
     });
@@ -279,7 +285,7 @@ export default function EventCalendar({ events = [], loading = false }) {
 
   // Custom Event block in BigCalendar
   const CustomEventBlock = ({ event }) => {
-    const hasRedConflict = isStaff && event.hasConflict;
+    const hasRedConflict = isStaff && event.hasConflict && !event.isPast;
     const palette = getCategoryPalette(event.category);
     const isPast = event.isPast;
 
@@ -424,7 +430,7 @@ export default function EventCalendar({ events = [], loading = false }) {
   };
 
   const totalConflicts = useMemo(() => {
-    return calendarEvents.filter((e) => e.hasConflict).length;
+    return calendarEvents.filter((e) => e.hasConflict && !e.isPast).length;
   }, [calendarEvents]);
 
   return (
@@ -668,8 +674,8 @@ export default function EventCalendar({ events = [], loading = false }) {
                 {popoverState.event.title}
               </h4>
 
-              {/* Schedule Overlap / Conflict Alert for Staff */}
-              {isStaff && popoverState.event.hasConflict && (
+              {/* Schedule Overlap / Conflict Alert for Staff (Active / Future Events Only) */}
+              {isStaff && popoverState.event.hasConflict && !popoverState.event.isPast && (
                 <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] space-y-1">
                   <div className="font-bold flex items-center gap-1 text-rose-700">
                     <span>⚠️</span>
@@ -765,7 +771,7 @@ export default function EventCalendar({ events = [], loading = false }) {
                 {selectedEventModal.title}
               </h3>
 
-              {isStaff && selectedEventModal.hasConflict && (
+              {isStaff && selectedEventModal.hasConflict && !selectedEventModal.isPast && (
                 <div className="p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-950 text-xs space-y-2 shadow-xs">
                   <div className="font-extrabold flex items-center gap-1.5 text-rose-700">
                     <span className="text-base">⚠️</span>

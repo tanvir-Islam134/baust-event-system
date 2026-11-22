@@ -2,19 +2,20 @@ import { eventRepository } from '../repositories/event.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { CreateEventInputSchema, UpdateEventStatusSchema, UpdateEventSchema } from '../schemas/event.schema.js';
-import { attachConflictFlags } from '../utils/conflictDetector.js';
+import { attachConflictFlags, isEventInPast } from '../utils/conflictDetector.js';
 
 /**
  * Service handling event creation, discovery, conflict management, and status updates.
  */
 
 /**
- * Helper to fetch all active events for cross-schedule conflict evaluation.
+ * Helper to fetch all active future events for cross-schedule conflict evaluation.
+ * Concluded / past events or rejected / declined events are excluded from conflict calculation.
  */
 const getAllActiveEvents = async () => {
   try {
     const all = await eventRepository.findAll();
-    return all.filter((e) => e.status !== 'rejected');
+    return all.filter((e) => e.status !== 'rejected' && e.status !== 'declined' && e.status !== 'completed' && !isEventInPast(e));
   } catch {
     return [];
   }
