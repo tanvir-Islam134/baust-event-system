@@ -476,27 +476,6 @@ export default function HomePage() {
                 <div className="absolute -inset-3 rounded-3xl bg-gradient-to-r from-[#FCA311]/30 via-purple-600/30 to-cyan-500/25 blur-3xl opacity-75 group-hover:opacity-100 transition duration-700 pointer-events-none" />
                 <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-[#FCA311]/40 via-purple-500/20 to-blue-600/30 blur-xl opacity-60 pointer-events-none" />
 
-                {/* Floating 3D Badge 1 (Top-Right): BAUST Campus LIVE 2026 */}
-                <div className="absolute -top-3.5 -right-2 sm:-top-4 sm:-right-3 px-3.5 py-1.5 rounded-full bg-[#0B132B]/95 backdrop-blur-md border border-[#FCA311]/60 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.8)] flex items-center gap-2 z-20 transition-transform duration-500 group-hover:-translate-y-1 group-hover:translate-x-1 ring-1 ring-white/10">
-                  <span className="w-2 h-2 rounded-full bg-[#FCA311] animate-ping" />
-                  <span className="text-[11px] font-extrabold text-white tracking-wide">
-                    BAUST Main Campus
-                  </span>
-                  <span className="text-white/40">•</span>
-                  <span className="text-[10px] font-black uppercase text-[#FCA311]">LIVE 2026</span>
-                </div>
-
-                {/* Floating 3D Badge 2 (Bottom-Left): Instant Signed Gate Pass */}
-                <div className="hidden sm:flex absolute -bottom-3.5 -left-3 px-3.5 py-1.5 rounded-full bg-[#070E1E]/95 backdrop-blur-md border border-emerald-500/60 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.8)] items-center gap-2 z-20 transition-transform duration-500 group-hover:translate-y-1 group-hover:-translate-x-1 ring-1 ring-white/10">
-                  <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-black">
-                    ✓
-                  </div>
-                  <span className="text-[11px] font-bold text-white tracking-wide">
-                    Signed QR Gate Pass
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-semibold">• Instant Scan</span>
-                </div>
-
                 {/* Showcase Container: Precision 3D Beveled Frame with Deep Drop Shadow */}
                 <div className="relative rounded-2xl sm:rounded-3xl p-[1.5px] bg-gradient-to-br from-[#FCA311]/70 via-white/30 to-purple-500/40 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_40px_rgba(252,163,17,0.15)] overflow-hidden ring-1 ring-white/15">
                   <div className="rounded-2xl sm:rounded-3xl overflow-hidden bg-[#0A1224]">
