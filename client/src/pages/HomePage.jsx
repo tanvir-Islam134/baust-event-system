@@ -168,7 +168,7 @@ export default function HomePage() {
                 {/* Showcase Container Frame */}
                 <div className="relative rounded-3xl p-3 bg-gradient-to-b from-white/20 via-white/10 to-white/5 border border-white/20 shadow-2xl backdrop-blur-md overflow-hidden group">
                   
-                  {/* BAUST Campus Image - Bright, Vibrant, Not Obscured */}
+                  {/* BAUST Campus Image - Bright, Vibrant, Pristine */}
                   <div className="relative rounded-2xl overflow-hidden aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] bg-slate-800 shadow-inner">
                     <img
                       src={campusBanner}
@@ -176,10 +176,7 @@ export default function HomePage() {
                       className="w-full h-full object-cover object-center transform group-hover:scale-102 transition duration-700 ease-out filter brightness-100 contrast-102"
                     />
 
-                    {/* Gentle Vignette at Bottom Only for Floating Text Readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-
-                    {/* Top Floating Badge: BAUST Emblem & Title */}
+                    {/* Subtle Top Floating Badge: BAUST Emblem & Title */}
                     <div className="absolute top-3.5 left-3.5 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/25 shadow-lg">
                       <img
                         src="/baust-logo.png"
@@ -187,60 +184,26 @@ export default function HomePage() {
                         className="w-5 h-5 rounded-full object-contain bg-white p-0.5"
                       />
                       <span className="text-white text-xs font-bold tracking-tight">
-                        BAUST Academic Complex
+                        BAUST Main Campus
                       </span>
                     </div>
 
                     {/* Top Right Status Badge */}
                     <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 bg-[#FCA311] text-[#14213D] px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider shadow-md">
-                      <span>Live 2026</span>
-                    </div>
-
-                    {/* Bottom In-Image Caption */}
-                    <div className="absolute bottom-3.5 left-3.5 right-3.5 text-white">
-                      <p className="text-xs font-extrabold tracking-wide uppercase text-[#FCA311]">
-                        Bangladesh Army University of Science and Technology
-                      </p>
-                      <p className="text-[11px] text-slate-300 font-medium">
-                        Saidpur Cantonment, Nilphamari
-                      </p>
+                      <span>Saidpur</span>
                     </div>
                   </div>
 
-                </div>
+                  {/* Clean Caption Bar under the photo */}
+                  <div className="px-2 pt-3 pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                    <span className="font-bold text-white tracking-wide">
+                      Bangladesh Army University of Science and Technology
+                    </span>
+                    <span className="text-[#FCA311] font-semibold text-[11px]">
+                      Saidpur Cantonment
+                    </span>
+                  </div>
 
-                {/* Floating Interactive Micro-Widget: QR Gate Pass Preview */}
-                <div className="absolute -bottom-6 -left-4 sm:-bottom-6 sm:left-4 bg-white/95 text-[#14213D] p-3.5 rounded-2xl shadow-2xl border border-white/50 backdrop-blur-md flex items-center gap-3 max-w-[270px] transform hover:scale-105 transition duration-300 z-20">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 font-extrabold text-xl flex-shrink-0">
-                    ✓
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                        Verified Pass
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">1s scan</span>
-                    </div>
-                    <p className="text-xs font-bold text-[#14213D] mt-0.5 leading-tight">
-                      Signed QR Gate Access
-                    </p>
-                    <p className="text-[10px] text-slate-500 leading-tight">
-                      Duplicate-proof entry control
-                    </p>
-                  </div>
-                </div>
-
-                {/* Floating Micro-Widget 2: Live Club Directory */}
-                <div className="hidden sm:flex absolute -top-5 -right-3 bg-[#14213D]/95 text-white p-3 rounded-2xl shadow-2xl border border-white/20 backdrop-blur-md items-center gap-2.5 z-20">
-                  <span className="text-lg">🏛️</span>
-                  <div>
-                    <p className="text-[11px] font-extrabold text-[#FCA311] leading-tight">
-                      Active Club Portals
-                    </p>
-                    <p className="text-[10px] text-slate-300 leading-tight">
-                      CSE Society, Cultural, Scouts
-                    </p>
-                  </div>
                 </div>
 
               </div>
