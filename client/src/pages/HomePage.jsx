@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 import campusBanner from '../assets/baust-campus.jpg';
 
 export default function HomePage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-[#FCA311] selection:text-[#14213D]">
@@ -46,15 +46,31 @@ export default function HomePage() {
             </Link>
 
             {isAuthenticated ? (
-              <Link
-                to="/dashboard"
-                className="px-4 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs sm:text-sm font-extrabold shadow-md shadow-[#FCA311]/20 transition transform hover:-translate-y-0.5 flex items-center gap-2"
-              >
-                <span>Dashboard</span>
-                <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[#14213D] text-[#FCA311] font-bold capitalize">
-                  {user?.role}
-                </span>
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/dashboard"
+                  className="px-4 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs sm:text-sm font-extrabold shadow-md shadow-[#FCA311]/20 transition transform hover:-translate-y-0.5 flex items-center gap-2"
+                >
+                  <span>Dashboard</span>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[#14213D] text-[#FCA311] font-bold capitalize">
+                    {user?.role}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await logout();
+                    } catch (err) {
+                      console.warn('Sign out failed:', err);
+                    }
+                  }}
+                  className="text-xs font-semibold text-slate-300 hover:text-rose-400 px-2.5 py-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer"
+                  title="Sign out"
+                >
+                  Sign Out
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-2 sm:gap-3">
                 <Link
@@ -124,15 +140,35 @@ export default function HomePage() {
                 </Link>
 
                 {isAuthenticated ? (
-                  <Link
-                    to="/dashboard"
-                    className="px-5 py-3 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-2"
-                  >
-                    <span>Open Dashboard</span>
-                    <span className="text-xs px-2 py-0.5 rounded-md bg-[#FCA311] text-[#14213D] font-extrabold capitalize">
-                      {user?.role}
-                    </span>
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Link
+                      to="/dashboard"
+                      className="px-5 py-3 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                      <span>Open Dashboard</span>
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-[#FCA311] text-[#14213D] font-extrabold capitalize">
+                        {user?.role}
+                      </span>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await logout();
+                        } catch (err) {
+                          console.warn('Sign out failed:', err);
+                        }
+                      }}
+                      className="px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/30 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+                      title="Sign out from your account"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
                 ) : (
                   <Link
                     to="/login"
