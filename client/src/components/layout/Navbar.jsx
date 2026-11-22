@@ -52,6 +52,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
       setSignInRole(role);
       await loginWithGoogle(role, role === 'organizer' ? 'CSE Society of BAUST' : null);
       setSignInMenuOpen(false);
+      navigate('/dashboard');
     } catch (err) {
       console.error('Direct sign-in failed:', err);
     } finally {
