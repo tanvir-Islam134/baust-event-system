@@ -224,12 +224,28 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section: 2-Column High-End Showcase Layout */}
-      <section className="relative bg-gradient-to-b from-[#070E1E] via-[#0B132B] to-[#14213D] py-12 sm:py-16 lg:py-20 border-b border-white/10">
-        {/* Subtle Ambient Background Glows strictly wrapped with overflow-hidden */}
+      {/* Hero Section: 2-Column High-End Showcase Layout with 3D Cybernetic Depth */}
+      <section className="relative bg-gradient-to-b from-[#070E1E] via-[#0B132B] to-[#14213D] py-12 sm:py-16 lg:py-20 border-b border-white/10 [perspective:1400px]">
+        {/* 3D Atmospheric Background Layers */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FCA311]/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
+          {/* Ambient 3D Glowing Dimensional Orbs */}
+          <div className="absolute -top-32 -left-32 w-[520px] h-[520px] bg-[#FCA311]/15 rounded-full blur-[130px]" />
+          <div className="absolute -bottom-32 -right-32 w-[550px] h-[550px] bg-purple-600/20 rounded-full blur-[140px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue-600/10 rounded-full blur-[120px]" />
+
+          {/* 3D Holographic Perspective Floor Grid */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-[380px] opacity-30 pointer-events-none"
+            style={{
+              backgroundImage:
+                'linear-gradient(to right, rgba(252, 163, 17, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(252, 163, 17, 0.15) 1px, transparent 1px)',
+              backgroundSize: '48px 48px',
+              transform: 'perspective(500px) rotateX(60deg)',
+              transformOrigin: 'bottom center',
+              maskImage: 'linear-gradient(to top, rgba(0,0,0,1) 15%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,1) 15%, transparent 100%)',
+            }}
+          />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -268,7 +284,7 @@ export default function HomePage() {
               <div className="pt-1 flex flex-wrap items-center gap-3.5">
                 <Link
                   to="/events"
-                  className="px-6 py-3 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-sm font-extrabold shadow-lg shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40 transition transform hover:-translate-y-0.5 flex items-center gap-2"
+                  className="px-6 py-3.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-sm font-black shadow-[0_8px_20px_-4px_rgba(252,163,17,0.45),0_3px_0_0_#c47d06] hover:shadow-[0_12px_25px_-4px_rgba(252,163,17,0.55),0_4px_0_0_#c47d06] active:shadow-[0_2px_0_0_#c47d06] active:translate-y-1 transition-all transform flex items-center gap-2 cursor-pointer"
                 >
                   <span>Explore Campus Events</span>
                   <span className="text-base font-bold">&rarr;</span>
@@ -309,7 +325,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                      className="px-5 py-3 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 hover:border-[#FCA311]/60 rounded-xl text-sm font-semibold transition flex items-center gap-2.5 shadow-sm cursor-pointer"
+                      className="px-5 py-3.5 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 hover:border-[#FCA311]/60 rounded-xl text-sm font-semibold transition-all shadow-[0_6px_20px_-4px_rgba(0,0,0,0.6),0_2px_0_0_rgba(255,255,255,0.15)] active:translate-y-0.5 flex items-center gap-2.5 cursor-pointer"
                     >
                       <div className="w-4 h-4 flex items-center justify-center">
                         <svg className="w-full h-full" viewBox="0 0 24 24">
@@ -448,14 +464,39 @@ export default function HomePage() {
 
             </div>
 
-            {/* Right Column: Expanded Campus Showcase Frame (7 Cols on Large Screens) */}
-            <div className="lg:col-span-7 relative w-full">
-              <div className="relative mx-auto w-full group">
-                {/* Soft ambient atmospheric glow behind the artwork */}
-                <div className="absolute -inset-1.5 rounded-3xl bg-gradient-to-r from-[#FCA311]/30 via-purple-600/25 to-blue-600/25 blur-2xl opacity-75 group-hover:opacity-100 transition duration-700 pointer-events-none" />
+            {/* Right Column: 3D Holographic Campus Showcase Frame */}
+            <div className="lg:col-span-7 relative w-full pt-4 sm:pt-0">
+              <div 
+                className="relative mx-auto w-full group transition-all duration-700 ease-out sm:[transform:perspective(1200px)_rotateY(-5deg)_rotateX(2.5deg)] hover:[transform:perspective(1200px)_rotateY(0deg)_rotateX(0deg)_translateZ(8px)]"
+                style={{ transformStyle: 'preserve-3d' }}
+              >
+                {/* 3D Multi-Layer Ambient Atmospheric Glow Aura behind the artwork */}
+                <div className="absolute -inset-3 rounded-3xl bg-gradient-to-r from-[#FCA311]/30 via-purple-600/30 to-cyan-500/25 blur-3xl opacity-75 group-hover:opacity-100 transition duration-700 pointer-events-none" />
+                <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-[#FCA311]/40 via-purple-500/20 to-blue-600/30 blur-xl opacity-60 pointer-events-none" />
 
-                {/* Showcase Container: Sleek 1px Gradient Border without awkward bulky padding */}
-                <div className="relative rounded-2xl sm:rounded-3xl p-[1px] bg-gradient-to-b from-[#FCA311]/60 via-white/20 to-purple-500/30 shadow-2xl overflow-hidden ring-1 ring-white/10">
+                {/* Floating 3D Badge 1 (Top-Right): BAUST Campus LIVE 2026 */}
+                <div className="absolute -top-3.5 -right-2 sm:-top-4 sm:-right-3 px-3.5 py-1.5 rounded-full bg-[#0B132B]/95 backdrop-blur-md border border-[#FCA311]/60 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.8)] flex items-center gap-2 z-20 transition-transform duration-500 group-hover:-translate-y-1 group-hover:translate-x-1 ring-1 ring-white/10">
+                  <span className="w-2 h-2 rounded-full bg-[#FCA311] animate-ping" />
+                  <span className="text-[11px] font-extrabold text-white tracking-wide">
+                    BAUST Main Campus
+                  </span>
+                  <span className="text-white/40">•</span>
+                  <span className="text-[10px] font-black uppercase text-[#FCA311]">LIVE 2026</span>
+                </div>
+
+                {/* Floating 3D Badge 2 (Bottom-Left): Instant Signed Gate Pass */}
+                <div className="hidden sm:flex absolute -bottom-3.5 -left-3 px-3.5 py-1.5 rounded-full bg-[#070E1E]/95 backdrop-blur-md border border-emerald-500/60 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.8)] items-center gap-2 z-20 transition-transform duration-500 group-hover:translate-y-1 group-hover:-translate-x-1 ring-1 ring-white/10">
+                  <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-black">
+                    ✓
+                  </div>
+                  <span className="text-[11px] font-bold text-white tracking-wide">
+                    Signed QR Gate Pass
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-semibold">• Instant Scan</span>
+                </div>
+
+                {/* Showcase Container: Precision 3D Beveled Frame with Deep Drop Shadow */}
+                <div className="relative rounded-2xl sm:rounded-3xl p-[1.5px] bg-gradient-to-br from-[#FCA311]/70 via-white/30 to-purple-500/40 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_40px_rgba(252,163,17,0.15)] overflow-hidden ring-1 ring-white/15">
                   <div className="rounded-2xl sm:rounded-3xl overflow-hidden bg-[#0A1224]">
                     {/* Full 16:9 Aspect Video Container - 100% Edge-to-Edge */}
                     <div className="relative rounded-t-2xl sm:rounded-t-3xl overflow-hidden aspect-video w-full bg-slate-900">
@@ -465,7 +506,7 @@ export default function HomePage() {
                         className="w-full h-full object-cover object-center transform group-hover:scale-102 transition duration-700 ease-out"
                       />
                       {/* Subtle Cinematic Vignette */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A1224] via-transparent to-black/20 pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A1224] via-transparent to-black/25 pointer-events-none" />
                     </div>
 
                     {/* Integrated University Caption Bar */}
