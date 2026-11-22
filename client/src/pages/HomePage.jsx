@@ -82,25 +82,25 @@ export default function HomePage() {
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
-            {/* Left Column: Authoritative Typography & Actions (7 Cols) */}
-            <div className="lg:col-span-7 text-left space-y-6">
+            {/* Left Column: Authoritative Typography & Actions (5 Cols on Large Screens) */}
+            <div className="lg:col-span-5 text-left space-y-5">
               
               {/* Institution Pill Badge with Pulsing Live Dot */}
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-[#FCA311]/40 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-[#FCA311]/40 shadow-sm">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse ring-4 ring-emerald-400/20" />
                 <span className="text-white text-xs font-bold tracking-wide">
                   BAUST Official Campus Portal
                 </span>
                 <span className="text-slate-400 text-xs">•</span>
                 <span className="text-[#FCA311] text-xs font-semibold">
-                  Saidpur Cantonment
+                  Saidpur
                 </span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.14]">
                 Campus Life, <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FCA311] via-amber-300 to-amber-500">
                   Intelligently Connected.
@@ -108,16 +108,16 @@ export default function HomePage() {
               </h1>
 
               {/* Subtitle / Description */}
-              <p className="text-base sm:text-lg text-slate-300 max-w-xl leading-relaxed font-normal">
+              <p className="text-sm sm:text-base text-slate-300 max-w-lg leading-relaxed font-normal">
                 The centralized event management ecosystem for Bangladesh Army University of Science and Technology. 
                 Discover hackathons, cultural festivals, and academic symposiums with atomic seat reservation and cryptographically signed QR gate passes.
               </p>
 
               {/* Action Buttons */}
-              <div className="pt-2 flex flex-wrap items-center gap-4">
+              <div className="pt-1 flex flex-wrap items-center gap-3.5">
                 <Link
                   to="/events"
-                  className="px-7 py-3.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-sm font-extrabold shadow-lg shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40 transition transform hover:-translate-y-0.5 flex items-center gap-2"
+                  className="px-6 py-3 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-sm font-extrabold shadow-lg shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40 transition transform hover:-translate-y-0.5 flex items-center gap-2"
                 >
                   <span>Explore Campus Events</span>
                   <span className="text-base font-bold">&rarr;</span>
@@ -126,7 +126,7 @@ export default function HomePage() {
                 {isAuthenticated ? (
                   <Link
                     to="/dashboard"
-                    className="px-6 py-3.5 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-2.5"
+                    className="px-5 py-3 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-2"
                   >
                     <span>Open Dashboard</span>
                     <span className="text-xs px-2 py-0.5 rounded-md bg-[#FCA311] text-[#14213D] font-extrabold capitalize">
@@ -136,7 +136,7 @@ export default function HomePage() {
                 ) : (
                   <Link
                     to="/login"
-                    className="px-6 py-3.5 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 rounded-xl text-sm font-semibold transition"
+                    className="px-5 py-3 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 rounded-xl text-sm font-semibold transition"
                   >
                     Sign In with Google
                   </Link>
@@ -144,16 +144,16 @@ export default function HomePage() {
               </div>
 
               {/* Institutional Trust Perks */}
-              <div className="pt-4 border-t border-white/10 flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-slate-300 font-medium">
-                <div className="flex items-center gap-2">
+              <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-y-2 gap-x-5 text-xs text-slate-300 font-medium">
+                <div className="flex items-center gap-1.5">
                   <span className="text-emerald-400 font-bold">✓</span>
                   <span>Signed Digital QR Passes</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className="text-emerald-400 font-bold">✓</span>
                   <span>Atomic Seat Locking</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className="text-emerald-400 font-bold">✓</span>
                   <span>Instant Gate Camera Check-in</span>
                 </div>
@@ -161,45 +161,35 @@ export default function HomePage() {
 
             </div>
 
-            {/* Right Column: Campus Showcase Frame with Clean Photo & Live Badges (5 Cols) */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto max-w-md lg:max-w-none">
+            {/* Right Column: Expanded Campus Showcase Frame (7 Cols on Large Screens) */}
+            <div className="lg:col-span-7 relative w-full">
+              <div className="relative mx-auto w-full">
                 
-                {/* Showcase Container Frame */}
-                <div className="relative rounded-3xl p-3 bg-gradient-to-b from-white/20 via-white/10 to-white/5 border border-white/20 shadow-2xl backdrop-blur-md overflow-hidden group">
+                {/* Showcase Container Frame with Expanded Bounds */}
+                <div className="relative rounded-3xl p-3 sm:p-4 bg-gradient-to-b from-white/20 via-white/10 to-white/5 border border-white/20 shadow-2xl backdrop-blur-md overflow-hidden group">
                   
-                  {/* BAUST Campus Image - Bright, Vibrant, Pristine */}
-                  <div className="relative rounded-2xl overflow-hidden aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] bg-slate-800 shadow-inner">
+                  {/* Full 16:9 Aspect Video Container to Show 100% of the Image without Any Cropping */}
+                  <div className="relative rounded-2xl overflow-hidden aspect-video w-full bg-slate-900 shadow-inner">
                     <img
                       src={campusBanner}
                       alt="BAUST Campus Academic Building"
-                      className="w-full h-full object-cover object-center transform group-hover:scale-102 transition duration-700 ease-out filter brightness-100 contrast-102"
+                      className="w-full h-full object-cover object-center transform group-hover:scale-101 transition duration-500 ease-out filter brightness-100 contrast-102"
                     />
-
-                    {/* Subtle Top Floating Badge: BAUST Emblem & Title */}
-                    <div className="absolute top-3.5 left-3.5 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/25 shadow-lg">
-                      <img
-                        src="/baust-logo.png"
-                        alt="BAUST Emblem"
-                        className="w-5 h-5 rounded-full object-contain bg-white p-0.5"
-                      />
-                      <span className="text-white text-xs font-bold tracking-tight">
-                        BAUST Main Campus
-                      </span>
-                    </div>
-
-                    {/* Top Right Status Badge */}
-                    <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 bg-[#FCA311] text-[#14213D] px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider shadow-md">
-                      <span>Saidpur</span>
-                    </div>
                   </div>
 
-                  {/* Clean Caption Bar under the photo */}
-                  <div className="px-2 pt-3 pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                    <span className="font-bold text-white tracking-wide">
-                      Bangladesh Army University of Science and Technology
-                    </span>
-                    <span className="text-[#FCA311] font-semibold text-[11px]">
+                  {/* Clean Caption Bar Underneath the Photo */}
+                  <div className="px-2 pt-3 pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="/baust-logo.png"
+                        alt="BAUST Logo"
+                        className="w-5 h-5 rounded-full object-contain bg-white p-0.5 shadow-xs flex-shrink-0"
+                      />
+                      <span className="font-bold text-white tracking-wide">
+                        Bangladesh Army University of Science and Technology
+                      </span>
+                    </div>
+                    <span className="text-[#FCA311] font-semibold text-[11px] sm:self-center">
                       Saidpur Cantonment
                     </span>
                   </div>
