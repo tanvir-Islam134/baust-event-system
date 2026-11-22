@@ -1,21 +1,23 @@
 import jwt from 'jsonwebtoken';
 import { auth as firebaseAuth } from '../config/firebase.js';
 import { userRepository } from '../repositories/user.repository.js';
+import { formatUserResponse } from './user.service.js';
 import { AppError } from '../middlewares/errorHandler.js';
 
 /**
  * Format standard auth response with issued JWT token and sanitized profile.
  */
-const generateAuthResponse = (user, uid) => {
+const generateAuthResponse = (user, uid, activeRole = null) => {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
     throw new AppError('Server configuration error: JWT_SECRET missing', 500);
   }
 
+  const role = activeRole || user.role || 'participant';
   const tokenPayload = {
     uid: user.id || uid,
     email: user.email,
-    role: user.role,
+    role: role,
   };
 
   const token = jwt.sign(tokenPayload, jwtSecret, {
@@ -24,23 +26,7 @@ const generateAuthResponse = (user, uid) => {
 
   return {
     token,
-    user: {
-      uid: user.id || uid,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      photoURL: user.photoURL || null,
-      department: user.department || null,
-      studentId: user.studentId || null,
-      mobileNumber: user.mobileNumber || null,
-      clubAffiliation: user.clubAffiliation || null,
-      organizerRequestStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
-      organizerStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
-      batch: user.batch,
-      section: user.section,
-      level: user.level,
-      term: user.term,
-    },
+    user: formatUserResponse(user, role),
   };
 };
 
@@ -158,19 +144,28 @@ export const switchUserRole = async (userId, targetRole, targetClub = null) => {
     throw new AppError('User profile not found in database', 404);
   }
 
-  const updates = { role: requestedRole };
+  const roleProfiles = { ...(user.roleProfiles || {}) };
+  const targetRoleProfile = roleProfiles[requestedRole] || {};
+
+  const updates = { 
+    role: requestedRole,
+    updatedAt: new Date(),
+  };
+
   if (requestedRole === 'organizer') {
     updates.organizerStatus = 'approved';
     updates.organizerRequestStatus = 'approved';
-    if (targetClub && targetClub.trim()) {
-      updates.clubAffiliation = targetClub.trim();
-    } else if (!user.clubAffiliation) {
-      updates.clubAffiliation = 'CSE Society of BAUST';
-    }
+    const assignedClub = (targetClub && targetClub.trim()) || targetRoleProfile.clubAffiliation || user.clubAffiliation || 'CSE Society of BAUST';
+    updates.clubAffiliation = assignedClub;
+    roleProfiles.organizer = {
+      ...targetRoleProfile,
+      clubAffiliation: assignedClub,
+    };
+    updates.roleProfiles = roleProfiles;
   }
 
   const updatedUser = await userRepository.update(userId, updates);
-  return generateAuthResponse(updatedUser, userId);
+  return generateAuthResponse(updatedUser, userId, requestedRole);
 };
 
 /**
@@ -276,8 +271,5 @@ export const getCurrentUserProfile = async (uid) => {
   if (!user) {
     throw new AppError('User profile not found in database', 404);
   }
-  return {
-    uid: user.id || uid,
-    ...user,
-  };
+  return formatUserResponse(user, user.role);
 };

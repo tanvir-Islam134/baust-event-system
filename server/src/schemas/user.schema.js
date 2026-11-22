@@ -17,12 +17,18 @@ export const UserSchema = z.object({
   level: z.union([z.number(), z.string()]).nullable().optional().default(null),
   term: z.union([z.number(), z.string()]).nullable().optional().default(null),
   clubAffiliation: z.string().trim().nullable().optional().default(null),
+  designation: z.string().trim().nullable().optional().default(null),
+  office: z.string().trim().nullable().optional().default(null),
+  officeLocation: z.string().trim().nullable().optional().default(null),
+  authorityScope: z.string().trim().nullable().optional().default(null),
+  bio: z.string().trim().nullable().optional().default(null),
+  roleProfiles: z.record(z.any()).optional().default({}),
   organizerRequestStatus: OrganizerRequestStatusEnum.default('none'),
   organizerStatus: OrganizerStatusEnum.default('none'),
   organizerRejectionReason: z.string().trim().nullable().optional().default(null),
   createdAt: z.union([z.date(), z.string(), z.any()]).optional(),
   updatedAt: z.union([z.date(), z.string(), z.any()]).optional(),
-});
+}).passthrough();
 
 export const UpdateUserSchema = UserSchema.partial().omit({ email: true, createdAt: true });
 
@@ -72,7 +78,13 @@ export const UpdateStudentProfileSchema = z.object({
   level: z.union([z.number(), z.string()]).nullable().optional(),
   term: z.union([z.number(), z.string()]).nullable().optional(),
   clubAffiliation: z.string().trim().nullable().optional(),
-});
+  designation: z.string().trim().nullable().optional(),
+  office: z.string().trim().nullable().optional(),
+  officeLocation: z.string().trim().nullable().optional(),
+  authorityScope: z.string().trim().nullable().optional(),
+  bio: z.string().trim().nullable().optional(),
+  roleProfiles: z.record(z.any()).optional(),
+}).passthrough();
 
 export const AdminUpdateUserRoleSchema = z
   .object({

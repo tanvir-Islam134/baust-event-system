@@ -8,11 +8,51 @@ import {
 } from '../schemas/user.schema.js';
 
 /**
- * Update the logged-in user's student academic profile.
+ * Helper to format user response by merging the active role's isolated profile data.
+ * Guarantees that Participant, Organizer, and Admin profiles are completely separate.
+ */
+export const formatUserResponse = (user, activeRole = null) => {
+  if (!user) return null;
+  const role = activeRole || user.role || 'participant';
+  const roleProfiles = user.roleProfiles || {};
+  const currentRoleData = roleProfiles[role] || {};
+
+  return {
+    uid: user.id || user.uid,
+    id: user.id || user.uid,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    photoURL: user.photoURL || null,
+    roleProfiles,
+    // Active role specific values merged
+    department: currentRoleData.department !== undefined ? currentRoleData.department : (role === 'participant' ? user.department : null),
+    studentId: currentRoleData.studentId !== undefined ? currentRoleData.studentId : (role === 'participant' ? user.studentId : null),
+    mobileNumber: currentRoleData.mobileNumber !== undefined ? currentRoleData.mobileNumber : (user.mobileNumber || null),
+    batch: currentRoleData.batch !== undefined ? currentRoleData.batch : (role === 'participant' ? user.batch : null),
+    section: currentRoleData.section !== undefined ? currentRoleData.section : (role === 'participant' ? user.section : null),
+    level: currentRoleData.level !== undefined ? currentRoleData.level : (role === 'participant' ? user.level : null),
+    term: currentRoleData.term !== undefined ? currentRoleData.term : (role === 'participant' ? user.term : null),
+    clubAffiliation: currentRoleData.clubAffiliation !== undefined ? currentRoleData.clubAffiliation : (user.clubAffiliation || null),
+    designation: currentRoleData.designation !== undefined ? currentRoleData.designation : (user.designation || null),
+    office: currentRoleData.office !== undefined ? currentRoleData.office : (user.office || null),
+    officeLocation: currentRoleData.officeLocation !== undefined ? currentRoleData.officeLocation : (user.officeLocation || null),
+    authorityScope: currentRoleData.authorityScope !== undefined ? currentRoleData.authorityScope : (user.authorityScope || null),
+    bio: currentRoleData.bio !== undefined ? currentRoleData.bio : (user.bio || null),
+    organizerRequestStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
+    organizerStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
+    organizerRejectionReason: user.organizerRejectionReason || null,
+  };
+};
+
+/**
+ * Update the logged-in user's profile strictly for their active role.
+ * Guarantees that updating information in one role NEVER modifies other roles' data.
  * @param {string} userId - Firebase UID
  * @param {object} profileData
+ * @param {string} [callerRole] - Active role from req.user.role
  */
-export const updateStudentProfile = async (userId, profileData) => {
+export const updateStudentProfile = async (userId, profileData, callerRole = null) => {
   const validated = UpdateStudentProfileSchema.parse(profileData);
 
   const user = await userRepository.findById(userId);
@@ -20,8 +60,61 @@ export const updateStudentProfile = async (userId, profileData) => {
     throw new AppError('User not found', 404);
   }
 
-  const updated = await userRepository.updateUser(userId, validated);
-  return updated;
+  const role = callerRole || user.role || 'participant';
+  const roleProfiles = { ...(user.roleProfiles || {}) };
+  const currentRoleProfile = { ...(roleProfiles[role] || {}) };
+
+  // Filter out top-level metadata like name, photoURL
+  const roleSpecificFields = { ...validated };
+  delete roleSpecificFields.photoURL;
+
+  // Build the updated sub-profile for this specific role
+  const updatedRoleProfile = {
+    ...currentRoleProfile,
+    ...roleSpecificFields,
+    updatedAt: new Date().toISOString(),
+  };
+
+  roleProfiles[role] = updatedRoleProfile;
+
+  const topLevelUpdates = {
+    roleProfiles,
+    updatedAt: new Date(),
+  };
+
+  if (validated.name) {
+    topLevelUpdates.name = validated.name.trim();
+  }
+  if (validated.photoURL !== undefined) {
+    topLevelUpdates.photoURL = validated.photoURL;
+  }
+
+  // Update top-level mirror for whichever role is currently active
+  if (role === 'participant') {
+    topLevelUpdates.department = validated.department !== undefined ? validated.department : (currentRoleProfile.department || null);
+    topLevelUpdates.studentId = validated.studentId !== undefined ? validated.studentId : (currentRoleProfile.studentId || null);
+    topLevelUpdates.mobileNumber = validated.mobileNumber !== undefined ? validated.mobileNumber : (currentRoleProfile.mobileNumber || null);
+    topLevelUpdates.batch = validated.batch !== undefined ? validated.batch : (currentRoleProfile.batch || null);
+    topLevelUpdates.section = validated.section !== undefined ? validated.section : (currentRoleProfile.section || null);
+    topLevelUpdates.level = validated.level !== undefined ? validated.level : (currentRoleProfile.level || null);
+    topLevelUpdates.term = validated.term !== undefined ? validated.term : (currentRoleProfile.term || null);
+  } else if (role === 'organizer') {
+    topLevelUpdates.clubAffiliation = validated.clubAffiliation !== undefined ? validated.clubAffiliation : (currentRoleProfile.clubAffiliation || user.clubAffiliation || null);
+    topLevelUpdates.department = validated.department !== undefined ? validated.department : (currentRoleProfile.department || null);
+    topLevelUpdates.designation = validated.designation !== undefined ? validated.designation : (currentRoleProfile.designation || null);
+    topLevelUpdates.mobileNumber = validated.mobileNumber !== undefined ? validated.mobileNumber : (currentRoleProfile.mobileNumber || null);
+    topLevelUpdates.officeLocation = validated.officeLocation !== undefined ? validated.officeLocation : (currentRoleProfile.officeLocation || null);
+    topLevelUpdates.bio = validated.bio !== undefined ? validated.bio : (currentRoleProfile.bio || null);
+  } else if (role === 'admin') {
+    topLevelUpdates.office = validated.office !== undefined ? validated.office : (currentRoleProfile.office || null);
+    topLevelUpdates.designation = validated.designation !== undefined ? validated.designation : (currentRoleProfile.designation || null);
+    topLevelUpdates.mobileNumber = validated.mobileNumber !== undefined ? validated.mobileNumber : (currentRoleProfile.mobileNumber || null);
+    topLevelUpdates.officeLocation = validated.officeLocation !== undefined ? validated.officeLocation : (currentRoleProfile.officeLocation || null);
+    topLevelUpdates.authorityScope = validated.authorityScope !== undefined ? validated.authorityScope : (currentRoleProfile.authorityScope || null);
+  }
+
+  const updated = await userRepository.update(userId, topLevelUpdates);
+  return formatUserResponse(updated, role);
 };
 
 /**

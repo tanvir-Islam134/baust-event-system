@@ -8,7 +8,7 @@ import { AppError } from '../middlewares/errorHandler.js';
  */
 export const updateProfile = async (req, res, next) => {
   try {
-    const updatedUser = await userService.updateStudentProfile(req.user.uid, req.body);
+    const updatedUser = await userService.updateStudentProfile(req.user.uid, req.body, req.user?.role);
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
