@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { isParticipantProfileComplete } from '../utils/userUtils.js';
 
 /**
  * ProtectedRoute component guarding routes requiring authentication and specific roles.
@@ -35,6 +36,15 @@ export default function ProtectedRoute({ allowedRoles, children }) {
 
   if (isPendingOrganizer) {
     return <Navigate to="/pending-approval" replace />;
+  }
+
+  // Intercept participants who haven't completed their academic profile
+  if (
+    user.role === 'participant' &&
+    !isParticipantProfileComplete(user) &&
+    location.pathname !== '/onboarding'
+  ) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {

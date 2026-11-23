@@ -87,6 +87,7 @@ export default function ProfilePage() {
   const [photoErrorMsg, setPhotoErrorMsg] = useState(null);
   const [showUrlModal, setShowUrlModal] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [viewingFullPhoto, setViewingFullPhoto] = useState(false);
 
   // Account deletion state
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -537,12 +538,16 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             {/* Interactive Avatar with Camera Badge */}
             <div className="relative group flex-shrink-0">
-              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-4 ring-[#FCA311]/30 flex items-center justify-center font-black text-2xl shadow-inner">
+              <div
+                onClick={() => setViewingFullPhoto(true)}
+                className="w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-4 ring-[#FCA311]/30 flex items-center justify-center font-black text-2xl shadow-inner cursor-pointer hover:ring-[#FCA311] transition"
+                title="Click to view full profile photo"
+              >
                 {photoPreview || user?.photoURL ? (
                   <img
                     src={photoPreview || user.photoURL}
                     alt={user?.name || 'Profile'}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
                 ) : (
                   <span>{user?.name ? user.name.charAt(0).toUpperCase() : 'U'}</span>
@@ -608,12 +613,16 @@ export default function ProfilePage() {
       <div className="bg-white rounded-2xl shadow-xs border border-[#E5E5E5] p-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-inner">
+            <div
+              onClick={() => setViewingFullPhoto(true)}
+              className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-inner cursor-pointer hover:ring-2 hover:ring-[#FCA311] transition group"
+              title="Click to view full photo"
+            >
               {photoPreview || user?.photoURL ? (
                 <img
                   src={photoPreview || user.photoURL}
                   alt={user?.name || 'Avatar'}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               ) : (
                 <span className="text-slate-400 font-bold text-xl">
@@ -642,6 +651,16 @@ export default function ProfilePage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setViewingFullPhoto(true)}
+              className="px-3.5 py-2 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="See your profile photo in full size"
+            >
+              <span>👁️</span>
+              <span>See Profile Photo</span>
+            </button>
+
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -1388,6 +1407,78 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+
+      {/* Full Profile Photo View Modal */}
+      {viewingFullPhoto && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setViewingFullPhoto(false)}
+        >
+          <div
+            className="relative max-w-sm sm:max-w-md w-full bg-[#0d162a] border border-white/15 rounded-3xl p-6 text-center text-white shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                <span>📷</span>
+                <span>Profile Photo View</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setViewingFullPhoto(false)}
+                className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="w-56 h-56 sm:w-64 sm:h-64 mx-auto rounded-3xl overflow-hidden ring-4 ring-[#FCA311]/40 shadow-2xl bg-black flex items-center justify-center">
+              {photoPreview || user?.photoURL ? (
+                <img
+                  src={photoPreview || user.photoURL}
+                  alt={user?.name || 'Profile'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-6xl font-bold text-[#FCA311]">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </span>
+              )}
+            </div>
+
+            <div>
+              <h4 className="text-base font-bold text-white">{user?.name}</h4>
+              <p className="text-xs text-slate-400">{user?.email}</p>
+              <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FCA311]/15 text-[#FCA311] border border-[#FCA311]/30">
+                <span className="capitalize">{user?.role}</span>
+                <span>•</span>
+                <span>BAUST Official</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingFullPhoto(false);
+                  fileInputRef.current?.click();
+                }}
+                className="px-4 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs font-black shadow-md transition cursor-pointer flex items-center gap-1.5"
+              >
+                <span>📷</span>
+                <span>Change / Update Photo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewingFullPhoto(false)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

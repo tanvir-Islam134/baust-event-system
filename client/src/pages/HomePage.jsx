@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { isParticipantProfileComplete } from '../utils/userUtils.js';
 import campusBanner from '../assets/baust-campus.jpg';
 
 export default function HomePage() {
@@ -57,10 +58,15 @@ export default function HomePage() {
       setAuthLoading(true);
       setAuthRole(role);
       setAuthError(null);
-      await loginWithGoogle(role, role === 'organizer' ? 'CSE Society of BAUST' : null);
+      const res = await loginWithGoogle(role, role === 'organizer' ? 'CSE Society of BAUST' : null);
       setRoleMenuOpen(false);
       setNavRoleMenuOpen(false);
-      navigate('/dashboard');
+      const loggedUser = res?.user || user;
+      if (role === 'participant' && !isParticipantProfileComplete(loggedUser)) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error('Sign-in failed:', err);
       let message =

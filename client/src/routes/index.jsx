@@ -4,6 +4,7 @@ import HomePage from '../pages/HomePage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import RegisterPage from '../pages/RegisterPage.jsx';
+import OnboardingPage from '../pages/OnboardingPage.jsx';
 import PendingApprovalPage from '../pages/PendingApprovalPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
 import EventsPage from '../pages/EventsPage.jsx';
@@ -31,6 +32,14 @@ const router = createBrowserRouter([
   {
     path: '/pending-approval',
     element: <PendingApprovalPage />,
+  },
+  {
+    path: '/onboarding',
+    element: (
+      <ProtectedRoute>
+        <OnboardingPage />
+      </ProtectedRoute>
+    ),
   },
   // Application Routes using MainLayout
   {

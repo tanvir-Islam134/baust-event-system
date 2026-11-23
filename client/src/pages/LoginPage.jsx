@@ -4,6 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { BAUST_CLUBS } from './RegisterPage.jsx';
+import { isParticipantProfileComplete } from '../utils/userUtils.js';
 
 /**
  * Role Selection Options:
@@ -144,7 +145,13 @@ export default function LoginPage() {
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => navigate(from, { replace: true })}
+              onClick={() => {
+                if (user.role === 'participant' && !isParticipantProfileComplete(user)) {
+                  navigate('/onboarding', { replace: true });
+                } else {
+                  navigate(from, { replace: true });
+                }
+              }}
               className="w-full py-3 px-4 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-sm font-black shadow-lg shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40 transition transform hover:-translate-y-0.5 cursor-pointer"
             >
               Continue to {from === '/dashboard' ? 'Dashboard' : 'Page'} &rarr;
@@ -167,8 +174,13 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
-      await loginWithGoogle(selectedRole, selectedRole === 'organizer' ? selectedClub : null);
-      navigate(from, { replace: true });
+      const res = await loginWithGoogle(selectedRole, selectedRole === 'organizer' ? selectedClub : null);
+      const loggedUser = res?.user || user;
+      if (selectedRole === 'participant' && !isParticipantProfileComplete(loggedUser)) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       try {
         await signOut(auth);
