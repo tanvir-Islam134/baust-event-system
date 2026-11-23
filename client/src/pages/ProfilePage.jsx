@@ -144,6 +144,7 @@ export default function ProfilePage() {
   const [requestingOrganizer, setRequestingOrganizer] = useState(false);
   const [organizerMsg, setOrganizerMsg] = useState(null);
   const [organizerErrorMsg, setOrganizerErrorMsg] = useState(null);
+  const [showOrganizerForm, setShowOrganizerForm] = useState(false);
 
   // Acknowledged / Dismissed organizer rejection notice state
   const getIsRejectionDismissed = () => {
@@ -923,9 +924,59 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Application Form */}
-          {canApplyForOrganizer && (
-            <form onSubmit={handleOrganizerRequestSubmit} className="mt-4 space-y-5">
+          {/* Option Button / Trigger Card: "Request to become an Organizer" */}
+          {canApplyForOrganizer && !showOrganizerForm && (
+            <div className="mt-4 p-5 sm:p-6 bg-gradient-to-r from-slate-50 via-amber-50/20 to-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-[#14213D] text-[#FCA311] flex items-center justify-center text-2xl shadow-sm flex-shrink-0">
+                  🏛️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-800">
+                      Request to become an Organizer
+                    </h3>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                      Club Access
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Are you an executive of a BAUST student club? Click below to open the application form and request organizer privileges.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOrganizerForm(true)}
+                className="px-5 py-2.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition shadow-md shadow-[#14213D]/20 flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95"
+              >
+                <span>🏛️</span>
+                <span>Request to become an Organizer</span>
+                <span>&rarr;</span>
+              </button>
+            </div>
+          )}
+
+          {/* Application Form (shown when user clicks "Request to become an Organizer") */}
+          {canApplyForOrganizer && showOrganizerForm && (
+            <form onSubmit={handleOrganizerRequestSubmit} className="mt-4 p-5 sm:p-6 bg-slate-50/60 border border-slate-200 rounded-2xl space-y-5 animate-fade-in shadow-xs">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">📝</span>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Organizer Application Form</h3>
+                    <p className="text-[11px] text-slate-500">Fill in your information and submit to university administrators for verification.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowOrganizerForm(false)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition cursor-pointer"
+                >
+                  ✕ Close Form
+                </button>
+              </div>
               {organizerMsg && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-medium">
                   {organizerMsg}
@@ -1103,7 +1154,14 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div>
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowOrganizerForm(false)}
+                  className="px-5 py-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={requestingOrganizer || !organizerAppForm.clubAffiliation}
