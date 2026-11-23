@@ -1,64 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import AdminNotificationBell from '../admin/AdminNotificationBell.jsx';
+import { isParticipantProfileComplete } from '../../utils/userUtils.js';
 
 export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
-  const { user, switchRole, logout, loginWithGoogle } = useAuth();
+  const { user, logout, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
-  const [switchingRole, setSwitchingRole] = useState(false);
-  const roleMenuRef = useRef(null);
-
-  const [signInMenuOpen, setSignInMenuOpen] = useState(false);
   const [signInLoading, setSignInLoading] = useState(false);
-  const [signInRole, setSignInRole] = useState(null);
-  const signInMenuRef = useRef(null);
 
-  // Close dropdown when clicked outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (roleMenuRef.current && !roleMenuRef.current.contains(event.target)) {
-        setIsRoleMenuOpen(false);
-      }
-      if (signInMenuRef.current && !signInMenuRef.current.contains(event.target)) {
-        setSignInMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleRoleSwitch = async (newRole) => {
-    if (newRole === user?.role) {
-      setIsRoleMenuOpen(false);
-      return;
-    }
-    try {
-      setSwitchingRole(true);
-      const existingClub = user?.roleProfiles?.organizer?.clubAffiliation || user?.clubAffiliation || null;
-      await switchRole(newRole, existingClub);
-      setIsRoleMenuOpen(false);
-    } catch (err) {
-      console.error('Failed to switch role:', err);
-    } finally {
-      setSwitchingRole(false);
-    }
-  };
-
-  const handleDirectSignIn = async (role) => {
+  const handleDirectSignIn = async () => {
     try {
       setSignInLoading(true);
-      setSignInRole(role);
-      await loginWithGoogle(role, null);
-      setSignInMenuOpen(false);
-      navigate('/dashboard');
+      const res = await loginWithGoogle();
+      const loggedUser = res?.user || user;
+      if (loggedUser?.role === 'participant' && !isParticipantProfileComplete(loggedUser)) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error('Direct sign-in failed:', err);
     } finally {
       setSignInLoading(false);
-      setSignInRole(null);
     }
   };
 
@@ -129,107 +94,21 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
       <div className="flex items-center gap-2 sm:gap-4">
         {user ? (
           <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Quick Role Switcher for Testing / Evaluation */}
-            <div className="relative" ref={roleMenuRef}>
-              <button
-                type="button"
-                onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition bg-amber-50 hover:bg-amber-100/90 text-[#14213D] border-[#FCA311]/70 shadow-2xs cursor-pointer"
-                title="Switch role for supervisor evaluation (Student / Club Admin / HR Office)"
-              >
-                <span className="text-[11px]">🔄</span>
-                <span className="font-extrabold text-[11px] text-[#14213D] hidden md:inline">Role:</span>
-                <span className="capitalize text-[11px] font-bold text-amber-900">
-                  {getRoleLabel(user.role)}
+            {/* Authentic Assigned Role Display Badge (Non-interactive) */}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${getRoleBadgeColor(
+                user.role
+              )}`}
+              title={`Logged in as ${getRoleLabel(user.role)}${user.clubAffiliation && user.role === 'organizer' ? ` (${user.clubAffiliation})` : ''}`}
+            >
+              <span className="text-xs">
+                {user.role === 'admin' ? '🏛️' : user.role === 'organizer' ? '🛡️' : '🎓'}
+              </span>
+              <span className="capitalize">{getRoleLabel(user.role)}</span>
+              {user.role === 'organizer' && user.clubAffiliation && (
+                <span className="text-[10px] opacity-80 hidden lg:inline truncate max-w-[130px]">
+                  • {user.clubAffiliation}
                 </span>
-                <svg className="w-3 h-3 text-slate-500 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {isRoleMenuOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-3.5 py-2 border-b border-slate-100">
-                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      Switch Active Role
-                    </p>
-                    <p className="text-xs text-slate-700 font-semibold truncate mt-0.5">
-                      {user.email}
-                    </p>
-                  </div>
-
-                  <div className="py-1">
-                    {/* Option 1: Participant */}
-                    <button
-                      type="button"
-                      onClick={() => handleRoleSwitch('participant')}
-                      disabled={switchingRole}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 text-xs transition cursor-pointer ${
-                        user.role === 'participant' ? 'bg-amber-50/70 text-[#14213D] font-bold' : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎓</span>
-                        <div className="text-left">
-                          <div className="font-bold">Participant</div>
-                          <div className="text-[10px] text-slate-400">Join events & browse clubs</div>
-                        </div>
-                      </div>
-                      {user.role === 'participant' && (
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
-                      )}
-                    </button>
-
-                    {/* Option 2: Organizer */}
-                    <button
-                      type="button"
-                      onClick={() => handleRoleSwitch('organizer')}
-                      disabled={switchingRole}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 text-xs transition cursor-pointer ${
-                        user.role === 'organizer' ? 'bg-amber-50/70 text-[#14213D] font-bold' : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🛡️</span>
-                        <div className="text-left">
-                          <div className="font-bold">Organizer</div>
-                          <div className="text-[10px] text-slate-400">Manage club, create events</div>
-                        </div>
-                      </div>
-                      {user.role === 'organizer' && (
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
-                      )}
-                    </button>
-
-                    {/* Option 3: Admin */}
-                    <button
-                      type="button"
-                      onClick={() => handleRoleSwitch('admin')}
-                      disabled={switchingRole}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 text-xs transition cursor-pointer ${
-                        user.role === 'admin' ? 'bg-amber-50/70 text-[#14213D] font-bold' : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🏛️</span>
-                        <div className="text-left">
-                          <div className="font-bold">Admin</div>
-                          <div className="text-[10px] text-slate-400">Oversee clubs & approvals</div>
-                        </div>
-                      </div>
-                      {user.role === 'admin' && (
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
-                      )}
-                    </button>
-                  </div>
-
-                  {switchingRole && (
-                    <div className="px-3 py-2 text-center text-xs text-amber-700 bg-amber-50 border-t border-amber-100 flex items-center justify-center gap-2">
-                      <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="font-semibold">Switching role...</span>
-                    </div>
-                  )}
-                </div>
               )}
             </div>
 
@@ -273,91 +152,37 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
             </button>
           </div>
         ) : (
-          <div className="relative" ref={signInMenuRef}>
+          <div>
             <button
               type="button"
-              onClick={() => setSignInMenuOpen(!signInMenuOpen)}
-              className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              onClick={handleDirectSignIn}
+              disabled={signInLoading}
+              className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-2 cursor-pointer"
             >
+              {signInLoading ? (
+                <span className="w-3.5 h-3.5 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+              )}
               <span>Sign In with Google</span>
-              <svg
-                className={`w-3 h-3 transition-transform duration-200 ${
-                  signInMenuOpen ? 'rotate-180' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
             </button>
-
-            {signInMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311]/50 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-left">
-                <div className="px-3 py-1.5 border-b border-white/10 mb-1">
-                  <p className="text-[10px] font-black text-[#FCA311] uppercase tracking-wider">
-                    Sign in as
-                  </p>
-                  <p className="text-[10px] text-slate-300">Select active role to sign in</p>
-                </div>
-
-                <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => handleDirectSignIn('participant')}
-                    disabled={signInLoading}
-                    className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
-                  >
-                    <span className="text-base">🎓</span>
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
-                        <span>Participant</span>
-                        {signInLoading && signInRole === 'participant' && (
-                          <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                        )}
-                      </div>
-                      <div className="text-[10px] text-slate-400">Join events & browse clubs</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDirectSignIn('organizer')}
-                    disabled={signInLoading}
-                    className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
-                  >
-                    <span className="text-base">🛡️</span>
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
-                        <span>Organizer</span>
-                        {signInLoading && signInRole === 'organizer' && (
-                          <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                        )}
-                      </div>
-                      <div className="text-[10px] text-slate-400">Manage club, create events</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDirectSignIn('admin')}
-                    disabled={signInLoading}
-                    className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
-                  >
-                    <span className="text-base">🏛️</span>
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
-                        <span>Admin</span>
-                        {signInLoading && signInRole === 'admin' && (
-                          <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                        )}
-                      </div>
-                      <div className="text-[10px] text-slate-400">University administration</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

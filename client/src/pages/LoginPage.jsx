@@ -3,72 +3,30 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { BAUST_CLUBS } from './RegisterPage.jsx';
 import { isParticipantProfileComplete } from '../utils/userUtils.js';
-
-/**
- * Role Selection Options:
- * 1. Participant: Browse events, register, and get digital QR passes
- * 2. Organizer: Manage club, publish events, gate scanner, and finances
- * 3. Admin: University admin, oversee clubs, and approve organizers
- */
-const ROLE_OPTIONS = [
-  {
-    id: 'participant',
-    title: 'Participant',
-    description: 'Join clubs, browse campus events, and manage passes',
-    icon: (
-      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'organizer',
-    title: 'Organizer',
-    description: 'Manage club, publish events, gate scanner, and finances',
-    icon: (
-      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 4a2.5 2.5 0 110 5 2.5 2.5 0 010-5zm4 9.5c0 .83-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5 0-1.66 2.34-2.5 4-2.5s4 .84 4 2.5z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'admin',
-    title: 'Admin',
-    description: 'Oversee clubs, approve organizers, and site governance',
-    icon: (
-      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z" />
-      </svg>
-    ),
-  },
-];
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithGoogle, switchRole, logout, isAuthenticated, user } = useAuth();
+  const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
 
   const from = location.state?.from?.pathname || '/dashboard';
-  const [selectedRole, setSelectedRole] = useState('participant');
-  const [selectedClub, setSelectedClub] = useState('CSE Society of BAUST');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // If already authenticated, display status & quick navigation / instant role switch
+  // If already authenticated, display status & quick navigation
   if (isAuthenticated && user) {
-    const handleQuickSwitch = async (role) => {
-      try {
-        setLoading(true);
-        setErrorMsg(null);
-        await switchRole(role, selectedClub);
-      } catch (err) {
-        setErrorMsg(err.message || 'Failed to switch role');
-      } finally {
-        setLoading(false);
+    const getRoleBadge = (role) => {
+      if (role === 'admin') {
+        return { label: 'Admin', icon: '🏛️', color: 'bg-[#14213D] text-[#FCA311] border-[#FCA311]/40' };
       }
+      if (role === 'organizer') {
+        return { label: 'Organizer', icon: '🛡️', color: 'bg-[#FCA311]/20 text-[#FCA311] border-[#FCA311]' };
+      }
+      return { label: 'Participant', icon: '🎓', color: 'bg-white/10 text-slate-200 border-white/20' };
     };
+
+    const roleInfo = getRoleBadge(user.role);
 
     return (
       <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-[#070E1E] via-[#0B132B] to-[#14213D]">
@@ -88,60 +46,17 @@ export default function LoginPage() {
           <p className="text-xs sm:text-sm text-slate-300 mb-6">
             Account: <span className="font-semibold text-white">{user.email}</span>
             <br />
-            Active Role:{' '}
-            <span className="inline-block mt-1.5 px-3 py-0.5 rounded-full text-xs font-black bg-[#FCA311] text-[#14213D] capitalize shadow-xs">
-              {user.role}
+            Assigned Role:{' '}
+            <span className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold border ${roleInfo.color}`}>
+              <span>{roleInfo.icon}</span>
+              <span>{roleInfo.label}</span>
             </span>
             {user.clubAffiliation && user.role === 'organizer' && (
-              <span className="block text-xs text-[#FCA311] mt-1 font-semibold">({user.clubAffiliation})</span>
+              <span className="block text-xs text-[#FCA311] mt-1.5 font-semibold">
+                Affiliation: {user.clubAffiliation}
+              </span>
             )}
           </p>
-
-          {/* Quick Role Switcher */}
-          <div className="mb-6 p-4 bg-white/[0.04] backdrop-blur-md rounded-2xl border border-white/10 text-left">
-            <p className="text-[11px] font-black text-[#FCA311] uppercase tracking-wider mb-2.5 flex items-center justify-between">
-              <span>🔄 Switch Role for Platform:</span>
-              {loading && <span className="text-[10px] text-amber-300 font-medium">Updating...</span>}
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickSwitch('participant')}
-                disabled={loading}
-                className={`py-2.5 px-1 text-xs font-bold rounded-xl border transition-all text-center cursor-pointer ${
-                  user.role === 'participant'
-                    ? 'bg-[#FCA311] text-[#14213D] border-[#FCA311] shadow-md shadow-[#FCA311]/20 font-black'
-                    : 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/10'
-                }`}
-              >
-                🎓 Participant
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickSwitch('organizer')}
-                disabled={loading}
-                className={`py-2.5 px-1 text-xs font-bold rounded-xl border transition-all text-center cursor-pointer ${
-                  user.role === 'organizer'
-                    ? 'bg-[#FCA311] text-[#14213D] border-[#FCA311] shadow-md shadow-[#FCA311]/20 font-black'
-                    : 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/10'
-                }`}
-              >
-                🛡️ Organizer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickSwitch('admin')}
-                disabled={loading}
-                className={`py-2.5 px-1 text-xs font-bold rounded-xl border transition-all text-center cursor-pointer ${
-                  user.role === 'admin'
-                    ? 'bg-[#FCA311] text-[#14213D] border-[#FCA311] shadow-md shadow-[#FCA311]/20 font-black'
-                    : 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/10'
-                }`}
-              >
-                🏛️ Admin
-              </button>
-            </div>
-          </div>
 
           <div className="flex flex-col gap-3">
             <button
@@ -174,9 +89,9 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
-      const res = await loginWithGoogle(selectedRole, selectedRole === 'organizer' ? selectedClub : null);
+      const res = await loginWithGoogle();
       const loggedUser = res?.user || user;
-      if (selectedRole === 'participant' && !isParticipantProfileComplete(loggedUser)) {
+      if (loggedUser?.role === 'participant' && !isParticipantProfileComplete(loggedUser)) {
         navigate('/onboarding', { replace: true });
       } else {
         navigate(from, { replace: true });
@@ -203,12 +118,6 @@ export default function LoginPage() {
     }
   };
 
-  const getRoleDisplayName = (r) => {
-    if (r === 'admin') return 'Admin';
-    if (r === 'organizer') return 'Organizer';
-    return 'Participant';
-  };
-
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col justify-center items-center p-4 sm:p-6 bg-gradient-to-b from-[#070E1E] via-[#0B132B] to-[#14213D] py-12">
       {/* Background Ambient Glows & Grid Pattern */}
@@ -217,11 +126,11 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
       {/* Main Glassmorphic Card Container */}
-      <div className="relative z-10 max-w-lg w-full bg-[#0d162a]/85 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/10 p-6 sm:p-8 ring-1 ring-white/5">
+      <div className="relative z-10 max-w-md w-full bg-[#0d162a]/85 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/10 p-6 sm:p-8 ring-1 ring-white/5 text-center">
         
         {/* Header Branding */}
-        <div className="text-center mb-6">
-          <div className="w-18 h-18 rounded-full bg-white p-1.5 mx-auto mb-3.5 flex items-center justify-center ring-4 ring-[#FCA311]/30 shadow-xl shadow-[#FCA311]/15">
+        <div className="mb-6">
+          <div className="w-20 h-20 rounded-full bg-white p-1.5 mx-auto mb-3.5 flex items-center justify-center ring-4 ring-[#FCA311]/30 shadow-xl shadow-[#FCA311]/15">
             <img
               src="/baust-logo.png"
               alt="BAUST University Crest"
@@ -236,14 +145,14 @@ export default function LoginPage() {
             <span className="text-white font-medium">Saidpur</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Select Your Role</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Portal Sign In</h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-1 font-normal">
-            Choose how you want to access the platform
+            Sign in with your Google or BAUST institutional account
           </p>
         </div>
 
         {errorMsg && (
-          <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-200 text-xs sm:text-sm flex items-start gap-2.5 backdrop-blur-md">
+          <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-200 text-xs sm:text-sm flex items-start gap-2.5 backdrop-blur-md text-left">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -251,94 +160,11 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* 3 Role Selection Cards: Participant, Organizer, Admin */}
-        <div className="space-y-3 mb-5">
-          {ROLE_OPTIONS.map((opt) => {
-            const isSelected = selectedRole === opt.id;
-            return (
-              <button
-                type="button"
-                key={opt.id}
-                onClick={() => setSelectedRole(opt.id)}
-                className={`w-full text-left p-3.5 sm:p-4 rounded-2xl transition-all duration-200 flex items-center justify-between border cursor-pointer group ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-[#FCA311]/20 via-[#FCA311]/10 to-transparent border-2 border-[#FCA311] shadow-lg shadow-[#FCA311]/15 ring-1 ring-[#FCA311]/40'
-                    : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 hover:border-white/20'
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-                      isSelected
-                        ? 'bg-[#FCA311] text-[#14213D] shadow-md shadow-[#FCA311]/30 font-black'
-                        : 'bg-white/10 text-slate-300 group-hover:text-white group-hover:bg-white/15'
-                    }`}
-                  >
-                    {opt.icon}
-                  </div>
-                  <div>
-                    <h3
-                      className={`text-sm sm:text-base font-bold leading-snug transition ${
-                        isSelected ? 'text-[#FCA311]' : 'text-white group-hover:text-amber-200'
-                      }`}
-                    >
-                      {opt.title}
-                    </h3>
-                    <p className="text-xs text-slate-300 font-normal leading-relaxed mt-0.5">
-                      {opt.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex-shrink-0 ml-3">
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                      isSelected
-                        ? 'border-[#FCA311] bg-[#FCA311] text-[#14213D] shadow-sm'
-                        : 'border-white/30 bg-white/5'
-                    }`}
-                  >
-                    {isSelected && (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Optional Club Selector when Organizer is selected */}
-        {selectedRole === 'organizer' && (
-          <div className="mb-5 p-4 bg-white/[0.05] backdrop-blur-md rounded-2xl border border-[#FCA311]/40 text-left animate-in fade-in slide-in-from-top-2 duration-150">
-            <label className="block text-xs font-bold text-[#FCA311] mb-2 flex items-center gap-1.5">
-              <span>🏛️</span> Assigned Club for Organizer:
-            </label>
-            <select
-              value={selectedClub}
-              onChange={(e) => setSelectedClub(e.target.value)}
-              className="w-full text-xs font-semibold px-3 py-2.5 bg-[#0B132B] border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] focus:border-[#FCA311] transition"
-            >
-              {BAUST_CLUBS.map((c) => (
-                <option key={c} value={c} className="bg-[#0B132B] text-white">
-                  {c}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-slate-300 mt-2 font-medium flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>Verified organizer permissions will be automatically assigned.</span>
-            </p>
-          </div>
-        )}
-
-        {/* Google Sign In Action Button (High-End Contrast Button) */}
+        {/* Google Sign In Action Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] transition transform hover:-translate-y-0.5 active:translate-y-0 font-black text-sm sm:text-base shadow-xl shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40 disabled:opacity-50 cursor-pointer"
+          className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] transition transform hover:-translate-y-0.5 active:translate-y-0 font-black text-sm sm:text-base shadow-xl shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40 disabled:opacity-50 cursor-pointer mb-6"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-[#14213D] border-t-transparent rounded-full animate-spin"></div>
@@ -364,14 +190,36 @@ export default function LoginPage() {
               </svg>
             </div>
           )}
-          <span>
-            {loading ? 'Authenticating...' : `Sign In with Google as ${getRoleDisplayName(selectedRole)}`}
-          </span>
+          <span>{loading ? 'Authenticating...' : 'Sign In with Google'}</span>
         </button>
 
-        <div className="mt-6 pt-5 border-t border-white/10 flex flex-col gap-2 text-center text-xs text-slate-400">
-          <Link to="/" className="text-slate-300 hover:text-[#FCA311] transition flex items-center justify-center gap-1.5 font-semibold">
+        {/* Real-world Academic Governance Guidelines Card */}
+        <div className="p-4 bg-white/[0.03] backdrop-blur-sm rounded-2xl border border-white/10 text-left space-y-2.5">
+          <p className="text-[11px] font-black text-[#FCA311] uppercase tracking-wider flex items-center gap-1.5">
+            <span>ℹ️</span> Role Architecture & Access:
+          </p>
+          <ul className="text-[11px] text-slate-300 space-y-2 leading-relaxed">
+            <li className="flex items-start gap-2">
+              <span className="text-[#FCA311] font-bold">🏛️</span>
+              <span><strong>Administration:</strong> Fixed university authority email is automatically recognized with full administrative governance.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-300 font-bold">🎓</span>
+              <span><strong>Participants:</strong> All new accounts join as participants to register for events, complete onboarding, and download digital tickets.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400 font-bold">🛡️</span>
+              <span><strong>Club Organizers:</strong> Any participant can submit an Organizer application with their chosen BAUST club from their Profile for admin approval.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+          <Link to="/" className="text-slate-300 hover:text-[#FCA311] transition flex items-center gap-1 font-semibold">
             <span>&larr;</span> Back to Home
+          </Link>
+          <Link to="/events" className="text-slate-300 hover:text-[#FCA311] transition font-semibold">
+            Browse Events &rarr;
           </Link>
         </div>
       </div>

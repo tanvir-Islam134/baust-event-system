@@ -5,65 +5,19 @@ import { isParticipantProfileComplete } from '../utils/userUtils.js';
 import campusBanner from '../assets/baust-campus.jpg';
 
 export default function HomePage() {
-  const { isAuthenticated, user, logout, loginWithGoogle, switchRole } = useAuth();
+  const { isAuthenticated, user, logout, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-  const [navRoleMenuOpen, setNavRoleMenuOpen] = useState(false);
-  const [activeRoleMenuOpen, setActiveRoleMenuOpen] = useState(false);
-  const [switchingRole, setSwitchingRole] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
-  const [authRole, setAuthRole] = useState(null);
   const [authError, setAuthError] = useState(null);
 
-  const heroDropdownRef = useRef(null);
-  const navDropdownRef = useRef(null);
-  const activeRoleRef = useRef(null);
-
-  // Close menus on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (heroDropdownRef.current && !heroDropdownRef.current.contains(event.target)) {
-        setRoleMenuOpen(false);
-      }
-      if (navDropdownRef.current && !navDropdownRef.current.contains(event.target)) {
-        setNavRoleMenuOpen(false);
-      }
-      if (activeRoleRef.current && !activeRoleRef.current.contains(event.target)) {
-        setActiveRoleMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleRoleSwitch = async (newRole) => {
-    if (newRole === user?.role) {
-      setActiveRoleMenuOpen(false);
-      return;
-    }
-    try {
-      setSwitchingRole(true);
-      const existingClub = user?.roleProfiles?.organizer?.clubAffiliation || user?.clubAffiliation || null;
-      await switchRole(newRole, existingClub);
-      setActiveRoleMenuOpen(false);
-    } catch (err) {
-      console.error('Failed to switch role:', err);
-    } finally {
-      setSwitchingRole(false);
-    }
-  };
-
-  const handleSignIn = async (role) => {
+  const handleSignIn = async () => {
     try {
       setAuthLoading(true);
-      setAuthRole(role);
       setAuthError(null);
-      const res = await loginWithGoogle(role, null);
-      setRoleMenuOpen(false);
-      setNavRoleMenuOpen(false);
+      const res = await loginWithGoogle();
       const loggedUser = res?.user || user;
-      if (role === 'participant' && !isParticipantProfileComplete(loggedUser)) {
+      if (loggedUser?.role === 'participant' && !isParticipantProfileComplete(loggedUser)) {
         navigate('/onboarding');
       } else {
         navigate('/dashboard');
@@ -84,7 +38,6 @@ export default function HomePage() {
       setAuthError(message);
     } finally {
       setAuthLoading(false);
-      setAuthRole(null);
     }
   };
 
@@ -155,99 +108,24 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="flex items-center gap-2 sm:gap-3">
-                {/* Header Sign In Button with Role Selector Popover */}
-                <div className="relative" ref={navDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setNavRoleMenuOpen(!navRoleMenuOpen)}
-                    className="px-3.5 py-2 text-slate-200 hover:text-white hover:bg-white/5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer"
-                  >
+                <button
+                  type="button"
+                  onClick={handleSignIn}
+                  disabled={authLoading}
+                  className="px-3.5 py-2 text-slate-200 hover:text-white hover:bg-white/5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  {authLoading ? (
+                    <span className="w-3.5 h-3.5 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+                  ) : (
                     <span>Sign In</span>
-                    <svg
-                      className={`w-3.5 h-3.5 text-[#FCA311] transition-transform duration-200 ${
-                        navRoleMenuOpen ? 'rotate-180' : ''
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {navRoleMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-72 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311]/50 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 ring-1 ring-white/10 text-left">
-                      <div className="px-3 py-1.5 border-b border-white/10 mb-1">
-                        <span className="text-xs font-black text-[#FCA311] uppercase tracking-wider block">
-                          Sign in as
-                        </span>
-                        <span className="text-[10px] text-slate-300">Select role to sign in directly</span>
-                      </div>
-
-                      <div className="space-y-1">
-                        <button
-                          type="button"
-                          onClick={() => handleSignIn('participant')}
-                          disabled={authLoading}
-                          className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
-                        >
-                          <span className="text-base">🎓</span>
-                          <div className="flex-1">
-                            <div className="text-xs font-bold text-white flex items-center justify-between">
-                              <span>Participant</span>
-                              {authLoading && authRole === 'participant' && (
-                                <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-400">Join events & browse clubs</div>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleSignIn('organizer')}
-                          disabled={authLoading}
-                          className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
-                        >
-                          <span className="text-base">🛡️</span>
-                          <div className="flex-1">
-                            <div className="text-xs font-bold text-white flex items-center justify-between">
-                              <span>Organizer</span>
-                              {authLoading && authRole === 'organizer' && (
-                                <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-400">Manage club, create events</div>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleSignIn('admin')}
-                          disabled={authLoading}
-                          className="w-full flex items-center gap-2.5 p-2 rounded-xl text-left hover:bg-white/10 text-white transition cursor-pointer"
-                        >
-                          <span className="text-base">🏛️</span>
-                          <div className="flex-1">
-                            <div className="text-xs font-bold text-white flex items-center justify-between">
-                              <span>Admin</span>
-                              {authLoading && authRole === 'admin' && (
-                                <span className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-400">University administration</div>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
                   )}
-                </div>
+                </button>
 
                 <Link
-                  to="/register"
+                  to="/login"
                   className="px-4 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs sm:text-sm font-extrabold shadow-md shadow-[#FCA311]/25 transition transform hover:-translate-y-0.5"
                 >
-                  Sign Up
+                  Get Started
                 </Link>
               </div>
             )}
@@ -325,111 +203,13 @@ export default function HomePage() {
                   <div className="flex flex-wrap items-center gap-3">
                     <Link
                       to="/dashboard"
-                      className="px-5 py-3 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-2"
+                      className="px-5 py-3.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-sm font-black shadow-lg shadow-[#FCA311]/25 transition transform hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
                     >
                       <span>Open Dashboard</span>
-                      <span className="text-xs px-2 py-0.5 rounded-md bg-[#FCA311] text-[#14213D] font-extrabold capitalize">
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-[#14213D] text-[#FCA311] font-extrabold capitalize">
                         {user?.role}
                       </span>
                     </Link>
-
-                    {/* Quick Active Role Switcher */}
-                    <div className="relative" ref={activeRoleRef}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveRoleMenuOpen(!activeRoleMenuOpen)}
-                        className="px-3.5 py-3 bg-[#14213D]/90 hover:bg-[#14213D] text-[#FCA311] border border-[#FCA311]/50 hover:border-[#FCA311] rounded-xl text-xs sm:text-sm font-bold transition shadow-sm flex items-center gap-2 cursor-pointer"
-                        title="Switch role directly (Participant / Organizer / Admin)"
-                      >
-                        <span>🔄</span>
-                        <span className="text-slate-300 text-xs hidden sm:inline">Role:</span>
-                        <span className="capitalize font-black text-white">{user?.role}</span>
-                        <svg
-                          className={`w-3.5 h-3.5 text-[#FCA311] transition-transform duration-200 ${
-                            activeRoleMenuOpen ? 'rotate-180' : ''
-                          }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-
-                      {activeRoleMenuOpen && (
-                        <div className="absolute left-0 mt-2 w-64 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311] p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 ring-2 ring-[#FCA311]/30 text-left">
-                          <div className="px-3 py-1.5 border-b border-white/10 mb-1">
-                            <p className="text-[10px] font-extrabold text-[#FCA311] uppercase tracking-wider">
-                              Switch Active Role
-                            </p>
-                            <p className="text-xs text-slate-300 font-semibold truncate mt-0.5">
-                              {user?.email}
-                            </p>
-                          </div>
-                          <div className="space-y-1">
-                            <button
-                              type="button"
-                              onClick={() => handleRoleSwitch('participant')}
-                              disabled={switchingRole}
-                              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs transition cursor-pointer ${
-                                user?.role === 'participant' ? 'bg-[#FCA311]/20 text-[#FCA311] font-bold border border-[#FCA311]/40' : 'text-slate-200 hover:bg-white/10'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-base">🎓</span>
-                                <div className="text-left">
-                                  <div className="font-bold text-white">Participant</div>
-                                  <div className="text-[10px] text-slate-400">Join events & passes</div>
-                                </div>
-                              </div>
-                              {user?.role === 'participant' && <span className="text-emerald-400 font-bold">✓</span>}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRoleSwitch('organizer')}
-                              disabled={switchingRole}
-                              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs transition cursor-pointer ${
-                                user?.role === 'organizer' ? 'bg-[#FCA311]/20 text-[#FCA311] font-bold border border-[#FCA311]/40' : 'text-slate-200 hover:bg-white/10'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-base">🛡️</span>
-                                <div className="text-left">
-                                  <div className="font-bold text-white">Organizer</div>
-                                  <div className="text-[10px] text-slate-400">Manage club, create events</div>
-                                </div>
-                              </div>
-                              {user?.role === 'organizer' && <span className="text-emerald-400 font-bold">✓</span>}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRoleSwitch('admin')}
-                              disabled={switchingRole}
-                              className={`w-full flex items-center justify-between p-2 rounded-xl text-xs transition cursor-pointer ${
-                                user?.role === 'admin' ? 'bg-[#FCA311]/20 text-[#FCA311] font-bold border border-[#FCA311]/40' : 'text-slate-200 hover:bg-white/10'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-base">🏛️</span>
-                                <div className="text-left">
-                                  <div className="font-bold text-white">Admin</div>
-                                  <div className="text-[10px] text-slate-400">Governance & approvals</div>
-                                </div>
-                              </div>
-                              {user?.role === 'admin' && <span className="text-emerald-400 font-bold">✓</span>}
-                            </button>
-                          </div>
-                          {switchingRole && (
-                            <div className="px-3 py-1.5 text-center text-xs text-[#FCA311] bg-white/5 rounded-lg mt-1 flex items-center justify-center gap-2">
-                              <div className="w-3 h-3 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                              <span>Switching role...</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
 
                     <button
                       type="button"
@@ -440,7 +220,7 @@ export default function HomePage() {
                           console.warn('Sign out failed:', err);
                         }
                       }}
-                      className="px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/30 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-3.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/30 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
                       title="Sign out from your account"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,125 +230,42 @@ export default function HomePage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="relative inline-block" ref={heroDropdownRef}>
+                  <div>
                     <button
                       type="button"
-                      onClick={() => setRoleMenuOpen(!roleMenuOpen)}
+                      onClick={handleSignIn}
+                      disabled={authLoading}
                       className="px-5 py-3.5 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 hover:border-[#FCA311]/60 rounded-xl text-sm font-semibold transition-all shadow-[0_6px_20px_-4px_rgba(0,0,0,0.6),0_2px_0_0_rgba(255,255,255,0.15)] active:translate-y-0.5 flex items-center gap-2.5 cursor-pointer"
                     >
-                      <div className="w-4 h-4 flex items-center justify-center">
-                        <svg className="w-full h-full" viewBox="0 0 24 24">
-                          <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                          />
-                        </svg>
-                      </div>
+                      {authLoading ? (
+                        <span className="w-4 h-4 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <div className="w-4 h-4 flex items-center justify-center">
+                          <svg className="w-full h-full" viewBox="0 0 24 24">
+                            <path
+                              fill="#4285F4"
+                              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                            />
+                          </svg>
+                        </div>
+                      )}
                       <span>Sign In with Google</span>
-                      <svg
-                        className={`w-3.5 h-3.5 text-[#FCA311] transition-transform duration-200 ${
-                          roleMenuOpen ? 'rotate-180' : ''
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                      </svg>
                     </button>
-
-                    {/* Popover Menu matching user drawing: positioned on the SIDE (to the right) */}
-                    {roleMenuOpen && (
-                      <div className="absolute z-50 left-0 top-full mt-2.5 sm:left-full sm:top-1/2 sm:-translate-y-1/2 sm:mt-0 sm:ml-4 w-72 sm:w-80 bg-[#0d162a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#FCA311] p-3 animate-in fade-in zoom-in-95 duration-150 ring-2 ring-[#FCA311]/30 text-left">
-                        {/* Visual indicator arrow pointing directly left to the Sign In with Google button */}
-                        <div className="hidden sm:block absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#0d162a] border-l border-b border-[#FCA311] rotate-45 pointer-events-none" />
-
-                        <div className="px-3 py-1.5 border-b border-white/10 mb-2">
-                          <span className="text-xs font-black text-[#FCA311] uppercase tracking-wider block">
-                            Sign in as
-                          </span>
-                          <span className="text-[10px] text-slate-300">Choose your role to sign in directly</span>
-                        </div>
-
-                        {authError && (
-                          <div className="mb-2.5 p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs">
-                            {authError}
-                          </div>
-                        )}
-
-                        <div className="space-y-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleSignIn('participant')}
-                            disabled={authLoading}
-                            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition hover:bg-white/10 text-white group cursor-pointer"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-white/10 group-hover:bg-[#FCA311] group-hover:text-[#14213D] text-[#FCA311] flex items-center justify-center flex-shrink-0 transition font-bold text-lg shadow-xs">
-                              🎓
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-xs sm:text-sm font-bold text-white group-hover:text-[#FCA311] transition flex items-center justify-between">
-                                <span>Participant</span>
-                                {authLoading && authRole === 'participant' && (
-                                  <span className="w-3.5 h-3.5 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                                )}
-                              </div>
-                              <div className="text-[10px] text-slate-300">Join clubs, browse events & passes</div>
-                            </div>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleSignIn('organizer')}
-                            disabled={authLoading}
-                            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition hover:bg-white/10 text-white group cursor-pointer"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-white/10 group-hover:bg-[#FCA311] group-hover:text-[#14213D] text-[#FCA311] flex items-center justify-center flex-shrink-0 transition font-bold text-lg shadow-xs">
-                              🛡️
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-xs sm:text-sm font-bold text-white group-hover:text-[#FCA311] transition flex items-center justify-between">
-                                <span>Organizer</span>
-                                {authLoading && authRole === 'organizer' && (
-                                  <span className="w-3.5 h-3.5 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                                )}
-                              </div>
-                              <div className="text-[10px] text-slate-300">Manage club, publish events & finances</div>
-                            </div>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleSignIn('admin')}
-                            disabled={authLoading}
-                            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition hover:bg-white/10 text-white group cursor-pointer"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-white/10 group-hover:bg-[#FCA311] group-hover:text-[#14213D] text-[#FCA311] flex items-center justify-center flex-shrink-0 transition font-bold text-lg shadow-xs">
-                              🏛️
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-xs sm:text-sm font-bold text-white group-hover:text-[#FCA311] transition flex items-center justify-between">
-                                <span>Admin</span>
-                                {authLoading && authRole === 'admin' && (
-                                  <span className="w-3.5 h-3.5 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin" />
-                                )}
-                              </div>
-                              <div className="text-[10px] text-slate-300">Oversee clubs, approvals & governance</div>
-                            </div>
-                          </button>
-                        </div>
+                    {authError && (
+                      <div className="mt-2.5 p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs">
+                        {authError}
                       </div>
                     )}
                   </div>

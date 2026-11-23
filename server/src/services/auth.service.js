@@ -5,6 +5,16 @@ import { formatUserResponse } from './user.service.js';
 import { AppError } from '../middlewares/errorHandler.js';
 
 /**
+ * Official administrative accounts with permanent administrative governance.
+ * Only these designated accounts receive the 'admin' role automatically.
+ */
+export const FIXED_ADMIN_EMAILS = [
+  '0802420405101134@baust.edu.bd',
+  'admin@baust.edu.bd',
+  ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()) : []),
+];
+
+/**
  * Format standard auth response with issued JWT token and sanitized profile.
  */
 const generateAuthResponse = (user, uid, activeRole = null) => {
@@ -32,10 +42,10 @@ const generateAuthResponse = (user, uid, activeRole = null) => {
 
 /**
  * Service to handle Firebase ID token verification for users (Login).
- * Verifies token via firebase-admin and upserts the user in Firestore:
- * - If user is new: creates profile in Firestore with extracted name/email and default role 'participant'.
- * - If user exists: retrieves existing profile (ensuring admin role if matches admin email).
- * - Generates and returns custom JWT containing uid, email, and role.
+ * Verifies token via firebase-admin and manages Firestore user profile:
+ * - If email belongs to FIXED_ADMIN_EMAILS: always assigns 'admin' role.
+ * - If user is new: created strictly with role 'participant'.
+ * - If user already exists: retains their assigned database role (e.g., approved 'organizer').
  * @param {string} firebaseToken
  */
 export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) => {
@@ -57,26 +67,15 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-
-  // Parse requested role selection if provided for supervisor/evaluator testing
-  let requestedRole = null;
-  const rawRole = options.targetRole ? String(options.targetRole).trim().toLowerCase() : null;
-  if (rawRole === 'admin' || rawRole === 'hr office') {
-    requestedRole = 'admin';
-  } else if (rawRole === 'organizer' || rawRole === 'club admin') {
-    requestedRole = 'organizer';
-  } else if (rawRole === 'participant' || rawRole === 'student') {
-    requestedRole = 'participant';
-  }
+  const isAdminEmail = FIXED_ADMIN_EMAILS.includes(normalizedEmail);
 
   // Check if user already exists in Firestore
   let user = await userRepository.findById(uid);
 
   if (!user) {
-    // Upsert new user with extracted name/email and selected role (or default 'participant')
-    const finalRole = requestedRole || 'participant';
+    // New user: Admin email gets 'admin', all other accounts strictly start as 'participant'
+    const finalRole = isAdminEmail ? 'admin' : 'participant';
     const finalName = tokenName || email.split('@')[0] || 'BAUST User';
-    const isOrganizerRole = finalRole === 'organizer';
 
     user = await userRepository.upsertUser(uid, {
       name: finalName,
@@ -90,22 +89,16 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
       section: null,
       level: null,
       term: null,
-      clubAffiliation: isOrganizerRole ? (options.targetClub || null) : null,
-      organizerRequestStatus: isOrganizerRole ? 'approved' : 'none',
-      organizerStatus: isOrganizerRole ? 'approved' : 'none',
+      clubAffiliation: null,
+      organizerRequestStatus: 'none',
+      organizerStatus: 'none',
       organizerRejectionReason: null,
     });
   } else {
     const updates = {};
-    if (requestedRole) {
-      updates.role = requestedRole;
-      if (requestedRole === 'organizer') {
-        updates.organizerStatus = 'approved';
-        updates.organizerRequestStatus = 'approved';
-        if (options.targetClub && options.targetClub.trim()) {
-          updates.clubAffiliation = options.targetClub.trim();
-        }
-      }
+    // Ensure fixed admin email always has admin role in database
+    if (isAdminEmail && user.role !== 'admin') {
+      updates.role = 'admin';
     }
     // If user doesn't have a photoURL yet, populate with Google profile picture
     if (!user.photoURL && tokenPicture) {
@@ -120,30 +113,36 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
 };
 
 /**
- * Switch authenticated user's role on the fly for project testing/evaluation.
- * Allows supervisor to test Participant, Organizer, and Admin workflows seamlessly.
+ * Switch authenticated user's role on the fly.
+ * Strictly verifies permissions to prevent unauthorized privilege escalation.
  * @param {string} userId - Firebase UID
  * @param {string} targetRole - 'participant' | 'organizer' | 'admin'
  * @param {string|null} [targetClub] - Club affiliation for organizer role
  */
 export const switchUserRole = async (userId, targetRole, targetClub = null) => {
-  let requestedRole = 'participant';
-  const raw = targetRole ? String(targetRole).trim().toLowerCase() : 'participant';
-  if (raw === 'admin' || raw === 'hr office') {
-    requestedRole = 'admin';
-  } else if (raw === 'organizer' || raw === 'club admin') {
-    requestedRole = 'organizer';
-  } else if (raw === 'participant' || raw === 'student') {
-    requestedRole = 'participant';
-  }
-
   const user = await userRepository.findById(userId);
   if (!user) {
     throw new AppError('User profile not found in database', 404);
   }
 
-  const roleProfiles = { ...(user.roleProfiles || {}) };
-  const targetRoleProfile = roleProfiles[requestedRole] || {};
+  const normalizedEmail = (user.email || '').trim().toLowerCase();
+  const isAdmin = FIXED_ADMIN_EMAILS.includes(normalizedEmail) || user.role === 'admin';
+
+  let requestedRole = 'participant';
+  const rawRole = targetRole ? String(targetRole).trim().toLowerCase() : 'participant';
+  if (rawRole === 'admin') {
+    if (!isAdmin) {
+      throw new AppError('Unauthorized: Admin access is strictly reserved for authorized university accounts.', 403);
+    }
+    requestedRole = 'admin';
+  } else if (rawRole === 'organizer') {
+    if (!isAdmin && user.organizerStatus !== 'approved' && user.organizerRequestStatus !== 'approved' && user.role !== 'organizer') {
+      throw new AppError('Unauthorized: You must submit an Organizer request and be approved by administration first.', 403);
+    }
+    requestedRole = 'organizer';
+  } else {
+    requestedRole = 'participant';
+  }
 
   const updates = { 
     role: requestedRole,
@@ -151,16 +150,9 @@ export const switchUserRole = async (userId, targetRole, targetClub = null) => {
   };
 
   if (requestedRole === 'organizer') {
-    updates.organizerStatus = 'approved';
-    updates.organizerRequestStatus = 'approved';
-    const assignedClub = (targetClub && targetClub.trim()) || targetRoleProfile.clubAffiliation || user.clubAffiliation || null;
+    const assignedClub = (targetClub && targetClub.trim()) || user.clubAffiliation || null;
     if (assignedClub) {
       updates.clubAffiliation = assignedClub;
-      roleProfiles.organizer = {
-        ...targetRoleProfile,
-        clubAffiliation: assignedClub,
-      };
-      updates.roleProfiles = roleProfiles;
     }
   }
 
@@ -193,20 +185,18 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
     throw new AppError('Authenticated Firebase account does not have an associated email address', 400);
   }
 
-  // Parse requested role selection from registration data
-  const rawRole = (registrationData.role || registrationData.targetRole || registrationData.requestedRole || registrationData.accountType || '').toString().trim().toLowerCase();
-  let finalRole = 'participant';
-  if (rawRole === 'admin' || rawRole === 'hr office') {
-    finalRole = 'admin';
-  } else if (rawRole === 'organizer' || rawRole === 'club admin') {
-    finalRole = 'organizer';
-  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const isAdminEmail = FIXED_ADMIN_EMAILS.includes(normalizedEmail);
 
-  const isOrganizerRequested = finalRole === 'organizer' ||
+  // Fixed admin emails get 'admin', all other accounts strictly start as 'participant'
+  const finalRole = isAdminEmail ? 'admin' : 'participant';
+
+  const isOrganizerRequested =
     registrationData.accountType === 'Organizer' ||
     registrationData.accountType === 'organizer' ||
     registrationData.requestedRole === 'Organizer' ||
-    registrationData.requestedRole === 'organizer';
+    registrationData.requestedRole === 'organizer' ||
+    registrationData.role === 'organizer';
 
   const targetClub =
     registrationData.clubAffiliation ||
@@ -228,9 +218,10 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
   const finalMobileNumber = registrationData.mobileNumber?.trim() || null;
   const finalPhotoURL = registrationData.photoURL || tokenPicture || null;
 
-  const organizerRequestStatus = isOrganizerRequested ? 'approved' : 'none';
-  const organizerStatus = isOrganizerRequested ? 'approved' : 'none';
-  const clubAffiliation = isOrganizerRequested ? targetClub.trim() : null;
+  // If admin email: pre-approved. If student requested organizer: pending administrative approval.
+  const organizerRequestStatus = isAdminEmail ? 'approved' : (isOrganizerRequested ? 'pending' : 'none');
+  const organizerStatus = isAdminEmail ? 'approved' : (isOrganizerRequested ? 'pending' : 'none');
+  const clubAffiliation = isOrganizerRequested && targetClub ? targetClub.trim() : null;
 
   // Check if user already exists in Firestore
   let user = await userRepository.findById(uid);
