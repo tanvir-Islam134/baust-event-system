@@ -44,7 +44,8 @@ export default function HomePage() {
     }
     try {
       setSwitchingRole(true);
-      await switchRole(newRole, 'CSE Society of BAUST');
+      const existingClub = user?.roleProfiles?.organizer?.clubAffiliation || user?.clubAffiliation || null;
+      await switchRole(newRole, existingClub);
       setActiveRoleMenuOpen(false);
     } catch (err) {
       console.error('Failed to switch role:', err);
@@ -58,7 +59,7 @@ export default function HomePage() {
       setAuthLoading(true);
       setAuthRole(role);
       setAuthError(null);
-      const res = await loginWithGoogle(role, role === 'organizer' ? 'CSE Society of BAUST' : null);
+      const res = await loginWithGoogle(role, null);
       setRoleMenuOpen(false);
       setNavRoleMenuOpen(false);
       const loggedUser = res?.user || user;

@@ -212,9 +212,9 @@ export default function ProfilePage() {
 
       setOrganizerForm({
         name: oData.name || user.name || '',
-        clubAffiliation: oData.clubAffiliation || user.clubAffiliation || 'CSE Society of BAUST',
-        designation: oData.designation || user.designation || 'Event Coordinator',
-        department: oData.department || (user.role === 'organizer' ? user.department : '') || 'Computer Science and Engineering (CSE)',
+        clubAffiliation: oData.clubAffiliation || user.clubAffiliation || '',
+        designation: oData.designation || user.designation || '',
+        department: oData.department || (user.role === 'organizer' ? user.department : '') || '',
         mobileNumber: oData.mobileNumber || (user.role === 'organizer' ? user.mobileNumber : '') || '',
         officeLocation: oData.officeLocation || user.officeLocation || '',
         bio: oData.bio || user.bio || '',
@@ -229,7 +229,7 @@ export default function ProfilePage() {
         authorityScope: aData.authorityScope || user.authorityScope || 'Central University Event Approvals & Governance',
       });
 
-      setSelectedClub(oData.clubAffiliation || user.clubAffiliation || 'CSE Society of BAUST');
+      setSelectedClub(oData.clubAffiliation || user.clubAffiliation || '');
       
       const appData = user.organizerApplicationDetails || {};
       setOrganizerAppForm({

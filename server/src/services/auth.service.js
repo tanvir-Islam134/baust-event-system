@@ -90,7 +90,7 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
       section: null,
       level: null,
       term: null,
-      clubAffiliation: isOrganizerRole ? (options.targetClub || 'CSE Society of BAUST') : null,
+      clubAffiliation: isOrganizerRole ? (options.targetClub || null) : null,
       organizerRequestStatus: isOrganizerRole ? 'approved' : 'none',
       organizerStatus: isOrganizerRole ? 'approved' : 'none',
       organizerRejectionReason: null,
@@ -104,8 +104,6 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
         updates.organizerRequestStatus = 'approved';
         if (options.targetClub && options.targetClub.trim()) {
           updates.clubAffiliation = options.targetClub.trim();
-        } else if (!user.clubAffiliation) {
-          updates.clubAffiliation = 'CSE Society of BAUST';
         }
       }
     }
@@ -155,13 +153,15 @@ export const switchUserRole = async (userId, targetRole, targetClub = null) => {
   if (requestedRole === 'organizer') {
     updates.organizerStatus = 'approved';
     updates.organizerRequestStatus = 'approved';
-    const assignedClub = (targetClub && targetClub.trim()) || targetRoleProfile.clubAffiliation || user.clubAffiliation || 'CSE Society of BAUST';
-    updates.clubAffiliation = assignedClub;
-    roleProfiles.organizer = {
-      ...targetRoleProfile,
-      clubAffiliation: assignedClub,
-    };
-    updates.roleProfiles = roleProfiles;
+    const assignedClub = (targetClub && targetClub.trim()) || targetRoleProfile.clubAffiliation || user.clubAffiliation || null;
+    if (assignedClub) {
+      updates.clubAffiliation = assignedClub;
+      roleProfiles.organizer = {
+        ...targetRoleProfile,
+        clubAffiliation: assignedClub,
+      };
+      updates.roleProfiles = roleProfiles;
+    }
   }
 
   const updatedUser = await userRepository.update(userId, updates);
@@ -212,7 +212,7 @@ export const verifyFirebaseTokenAndRegister = async (firebaseToken, registration
     registrationData.clubAffiliation ||
     registrationData.clubId ||
     registrationData.club ||
-    'CSE Society of BAUST';
+    null;
 
   if (isOrganizerRequested && (!targetClub || !targetClub.trim())) {
     throw new AppError('Club selection is required when requesting an Organizer account', 400);
