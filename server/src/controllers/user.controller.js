@@ -28,22 +28,26 @@ export const requestOrganizer = async (req, res, next) => {
   try {
     const updatedUser = await userService.submitOrganizerRequest(req.user.uid, req.body);
     const targetClub = req.body?.clubAffiliation || req.body?.club || updatedUser.clubAffiliation || 'Club';
+    const appDetails = updatedUser.organizerApplicationDetails || {};
 
     // Create Notification document for Admin
     let notification = null;
     try {
       notification = await notifService.createAdminNotification({
         senderId: req.user.uid,
-        senderName: updatedUser.name || req.user.name || 'Student Applicant',
+        senderName: appDetails.name || updatedUser.name || req.user.name || 'Student Applicant',
         senderEmail: updatedUser.email || req.user.email,
         type: 'new_organizer_request',
         title: 'New Organizer Request',
-        message: `${updatedUser.name || 'A student'} has applied for Organizer role for ${targetClub}.`,
+        message: `${appDetails.name || updatedUser.name || 'A student'} has applied for ${appDetails.designation || 'Organizer'} role for ${targetClub}.`,
         data: {
           clubAffiliation: targetClub,
-          department: updatedUser.department || null,
-          studentId: updatedUser.studentId || null,
-          batch: updatedUser.batch || null,
+          department: appDetails.department || updatedUser.department || null,
+          studentId: appDetails.studentId || updatedUser.studentId || null,
+          batch: appDetails.batch || updatedUser.batch || null,
+          mobileNumber: appDetails.mobileNumber || updatedUser.mobileNumber || null,
+          designation: appDetails.designation || null,
+          reason: appDetails.reason || null,
         },
       });
     } catch (notifErr) {
@@ -58,9 +62,15 @@ export const requestOrganizer = async (req, res, next) => {
           notification,
           applicant: {
             id: req.user.uid,
-            name: updatedUser.name,
+            name: appDetails.name || updatedUser.name,
             email: updatedUser.email,
             clubAffiliation: targetClub,
+            designation: appDetails.designation,
+            studentId: appDetails.studentId || updatedUser.studentId,
+            batch: appDetails.batch || updatedUser.batch,
+            department: appDetails.department || updatedUser.department,
+            mobileNumber: appDetails.mobileNumber || updatedUser.mobileNumber,
+            reason: appDetails.reason,
           },
         });
       } catch (socketErr) {

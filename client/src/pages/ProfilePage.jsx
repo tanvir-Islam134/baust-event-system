@@ -131,6 +131,16 @@ export default function ProfilePage() {
 
   // Organizer request state (for Participants only)
   const [selectedClub, setSelectedClub] = useState('');
+  const [organizerAppForm, setOrganizerAppForm] = useState({
+    name: '',
+    studentId: '',
+    department: '',
+    batch: '',
+    mobileNumber: '',
+    clubAffiliation: '',
+    designation: '',
+    reason: '',
+  });
   const [requestingOrganizer, setRequestingOrganizer] = useState(false);
   const [organizerMsg, setOrganizerMsg] = useState(null);
   const [organizerErrorMsg, setOrganizerErrorMsg] = useState(null);
@@ -219,6 +229,19 @@ export default function ProfilePage() {
       });
 
       setSelectedClub(oData.clubAffiliation || user.clubAffiliation || 'CSE Society of BAUST');
+      
+      const appData = user.organizerApplicationDetails || {};
+      setOrganizerAppForm({
+        name: appData.name || pData.name || user.name || '',
+        studentId: appData.studentId || pData.studentId || (user.role === 'participant' ? user.studentId : '') || '',
+        department: appData.department || pData.department || (user.role === 'participant' ? user.department : '') || '',
+        batch: appData.batch || pData.batch || (user.role === 'participant' ? user.batch : '') || '',
+        mobileNumber: appData.mobileNumber || pData.mobileNumber || (user.role === 'participant' ? user.mobileNumber : '') || '',
+        clubAffiliation: appData.clubAffiliation || user.clubAffiliation || oData.clubAffiliation || '',
+        designation: appData.designation || user.designation || 'Event Coordinator',
+        reason: appData.reason || '',
+      });
+
       setPhotoPreview(user.photoURL || null);
     }
   }, [user]);
@@ -445,10 +468,36 @@ export default function ProfilePage() {
     }
   };
 
+  const handleOrganizerAppChange = (e) => {
+    const { name, value } = e.target;
+    setOrganizerAppForm((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleOrganizerRequestSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedClub) {
-      setOrganizerErrorMsg('Please select a campus club from the list');
+    const targetClub = organizerAppForm.clubAffiliation || selectedClub;
+    if (!targetClub) {
+      setOrganizerErrorMsg('Please select your BAUST Club or Society');
+      return;
+    }
+    if (!organizerAppForm.name?.trim()) {
+      setOrganizerErrorMsg('Full Name is required');
+      return;
+    }
+    if (!organizerAppForm.studentId?.trim()) {
+      setOrganizerErrorMsg('Student ID is required');
+      return;
+    }
+    if (!organizerAppForm.department?.trim()) {
+      setOrganizerErrorMsg('Academic Department is required');
+      return;
+    }
+    if (!organizerAppForm.batch?.trim()) {
+      setOrganizerErrorMsg('Batch is required');
+      return;
+    }
+    if (!organizerAppForm.mobileNumber?.trim()) {
+      setOrganizerErrorMsg('Mobile contact number is required');
       return;
     }
 
@@ -460,7 +509,16 @@ export default function ProfilePage() {
         localStorage.removeItem(`baust_rejection_ack_${user.uid || user.id}`);
       }
 
-      await userService.requestOrganizer({ clubAffiliation: selectedClub });
+      await userService.requestOrganizer({
+        clubAffiliation: targetClub,
+        name: organizerAppForm.name.trim(),
+        studentId: organizerAppForm.studentId.trim(),
+        department: organizerAppForm.department.trim(),
+        batch: organizerAppForm.batch.trim(),
+        mobileNumber: organizerAppForm.mobileNumber.trim(),
+        designation: organizerAppForm.designation?.trim() || 'Club Organizer',
+        reason: organizerAppForm.reason?.trim() || '',
+      });
       await refreshUser();
       navigate('/pending-approval', { replace: true });
     } catch (err) {
@@ -757,17 +815,75 @@ export default function ProfilePage() {
 
           {/* Status: Pending */}
           {currentStatus === 'pending' && (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm">
-              <div className="flex items-center gap-2 font-bold text-amber-800">
-                <svg className="w-5 h-5 text-amber-600 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span>Application Under Administrative Review</span>
+            <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/40 border border-amber-200 rounded-2xl text-slate-800 space-y-4 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-3">
+                <div className="flex items-center gap-2.5 font-bold text-amber-900 text-sm sm:text-base">
+                  <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-xs animate-pulse">
+                    ⏳
+                  </div>
+                  <div>
+                    <span className="block">Organizer Application Under Review</span>
+                    <span className="text-[11px] font-normal text-amber-700 block">
+                      Awaiting administrative approval from OSA / System Admins
+                    </span>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 self-start sm:self-auto">
+                  Pending Review
+                </span>
               </div>
-              <p className="mt-1 text-xs text-amber-800 leading-relaxed">
-                You have requested organizer access for <strong>{user?.clubAffiliation || selectedClub}</strong>.
-                University administrators will verify availability (maximum 2 organizers per club) and review your request shortly.
+
+              <p className="text-xs text-slate-700 leading-relaxed">
+                You have applied for organizer privileges for <strong className="text-amber-950 font-bold">{user?.clubAffiliation || organizerAppForm.clubAffiliation || 'your club'}</strong>. University administrators will review your academic cohort information and club capacity (max 2 organizers per club).
               </p>
+
+              {/* Submitted Profile Details Grid */}
+              <div className="bg-white rounded-xl p-4 border border-amber-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-semibold">Applicant Name</span>
+                  <span className="font-bold text-slate-800">
+                    {user?.organizerApplicationDetails?.name || user?.name || organizerAppForm.name}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-semibold">Student ID &amp; Batch</span>
+                  <span className="font-bold text-slate-800">
+                    {user?.organizerApplicationDetails?.studentId || user?.studentId || organizerAppForm.studentId || 'N/A'} • {user?.organizerApplicationDetails?.batch || user?.batch || organizerAppForm.batch || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-semibold">Academic Department</span>
+                  <span className="font-bold text-slate-800">
+                    {user?.organizerApplicationDetails?.department || user?.department || organizerAppForm.department || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-semibold">Contact / Phone</span>
+                  <span className="font-bold text-slate-800">
+                    {user?.organizerApplicationDetails?.mobileNumber || user?.mobileNumber || organizerAppForm.mobileNumber || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-semibold">Requested Club / Society</span>
+                  <span className="font-bold text-[#14213D] inline-flex items-center gap-1">
+                    🏛️ {user?.clubAffiliation || user?.organizerApplicationDetails?.clubAffiliation || organizerAppForm.clubAffiliation}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-semibold">Executive Designation / Role</span>
+                  <span className="font-bold text-indigo-700">
+                    {user?.organizerApplicationDetails?.designation || user?.designation || organizerAppForm.designation || 'Club Organizer'}
+                  </span>
+                </div>
+                {(user?.organizerApplicationDetails?.reason || user?.bio || organizerAppForm.reason) && (
+                  <div className="sm:col-span-2 pt-2 border-t border-slate-100">
+                    <span className="text-slate-400 block text-[11px] font-semibold mb-1">Statement of Purpose / Why Applying</span>
+                    <p className="text-slate-700 italic bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+                      "{user?.organizerApplicationDetails?.reason || user?.bio || organizerAppForm.reason}"
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -802,14 +918,14 @@ export default function ProfilePage() {
                 </div>
               )}
               <p className="text-slate-600 text-[11px] pt-1">
-                You remain active as a Student Participant. You may submit a new application for a club below.
+                You remain active as a Student Participant. You may submit a new application with updated details below.
               </p>
             </div>
           )}
 
           {/* Application Form */}
           {canApplyForOrganizer && (
-            <form onSubmit={handleOrganizerRequestSubmit} className="mt-4 space-y-4">
+            <form onSubmit={handleOrganizerRequestSubmit} className="mt-4 space-y-5">
               {organizerMsg && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-medium">
                   {organizerMsg}
@@ -822,36 +938,188 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              <div>
-                <label htmlFor="clubSelect" className="block text-xs font-semibold text-slate-700 mb-1">
-                  Select Your BAUST Club / Organization <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  id="clubSelect"
-                  value={selectedClub}
-                  onChange={(e) => setSelectedClub(e.target.value)}
-                  disabled={requestingOrganizer}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
-                >
-                  <option value="">-- Choose an Official Club --</option>
-                  {BAUST_CLUBS.map((club) => (
-                    <option key={club} value={club}>
-                      {club}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Only select a club if you are an authorized student executive or committee member.
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Full Name */}
+                <div>
+                  <label htmlFor="orgAppName" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Full Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="orgAppName"
+                    name="name"
+                    value={organizerAppForm.name}
+                    onChange={handleOrganizerAppChange}
+                    required
+                    placeholder="Your legal/university name"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  />
+                </div>
+
+                {/* Student ID */}
+                <div>
+                  <label htmlFor="orgAppStudentId" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Student ID <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="orgAppStudentId"
+                    name="studentId"
+                    value={organizerAppForm.studentId}
+                    onChange={handleOrganizerAppChange}
+                    required
+                    placeholder="e.g. 200201045"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  />
+                </div>
+
+                {/* Academic Department */}
+                <div>
+                  <label htmlFor="orgAppDepartment" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Academic Department <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    id="orgAppDepartment"
+                    name="department"
+                    value={organizerAppForm.department}
+                    onChange={handleOrganizerAppChange}
+                    required
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  >
+                    <option value="">-- Select Department --</option>
+                    {BAUST_DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Batch */}
+                <div>
+                  <label htmlFor="orgAppBatch" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Batch <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="orgAppBatch"
+                    name="batch"
+                    value={organizerAppForm.batch}
+                    onChange={handleOrganizerAppChange}
+                    required
+                    placeholder="e.g. 10th Batch"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  />
+                </div>
+
+                {/* Mobile Contact Number */}
+                <div>
+                  <label htmlFor="orgAppMobile" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Contact / Mobile Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    id="orgAppMobile"
+                    name="mobileNumber"
+                    value={organizerAppForm.mobileNumber}
+                    onChange={handleOrganizerAppChange}
+                    required
+                    placeholder="e.g. 017xxxxxxxx"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  />
+                </div>
+
+                {/* Proposed Role / Designation */}
+                <div>
+                  <label htmlFor="orgAppDesignation" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Proposed Designation / Role <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="orgAppDesignation"
+                    name="designation"
+                    list="designationSuggestions"
+                    value={organizerAppForm.designation}
+                    onChange={handleOrganizerAppChange}
+                    required
+                    placeholder="e.g. Event Coordinator, General Secretary"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  />
+                  <datalist id="designationSuggestions">
+                    <option value="President" />
+                    <option value="Vice President" />
+                    <option value="General Secretary" />
+                    <option value="Event Coordinator" />
+                    <option value="Organizing Secretary" />
+                    <option value="Technical Secretary" />
+                    <option value="Treasurer / Finance Executive" />
+                    <option value="Executive Member" />
+                  </datalist>
+                </div>
+
+                {/* Club Affiliation Dropdown */}
+                <div className="sm:col-span-2">
+                  <label htmlFor="clubSelect" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Select Your BAUST Club / Organization <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    id="clubSelect"
+                    name="clubAffiliation"
+                    value={organizerAppForm.clubAffiliation}
+                    onChange={handleOrganizerAppChange}
+                    disabled={requestingOrganizer}
+                    required
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  >
+                    <option value="">-- Choose an Official BAUST Club / Society --</option>
+                    {BAUST_CLUBS.map((club) => (
+                      <option key={club} value={club}>
+                        {club}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Only apply if you are an authorized executive or appointed organizer of this student organization.
+                  </p>
+                </div>
+
+                {/* Statement of Purpose / Reason */}
+                <div className="sm:col-span-2">
+                  <label htmlFor="orgAppReason" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Statement of Purpose &amp; Relevant Experience <span className="text-slate-400">(Important Information)</span>
+                  </label>
+                  <textarea
+                    id="orgAppReason"
+                    name="reason"
+                    rows={3}
+                    value={organizerAppForm.reason}
+                    onChange={handleOrganizerAppChange}
+                    placeholder="Briefly state your current executive responsibility in this club, past event coordination experience, or why administration should grant you organizer access..."
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    This information will be displayed directly to University Administrators to verify your legitimacy.
+                  </p>
+                </div>
               </div>
 
               <div>
                 <button
                   type="submit"
-                  disabled={requestingOrganizer || !selectedClub}
-                  className="px-5 py-2.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-sm font-bold shadow-md transition disabled:opacity-50 cursor-pointer"
+                  disabled={requestingOrganizer || !organizerAppForm.clubAffiliation}
+                  className="px-6 py-3 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-sm font-bold shadow-md transition disabled:opacity-50 cursor-pointer flex items-center gap-2"
                 >
-                  {requestingOrganizer ? 'Submitting Application...' : 'Submit Organizer Request'}
+                  {requestingOrganizer ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#FCA311] border-t-transparent rounded-full animate-spin"></div>
+                      <span>Submitting Application...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Submit Organizer Application</span>
+                      <span>→</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

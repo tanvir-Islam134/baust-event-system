@@ -18,6 +18,9 @@ export default function UsersPage() {
   // Mutation state
   const [updatingUserId, setUpdatingUserId] = useState(null);
 
+  // Application Dossier Inspection Modal state
+  const [viewingRequest, setViewingRequest] = useState(null);
+
   // Rejection modal state
   const [rejectingUser, setRejectingUser] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -285,30 +288,46 @@ export default function UsersPage() {
                     <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                       <th className="py-3 px-4">Applicant</th>
                       <th className="py-3 px-4">Academic Cohort</th>
-                      <th className="py-3 px-4">Requested Club</th>
-                      <th className="py-3 px-4">Request Status</th>
-                      <th className="py-3 px-4 text-right">Approval Actions</th>
+                      <th className="py-3 px-4">Target Organization &amp; Role</th>
+                      <th className="py-3 px-4">Application Details</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Review &amp; Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                     {roleRequests.map((reqUser) => {
                       const isUpdating = updatingUserId === reqUser.id;
+                      const app = reqUser.organizerApplicationDetails || {};
+                      const applicantName = app.name || reqUser.name || 'Student Applicant';
+                      const applicantStudentId = app.studentId || reqUser.studentId;
+                      const applicantBatch = app.batch || reqUser.batch;
+                      const applicantDept = app.department || reqUser.department;
+                      const applicantMobile = app.mobileNumber || reqUser.mobileNumber;
+                      const requestedClub = app.clubAffiliation || reqUser.clubAffiliation || 'Unspecified Club';
+                      const proposedDesignation = app.designation || reqUser.designation || 'Club Organizer';
+                      const statement = app.reason || reqUser.bio || '';
 
                       return (
                         <tr key={reqUser.id} className="hover:bg-slate-50/70 transition">
                           {/* User */}
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-1 ring-[#FCA311]/30 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-1 ring-[#FCA311]/30 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
                                 {reqUser.photoURL ? (
-                                  <img src={reqUser.photoURL} alt={reqUser.name} className="w-full h-full object-cover" />
+                                  <img src={reqUser.photoURL} alt={applicantName} className="w-full h-full object-cover" />
                                 ) : (
-                                  reqUser.name ? reqUser.name.charAt(0) : 'U'
+                                  applicantName ? applicantName.charAt(0) : 'U'
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <span className="font-semibold text-slate-900 block truncate">{reqUser.name}</span>
+                                <span className="font-bold text-slate-900 block truncate">{applicantName}</span>
                                 <span className="text-[11px] text-slate-400 block truncate">{reqUser.email}</span>
+                                {applicantMobile && (
+                                  <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                    <span>📞</span>
+                                    <span>{applicantMobile}</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -316,35 +335,68 @@ export default function UsersPage() {
                           {/* Cohort */}
                           <td className="py-4 px-4">
                             <div className="space-y-0.5">
-                              {reqUser.department && (
+                              {applicantDept && (
                                 <span className="font-semibold text-slate-800 block truncate max-w-xs">
-                                  {reqUser.department}
+                                  {applicantDept}
                                 </span>
                               )}
                               <span className="font-medium text-slate-700 block">
-                                {reqUser.studentId ? `ID: ${reqUser.studentId}` : ''}
-                                {reqUser.batch ? ` • ${reqUser.batch}` : ''}
+                                {applicantStudentId ? `ID: ${applicantStudentId}` : ''}
+                                {applicantBatch ? ` • ${applicantBatch}` : ''}
                                 {reqUser.section ? ` • Sec ${reqUser.section}` : ''}
                               </span>
-                              {(reqUser.level || reqUser.term || reqUser.mobileNumber) ? (
+                              {(reqUser.level || reqUser.term) ? (
                                 <span className="text-[11px] text-slate-500 block">
                                   {reqUser.level ? `L-${reqUser.level} ` : ''}
                                   {reqUser.term ? `T-${reqUser.term}` : ''}
-                                  {reqUser.mobileNumber ? ` • 📞 ${reqUser.mobileNumber}` : ''}
                                 </span>
                               ) : null}
-                              {!reqUser.department && !reqUser.studentId && !reqUser.batch && (
+                              {!applicantDept && !applicantStudentId && !applicantBatch && (
                                 <span className="text-slate-400 italic">Not provided</span>
                               )}
                             </div>
                           </td>
 
-                          {/* Club Affiliation */}
+                          {/* Club Affiliation & Role */}
                           <td className="py-4 px-4">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 border border-[#E5E5E5] text-[#14213D] font-bold text-xs">
-                              <span>🏛️</span>
-                              <span>{reqUser.clubAffiliation || 'Unspecified Club'}</span>
+                            <div className="space-y-1">
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-[#E5E5E5] text-[#14213D] font-bold text-xs max-w-xs truncate">
+                                <span>🏛️</span>
+                                <span className="truncate">{requestedClub}</span>
+                              </div>
+                              <div>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold text-[11px]">
+                                  <span>Proposed Role:</span>
+                                  <strong>{proposedDesignation}</strong>
+                                </span>
+                              </div>
                             </div>
+                          </td>
+
+                          {/* Application Details / Statement */}
+                          <td className="py-4 px-4">
+                            {statement ? (
+                              <div className="max-w-xs">
+                                <p className="text-[11px] text-slate-600 line-clamp-2 italic bg-slate-50 p-1.5 rounded border border-slate-200">
+                                  "{statement}"
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingRequest(reqUser)}
+                                  className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold mt-1 inline-flex items-center gap-1 cursor-pointer"
+                                >
+                                  <span>📄 View Full Dossier</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setViewingRequest(reqUser)}
+                                className="text-[11px] text-slate-500 hover:text-slate-800 font-medium inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition cursor-pointer"
+                              >
+                                <span>👁️ Inspect Info</span>
+                              </button>
+                            )}
                           </td>
 
                           {/* Status */}
@@ -354,13 +406,24 @@ export default function UsersPage() {
 
                           {/* Actions */}
                           <td className="py-4 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setViewingRequest(reqUser)}
+                                className="p-1.5 text-slate-600 hover:text-[#14213D] hover:bg-slate-100 rounded-lg transition"
+                                title="Inspect Full Application"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </button>
                               <button
                                 disabled={isUpdating}
-                                onClick={() => handleApproveRequest(reqUser.id, reqUser.clubAffiliation)}
-                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                                onClick={() => handleApproveRequest(reqUser.id, requestedClub)}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
                               >
-                                {isUpdating ? 'Checking...' : 'Approve'}
+                                {isUpdating ? '...' : 'Approve'}
                               </button>
                               <button
                                 disabled={isUpdating}
@@ -368,7 +431,7 @@ export default function UsersPage() {
                                   setRejectingUser(reqUser);
                                   setRejectionReason('');
                                 }}
-                                className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
                               >
                                 Reject
                               </button>
@@ -613,10 +676,169 @@ export default function UsersPage() {
         <ClubOrganizersDirectory onNotify={showToast} />
       )}
 
-      {/* Admin Rejection Modal */}
+      {/* Full Organizer Application Dossier Inspection Modal */}
+      {viewingRequest && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-200 animate-fade-in space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-[#14213D] text-[#FCA311] ring-2 ring-[#FCA311]/40 flex items-center justify-center font-bold text-base flex-shrink-0">
+                  {viewingRequest.photoURL ? (
+                    <img src={viewingRequest.photoURL} alt={viewingRequest.name} className="w-full h-full object-cover" />
+                  ) : (
+                    viewingRequest.name ? viewingRequest.name.charAt(0) : 'U'
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {viewingRequest.organizerApplicationDetails?.name || viewingRequest.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-500">{viewingRequest.email}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      Pending Organizer Review
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingRequest(null)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Dossier Information Grid */}
+            {(() => {
+              const app = viewingRequest.organizerApplicationDetails || {};
+              const applicantName = app.name || viewingRequest.name;
+              const applicantStudentId = app.studentId || viewingRequest.studentId || 'N/A';
+              const applicantDept = app.department || viewingRequest.department || 'N/A';
+              const applicantBatch = app.batch || viewingRequest.batch || 'N/A';
+              const applicantMobile = app.mobileNumber || viewingRequest.mobileNumber || 'N/A';
+              const requestedClub = app.clubAffiliation || viewingRequest.clubAffiliation || 'Unspecified Club';
+              const proposedDesignation = app.designation || viewingRequest.designation || 'Club Organizer';
+              const statement = app.reason || viewingRequest.bio || '';
+              const appliedAt = app.appliedAt ? new Date(app.appliedAt).toLocaleString() : null;
+
+              return (
+                <div className="space-y-4">
+                  {/* Two column breakdown */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/80 text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">Applicant Legal Name</span>
+                      <span className="font-bold text-slate-800 text-sm">{applicantName}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">Student ID &amp; Batch</span>
+                      <span className="font-bold text-slate-800 text-sm">
+                        ID: {applicantStudentId} • {applicantBatch}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">Academic Department</span>
+                      <span className="font-bold text-slate-800">{applicantDept}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[11px] font-semibold">Contact Phone Number</span>
+                      <span className="font-bold text-slate-800 flex items-center gap-1">
+                        <span>📞</span> {applicantMobile}
+                      </span>
+                    </div>
+                    <div className="sm:col-span-2 pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <span className="text-slate-400 block text-[11px] font-semibold">Target Club / Organization</span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#14213D] text-[#FCA311] font-bold text-xs mt-0.5">
+                          <span>🏛️</span>
+                          <span>{requestedClub}</span>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px] font-semibold">Proposed Designation</span>
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-indigo-100 text-indigo-900 font-bold text-xs mt-0.5">
+                          <span>👔</span>
+                          <span>{proposedDesignation}</span>
+                        </span>
+                      </div>
+                    </div>
+                    {appliedAt && (
+                      <div className="sm:col-span-2 text-[11px] text-slate-400 pt-1">
+                        Applied On: <strong className="text-slate-600">{appliedAt}</strong>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Statement of Purpose / Reason */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Statement of Purpose &amp; Relevant Experience (Important Information):
+                    </label>
+                    <div className="p-3.5 bg-amber-50/50 border border-amber-200/80 rounded-xl text-xs text-slate-800 leading-relaxed italic">
+                      {statement ? `"${statement}"` : 'No statement provided by the applicant.'}
+                    </div>
+                  </div>
+
+                  {/* Policy Reminder */}
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 flex items-start gap-2">
+                    <span className="text-sm">ℹ️</span>
+                    <div>
+                      <strong>Administrative Policy Check:</strong> Maximum 2 organizers are allowed per club. Approving this candidate will grant them full organizer rights to publish events, manage tickets, and record club finances.
+                    </div>
+                  </div>
+
+                  {/* Modal Action Buttons */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setViewingRequest(null)}
+                      className="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      Close Dossier
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const target = viewingRequest;
+                          setViewingRequest(null);
+                          setRejectingUser(target);
+                          setRejectionReason('');
+                        }}
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
+                      >
+                        Reject Application
+                      </button>
+                      <button
+                        type="button"
+                        disabled={updatingUserId === viewingRequest.id}
+                        onClick={async () => {
+                          const target = viewingRequest;
+                          setViewingRequest(null);
+                          await handleApproveRequest(target.id, requestedClub);
+                        }}
+                        className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
+                      >
+                        {updatingUserId === viewingRequest.id ? 'Approving...' : 'Approve as Organizer'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Admin Rejection Modal with Quick Reasons */}
       {rejectingUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 animate-fade-in">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -626,7 +848,7 @@ export default function UsersPage() {
               <div>
                 <h3 className="text-base font-bold text-slate-800">Decline Organizer Request</h3>
                 <p className="text-xs text-slate-500">
-                  {rejectingUser.name || rejectingUser.email}
+                  {rejectingUser.organizerApplicationDetails?.name || rejectingUser.name || rejectingUser.email}
                 </p>
               </div>
             </div>
@@ -634,7 +856,9 @@ export default function UsersPage() {
             <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mb-4 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">Requested Club:</span>
-                <span className="font-semibold text-slate-800">{rejectingUser.clubAffiliation || 'Unspecified'}</span>
+                <span className="font-semibold text-slate-800">
+                  {rejectingUser.organizerApplicationDetails?.clubAffiliation || rejectingUser.clubAffiliation || 'Unspecified'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Email:</span>
@@ -645,8 +869,28 @@ export default function UsersPage() {
             <form onSubmit={handleConfirmReject} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Reason for Decline (Optional feedback for student)
+                  Reason for Decline (Administrative feedback for student)
                 </label>
+
+                {/* Quick Selection Buttons */}
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {[
+                    'Capacity Full: Club already has 2 active organizers.',
+                    'Incomplete credentials or student ID could not be verified.',
+                    'Statement of purpose insufficient for organizer role.',
+                    'Please coordinate with current club executives and advisor.',
+                  ].map((quick) => (
+                    <button
+                      key={quick}
+                      type="button"
+                      onClick={() => setRejectionReason(quick)}
+                      className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-md border border-slate-200 text-left transition cursor-pointer"
+                    >
+                      {quick.slice(0, 38)}...
+                    </button>
+                  ))}
+                </div>
+
                 <textarea
                   rows="3"
                   value={rejectionReason}
@@ -663,14 +907,14 @@ export default function UsersPage() {
                     setRejectingUser(null);
                     setRejectionReason('');
                   }}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 transition"
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updatingUserId === rejectingUser.id}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
                 >
                   {updatingUserId === rejectingUser.id ? 'Processing...' : 'Confirm Decline'}
                 </button>

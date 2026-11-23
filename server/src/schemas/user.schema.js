@@ -26,6 +26,7 @@ export const UserSchema = z.object({
   organizerRequestStatus: OrganizerRequestStatusEnum.default('none'),
   organizerStatus: OrganizerStatusEnum.default('none'),
   organizerRejectionReason: z.string().trim().nullable().optional().default(null),
+  organizerApplicationDetails: z.record(z.any()).nullable().optional().default(null),
   createdAt: z.union([z.date(), z.string(), z.any()]).optional(),
   updatedAt: z.union([z.date(), z.string(), z.any()]).optional(),
 }).passthrough();
@@ -42,6 +43,14 @@ export const RequestOrganizerSchema = z
   .object({
     clubAffiliation: z.string().trim().min(1, 'Club affiliation is required').optional(),
     club: z.string().trim().min(1, 'Club is required').optional(),
+    name: z.string().trim().optional(),
+    studentId: z.string().trim().optional(),
+    batch: z.string().trim().optional(),
+    department: z.string().trim().optional(),
+    mobileNumber: z.string().trim().optional(),
+    designation: z.string().trim().optional(),
+    reason: z.string().trim().optional(),
+    statement: z.string().trim().optional(),
   })
   .refine((data) => data.clubAffiliation || data.club, {
     message: 'Club selection is required',

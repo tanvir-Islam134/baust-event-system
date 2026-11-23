@@ -193,34 +193,72 @@ export default function PendingApprovalPage() {
           )}
 
           {/* Applicant & Club Details */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Application Details
-            </div>
+          {(() => {
+            const app = user.organizerApplicationDetails || {};
+            return (
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Application Details
+                  </span>
+                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-md">
+                    Max 2 Organizers Policy
+                  </span>
+                </div>
 
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                <span className="text-slate-500">Applicant Name</span>
-                <span className="font-semibold text-slate-800">{user.name || 'BAUST User'}</span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Applicant Name</span>
+                    <span className="font-semibold text-slate-800">{app.name || user.name || 'BAUST User'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Student ID &amp; Batch</span>
+                    <span className="font-semibold text-slate-800">
+                      {app.studentId || user.studentId || 'N/A'} • {app.batch || user.batch || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Department</span>
+                    <span className="font-semibold text-slate-800">{app.department || user.department || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Mobile Number</span>
+                    <span className="font-semibold text-slate-800">{app.mobileNumber || user.mobileNumber || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Registered Email</span>
+                    <span className="font-semibold text-slate-800">{user.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Requested Club</span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 border border-[#E5E5E5] text-[#14213D] font-bold text-[11px]">
+                      🏛️ {app.clubAffiliation || user.clubAffiliation || 'Official Club'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Proposed Designation</span>
+                    <span className="font-semibold text-indigo-700">
+                      {app.designation || user.designation || 'Club Organizer'}
+                    </span>
+                  </div>
+                  {(app.reason || user.bio) && (
+                    <div className="pt-2">
+                      <span className="text-slate-500 block text-[11px] mb-1">Statement of Purpose / Experience:</span>
+                      <p className="text-slate-700 italic bg-white p-2.5 rounded-lg border border-slate-200 text-xs">
+                        "{app.reason || user.bio}"
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center py-1 pt-2 border-t border-slate-200/60">
+                    <span className="text-slate-500">Access Level</span>
+                    <span className={isRejected ? 'text-slate-700 font-medium' : 'text-amber-700 font-medium'}>
+                      {isRejected ? 'Student Participant' : 'Dashboard access locked pending review'}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                <span className="text-slate-500">Registered Email</span>
-                <span className="font-semibold text-slate-800">{user.email}</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
-                <span className="text-slate-500">Requested Club</span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 border border-[#E5E5E5] text-[#14213D] font-bold text-[11px]">
-                  🏛️ {user.clubAffiliation || 'Official Club'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-slate-500">Access Level</span>
-                <span className={isRejected ? 'text-slate-700 font-medium' : 'text-amber-700 font-medium'}>
-                  {isRejected ? 'Student Participant' : 'Dashboard access locked pending review'}
-                </span>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Status Message / Notification */}
           {statusMessage && (

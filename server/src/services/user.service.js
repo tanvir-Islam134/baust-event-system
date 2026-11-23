@@ -42,6 +42,7 @@ export const formatUserResponse = (user, activeRole = null) => {
     organizerRequestStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
     organizerStatus: user.organizerRequestStatus || user.organizerStatus || 'none',
     organizerRejectionReason: user.organizerRejectionReason || null,
+    organizerApplicationDetails: user.organizerApplicationDetails || null,
   };
 };
 
@@ -147,12 +148,35 @@ export const submitOrganizerRequest = async (userId, data = {}) => {
     throw new AppError('An organizer access request for this club is already pending review', 400);
   }
 
-  const updated = await userRepository.update(userId, {
-    clubAffiliation: club.trim(),
+  const targetClub = club.trim();
+  const applicationDetails = {
+    name: data.name?.trim() || user.name || '',
+    studentId: data.studentId?.trim() || user.studentId || '',
+    batch: data.batch?.trim() || user.batch || '',
+    department: data.department?.trim() || user.department || '',
+    mobileNumber: data.mobileNumber?.trim() || user.mobileNumber || '',
+    clubAffiliation: targetClub,
+    designation: data.designation?.trim() || 'Club Organizer',
+    reason: data.reason?.trim() || data.statement?.trim() || '',
+    appliedAt: new Date().toISOString(),
+  };
+
+  const updatePayload = {
+    clubAffiliation: targetClub,
     organizerRequestStatus: 'pending',
     organizerStatus: 'pending',
     organizerRejectionReason: null,
-  });
+    organizerApplicationDetails: applicationDetails,
+  };
+
+  if (data.name?.trim()) updatePayload.name = data.name.trim();
+  if (data.studentId?.trim()) updatePayload.studentId = data.studentId.trim();
+  if (data.batch?.trim()) updatePayload.batch = data.batch.trim();
+  if (data.department?.trim()) updatePayload.department = data.department.trim();
+  if (data.mobileNumber?.trim()) updatePayload.mobileNumber = data.mobileNumber.trim();
+  if (data.designation?.trim()) updatePayload.designation = data.designation.trim();
+
+  const updated = await userRepository.update(userId, updatePayload);
 
   return updated;
 };
@@ -200,7 +224,8 @@ export const approveOrganizerRequest = async (targetUserId) => {
       throw new AppError(`User with ID '${targetUserId}' not found`, 404);
     }
     const userData = userSnap.data();
-    const club = userData.clubAffiliation;
+    const appDetails = userData.organizerApplicationDetails || {};
+    const club = userData.clubAffiliation || appDetails.clubAffiliation;
     if (!club) {
       throw new AppError('User has not specified a club affiliation for organizer approval', 400);
     }
@@ -222,20 +247,40 @@ export const approveOrganizerRequest = async (targetUserId) => {
     }
 
     const timestamp = new Date();
-    transaction.update(userRef, {
+
+    // Prepare updated roleProfiles so the organizer role has its own complete profile
+    const roleProfiles = { ...(userData.roleProfiles || {}) };
+    const organizerProfile = { ...(roleProfiles.organizer || {}) };
+    organizerProfile.clubAffiliation = club;
+    organizerProfile.designation = appDetails.designation || userData.designation || organizerProfile.designation || 'Club Organizer';
+    if (appDetails.department || userData.department) {
+      organizerProfile.department = appDetails.department || userData.department;
+    }
+    if (appDetails.mobileNumber || userData.mobileNumber) {
+      organizerProfile.mobileNumber = appDetails.mobileNumber || userData.mobileNumber;
+    }
+    if (appDetails.reason) {
+      organizerProfile.bio = appDetails.reason;
+    }
+    organizerProfile.updatedAt = timestamp.toISOString();
+    roleProfiles.organizer = organizerProfile;
+
+    const updateFields = {
       role: 'organizer',
+      clubAffiliation: club,
+      designation: organizerProfile.designation,
+      roleProfiles,
       organizerRequestStatus: 'approved',
       organizerStatus: 'approved',
       updatedAt: timestamp,
-    });
+    };
+
+    transaction.update(userRef, updateFields);
 
     return {
       id: targetUserId,
       ...userData,
-      role: 'organizer',
-      organizerRequestStatus: 'approved',
-      organizerStatus: 'approved',
-      updatedAt: timestamp,
+      ...updateFields,
     };
   });
 };
