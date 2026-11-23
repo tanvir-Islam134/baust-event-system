@@ -49,9 +49,17 @@ export default function FinancesPage() {
         setLoadingEvents(true);
         const data = await eventService.getApprovedEvents();
         const approvedList = Array.isArray(data) ? data : [];
-        setEvents(approvedList);
-        if (approvedList.length > 0) {
-          setSelectedEventId(approvedList[0].id);
+        const filteredList = isAdmin
+          ? approvedList
+          : approvedList.filter((ev) => {
+              const userClub = (user?.clubAffiliation || '').trim().toLowerCase();
+              const eventClub = (ev.clubAffiliation || ev.clubName || ev.clubId || '').trim().toLowerCase();
+              const isOwner = ev.createdBy === (user?.uid || user?.id) || ev.organizerId === (user?.uid || user?.id);
+              return isOwner || (userClub && eventClub && userClub === eventClub);
+            });
+        setEvents(filteredList);
+        if (filteredList.length > 0) {
+          setSelectedEventId(filteredList[0].id);
         }
       } catch (err) {
         console.error('Failed to load events for finance management:', err);
@@ -60,7 +68,7 @@ export default function FinancesPage() {
       }
     };
     fetchEvents();
-  }, []);
+  }, [isAdmin, user]);
 
   const loadFinances = useCallback(async (eventId) => {
     if (!eventId) return;
