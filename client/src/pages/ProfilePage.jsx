@@ -229,7 +229,7 @@ export default function ProfilePage() {
         authorityScope: aData.authorityScope || user.authorityScope || 'Central University Event Approvals & Governance',
       });
 
-      setSelectedClub(oData.clubAffiliation || user.clubAffiliation || '');
+      setSelectedClub(user.role === 'organizer' ? (oData.clubAffiliation || user.clubAffiliation || '') : '');
       
       const appData = user.organizerApplicationDetails || {};
       setOrganizerAppForm({
@@ -238,7 +238,7 @@ export default function ProfilePage() {
         department: appData.department || pData.department || (user.role === 'participant' ? user.department : '') || '',
         batch: appData.batch || pData.batch || (user.role === 'participant' ? user.batch : '') || '',
         mobileNumber: appData.mobileNumber || pData.mobileNumber || (user.role === 'participant' ? user.mobileNumber : '') || '',
-        clubAffiliation: appData.clubAffiliation || user.clubAffiliation || oData.clubAffiliation || '',
+        clubAffiliation: appData.clubAffiliation || '',
         designation: appData.designation || user.designation || 'Event Coordinator',
         reason: appData.reason || '',
       });
@@ -652,7 +652,7 @@ export default function ProfilePage() {
               <span className="text-xs text-amber-900 block font-bold uppercase tracking-wider">Assigned Club</span>
               <div className="mt-1 text-xs font-bold text-[#14213D] flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>{user?.clubAffiliation || 'Club Executive'}</span>
+                <span>{user?.clubAffiliation || 'Unassigned'}</span>
               </div>
             </div>
           )}
@@ -1395,25 +1395,21 @@ export default function ProfilePage() {
                 />
               </div>
 
-              {/* Affiliated Club */}
+              {/* Affiliated Club (Appointed by Admin, Locked for Organizer) */}
               <div>
-                <label htmlFor="orgClub" className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Affiliated Club / Society
                 </label>
-                <select
-                  id="orgClub"
-                  name="clubAffiliation"
-                  value={organizerForm.clubAffiliation}
-                  onChange={handleOrganizerChange}
-                  className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition bg-white font-medium text-slate-800"
-                >
-                  <option value="">-- Select Affiliated Club --</option>
-                  {BAUST_CLUBS.map((club) => (
-                    <option key={club} value={club}>
-                      {club}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-100 rounded-lg border border-slate-300 text-sm font-bold text-slate-800 shadow-xs">
+                  <span>🏛️</span>
+                  <span>{user?.clubAffiliation || 'No Club Assigned'}</span>
+                  <span className="ml-auto text-xs text-slate-500 font-semibold flex items-center gap-1 select-none">
+                    🔒 Appointed by Admin
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 italic">
+                  Note: Club affiliations are officially assigned by university administration. Contact an administrator to transfer clubs.
+                </p>
               </div>
 
               {/* Executive Designation */}

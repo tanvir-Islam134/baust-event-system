@@ -33,7 +33,9 @@ export const formatUserResponse = (user, activeRole = null) => {
     section: currentRoleData.section !== undefined ? currentRoleData.section : (role === 'participant' ? user.section : null),
     level: currentRoleData.level !== undefined ? currentRoleData.level : (role === 'participant' ? user.level : null),
     term: currentRoleData.term !== undefined ? currentRoleData.term : (role === 'participant' ? user.term : null),
-    clubAffiliation: currentRoleData.clubAffiliation !== undefined ? currentRoleData.clubAffiliation : (user.clubAffiliation || null),
+    clubAffiliation: role === 'organizer'
+      ? (currentRoleData.clubAffiliation !== undefined ? currentRoleData.clubAffiliation : (user.clubAffiliation || null))
+      : null,
     designation: currentRoleData.designation !== undefined ? currentRoleData.designation : (user.designation || null),
     office: currentRoleData.office !== undefined ? currentRoleData.office : (user.office || null),
     officeLocation: currentRoleData.officeLocation !== undefined ? currentRoleData.officeLocation : (user.officeLocation || null),

@@ -220,11 +220,6 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.accountType === 'Organizer' && !formData.clubAffiliation) {
-      setErrorMsg('Please select a Club / Society for your Organizer request.');
-      return;
-    }
-
     try {
       setLoading(true);
       setErrorMsg(null);
@@ -241,9 +236,9 @@ export default function RegisterPage() {
         level: formData.level ? String(formData.level).trim() : null,
         term: formData.term ? String(formData.term).trim() : null,
         mobileNumber: formData.mobileNumber.trim() || null,
-        accountType: formData.accountType,
-        requestedRole: formData.accountType,
-        clubAffiliation: formData.accountType === 'Organizer' ? formData.clubAffiliation : null,
+        accountType: 'Student',
+        requestedRole: 'participant',
+        clubAffiliation: null,
       };
 
       const regRes = await completeRegistration(payload);
@@ -402,92 +397,16 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleFormSubmit} className="p-6 sm:p-8 space-y-6">
-            {/* Account Type Selection */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                Select Account Type <span className="text-rose-500">*</span>
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Option 1: Student */}
-                <label
-                  className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition ${
-                    formData.accountType === 'Student'
-                      ? 'border-[#14213D] bg-slate-100 shadow-sm ring-1 ring-[#14213D]'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="accountType"
-                    value="Student"
-                    checked={formData.accountType === 'Student'}
-                    onChange={handleChange}
-                    className="mt-1 accent-[#FCA311]"
-                  />
-                  <div>
-                    <span className="block text-sm font-bold text-slate-900">🎓 Student Account</span>
-                    <span className="text-xs text-slate-500 leading-relaxed block mt-0.5">
-                      Explore events, register for tickets, and participate in campus activities.
-                    </span>
-                  </div>
-                </label>
-
-                {/* Option 2: Organizer */}
-                <label
-                  className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition ${
-                    formData.accountType === 'Organizer'
-                      ? 'border-[#FCA311] bg-[#FCA311]/10 shadow-sm ring-1 ring-[#FCA311]'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="accountType"
-                    value="Organizer"
-                    checked={formData.accountType === 'Organizer'}
-                    onChange={handleChange}
-                    className="mt-1 accent-[#FCA311]"
-                  />
-                  <div>
-                    <span className="block text-sm font-bold text-slate-900">🏛️ Club Organizer</span>
-                    <span className="text-xs text-slate-500 leading-relaxed block mt-0.5">
-                      Request permission to organize and manage events for an official BAUST club.
-                    </span>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Dynamic Club Dropdown if Organizer is selected */}
-            {formData.accountType === 'Organizer' && (
-              <div className="p-4 bg-slate-50 border border-[#E5E5E5] rounded-xl space-y-2 animate-fade-in">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🏛️</span>
-                  <label htmlFor="clubAffiliation" className="block text-xs font-bold text-[#14213D]">
-                    Select Club / Society <span className="text-rose-500">*</span>
-                  </label>
-                </div>
-                <select
-                  id="clubAffiliation"
-                  name="clubAffiliation"
-                  value={formData.clubAffiliation}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#FCA311] transition"
-                >
-                  <option value="">-- Choose an Official BAUST Club --</option>
-                  {BAUST_CLUBS.map((club) => (
-                    <option key={club} value={club}>
-                      {club}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Notice: Your organizer role request will be submitted to University Administration for review.
-                  Each club is strictly capped at a <strong>maximum of 2 organizers</strong>.
+            {/* Account Type Notice */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+              <span className="text-xl flex-shrink-0 mt-0.5">🎓</span>
+              <div className="text-xs">
+                <span className="font-bold text-slate-800 block text-sm">Student Participant Profile</span>
+                <p className="text-slate-500 mt-1 leading-relaxed">
+                  All student accounts are registered as Participants by default. Once registered, you can apply for Organizer privileges for your specific campus club from your Profile.
                 </p>
               </div>
-            )}
+            </div>
 
             {/* Student & Academic Profile Fields */}
             <div className="border-t border-slate-200 pt-5">

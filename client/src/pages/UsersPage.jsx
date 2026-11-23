@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import userService from '../services/userService.js';
-import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
+import ClubOrganizersDirectory, { BAUST_CLUBS } from '../components/ClubOrganizersDirectory.jsx';
 
 export default function UsersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -101,6 +101,22 @@ export default function UsersPage() {
       await fetchUsers();
     } catch (err) {
       showToast(err.response?.data?.error?.message || err.message || 'Failed to update user role', 'error');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const handleClubChange = async (userId, newClub) => {
+    try {
+      setUpdatingUserId(userId);
+      const payload = {
+        clubAffiliation: newClub || null,
+      };
+      await userService.updateUserRole(userId, payload);
+      showToast(newClub ? `Club affiliation updated to ${newClub}` : 'Club affiliation cleared.');
+      await fetchUsers();
+    } catch (err) {
+      showToast(err.response?.data?.error?.message || err.message || 'Failed to update club affiliation', 'error');
     } finally {
       setUpdatingUserId(null);
     }
@@ -628,15 +644,26 @@ export default function UsersPage() {
                             </div>
                           </td>
 
-                          {/* Club Affiliation */}
+                          {/* Club Affiliation Selector */}
                           <td className="py-3.5 px-4">
-                            {u.clubAffiliation ? (
-                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium">
-                                🏛️ {u.clubAffiliation}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 italic">None</span>
-                            )}
+                            <select
+                              disabled={isUpdating}
+                              value={u.clubAffiliation || ''}
+                              onChange={(e) => handleClubChange(u.id, e.target.value)}
+                              className={`text-xs border rounded-lg px-2.5 py-1.5 transition cursor-pointer max-w-[210px] truncate ${
+                                u.clubAffiliation
+                                  ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold'
+                                  : 'bg-white border-slate-200 text-slate-400 italic'
+                              }`}
+                              title="Assign or update official club affiliation"
+                            >
+                              <option value="">(None / No Club)</option>
+                              {BAUST_CLUBS.map((c) => (
+                                <option key={c} value={c}>
+                                  🏛️ {c}
+                                </option>
+                              ))}
+                            </select>
                           </td>
 
                           {/* Role selection dropdown */}
