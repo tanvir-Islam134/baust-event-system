@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { BaseRepository } from './base.repository.js';
 import { RegistrationSchema } from '../schemas/registration.schema.js';
+import { isEventInPast } from '../utils/conflictDetector.js';
 
 export class RegistrationRepository extends BaseRepository {
   constructor() {
@@ -76,12 +77,9 @@ export class RegistrationRepository extends BaseRepository {
         throw new Error(`Event is not open for registration (Current status: ${eventData.status}).`);
       }
 
-      // 3. Validate event date has not passed
-      if (eventData.date) {
-        const eventDate = new Date(eventData.date);
-        if (eventDate < new Date()) {
-          throw new Error('Registration is closed for past events.');
-        }
+      // 3. Validate event date and time has not passed
+      if (isEventInPast(eventData)) {
+        throw new Error('Registration is closed for past events.');
       }
 
       // 4. Validate capacity limit

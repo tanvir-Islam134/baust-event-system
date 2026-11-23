@@ -266,7 +266,26 @@ export const updateEvent = async (eventId, updateData, requestingUser) => {
   }
 
   const validated = UpdateEventSchema.parse(updateData);
-  const updated = await eventRepository.updateEvent(eventId, validated);
+
+  let payloadToUpdate = { ...validated };
+
+  // Governance check: If an approved event has its critical schedule/venue/pricing altered by an organizer,
+  // revert status to 'pending' so administrators can re-verify schedule conflicts before publishing changes.
+  if (!isAdmin && existingEvent.status === 'approved') {
+    const isCriticalChange =
+      (validated.date && validated.date !== existingEvent.date) ||
+      (validated.startTime && validated.startTime !== existingEvent.startTime) ||
+      (validated.endTime && validated.endTime !== existingEvent.endTime) ||
+      (validated.venue && validated.venue.trim().toLowerCase() !== (existingEvent.venue || '').trim().toLowerCase()) ||
+      (validated.fee !== undefined && validated.fee !== existingEvent.fee);
+
+    if (isCriticalChange) {
+      payloadToUpdate.status = 'pending';
+      payloadToUpdate.rejectionReason = null;
+    }
+  }
+
+  const updated = await eventRepository.updateEvent(eventId, payloadToUpdate);
   return updated;
 };
 

@@ -1,5 +1,6 @@
 import { pollRepository } from '../repositories/poll.repository.js';
 import { eventRepository } from '../repositories/event.repository.js';
+import { userRepository } from '../repositories/user.repository.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { CreatePollInputSchema, CastVoteInputSchema } from '../schemas/poll.schema.js';
 
@@ -11,13 +12,28 @@ import { CreatePollInputSchema, CastVoteInputSchema } from '../schemas/poll.sche
  * Create a new poll for an event.
  * @param {string} userId - Organizer or Admin UID
  * @param {object} rawData - Poll payload
+ * @param {object|null} [requestingUser=null]
  */
-export const createPoll = async (userId, rawData) => {
+export const createPoll = async (userId, rawData, requestingUser = null) => {
   const validated = CreatePollInputSchema.parse(rawData);
 
   const event = await eventRepository.findById(validated.eventId);
   if (!event) {
     throw new AppError(`Event with ID '${validated.eventId}' not found`, 404);
+  }
+
+  // Authorize organizer against event's host club
+  const user = await userRepository.findById(userId);
+  const isAdmin = requestingUser?.role === 'admin' || user?.role === 'admin';
+  if (!isAdmin) {
+    const eventClub = (event.clubAffiliation || event.clubId || event.clubName || '').trim().toLowerCase();
+    const userClub = (user?.clubAffiliation || '').trim().toLowerCase();
+    const isOwner = event.createdBy === userId || event.organizerId === userId;
+    const isClubOrganizer = userClub && eventClub && userClub === eventClub;
+
+    if (!isOwner && !isClubOrganizer) {
+      throw new AppError('Unauthorized: You can only create polls for events hosted by your assigned club.', 403);
+    }
   }
 
   const poll = await pollRepository.createPoll({

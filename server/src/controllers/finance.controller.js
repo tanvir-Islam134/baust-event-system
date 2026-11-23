@@ -6,7 +6,7 @@ import * as financeService from '../services/finance.service.js';
  */
 export const createExpense = async (req, res, next) => {
   try {
-    const expense = await financeService.createExpense(req.user.uid, req.body);
+    const expense = await financeService.createExpense(req.user.uid, req.body, req.user);
     res.status(201).json({
       success: true,
       message: 'Expense recorded successfully',

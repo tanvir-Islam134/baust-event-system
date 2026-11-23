@@ -6,7 +6,7 @@ import * as pollService from '../services/poll.service.js';
  */
 export const create = async (req, res, next) => {
   try {
-    const poll = await pollService.createPoll(req.user.uid, req.body);
+    const poll = await pollService.createPoll(req.user.uid, req.body, req.user);
     res.status(201).json({
       success: true,
       message: 'Poll created successfully',
