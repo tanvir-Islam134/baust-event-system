@@ -5,7 +5,8 @@ import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
 
 export default function UsersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabFromUrl = searchParams.get('tab');
+  const rawTab = searchParams.get('tab');
+  const tabFromUrl = rawTab ? rawTab.trim().toLowerCase() : '';
   
   // Active tab synchronized with URL: 'all' | 'requests' | 'organizers'
   const activeTab = tabFromUrl === 'requests' || tabFromUrl === 'organizers' ? tabFromUrl : 'all';
@@ -71,7 +72,7 @@ export default function UsersPage() {
   useEffect(() => {
     const targetUserId = searchParams.get('userId');
     if (targetUserId && roleRequests.length > 0) {
-      const targetReq = roleRequests.find((r) => r.id === targetUserId);
+      const targetReq = roleRequests.find((r) => (r.id || r._id) === targetUserId);
       if (targetReq) {
         setViewingRequest(targetReq);
       }
