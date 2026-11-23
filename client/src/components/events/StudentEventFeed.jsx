@@ -77,6 +77,76 @@ export default function StudentEventFeed({
     setSelectedClub('all');
   };
 
+  const checkIsPast = useCallback((event) => {
+    if (!event) return false;
+    if (event.status === 'completed') return true;
+    if (!event.date) return false;
+    try {
+      const dateStr = String(event.date).slice(0, 10);
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        const now = new Date();
+        const todayY = now.getFullYear();
+        const todayM = now.getMonth() + 1;
+        const todayD = now.getDate();
+        if (y < todayY) return true;
+        if (y > todayY) return false;
+        if (m < todayM) return true;
+        if (m > todayM) return false;
+        if (d < todayD) return true;
+        if (d > todayD) return false;
+
+        // Same day: check event end time if specified
+        const timeStr = event.endTime || event.time || event.startTime;
+        if (timeStr && typeof timeStr === 'string') {
+          const clean = timeStr.trim().toUpperCase();
+          const ampmMatch = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+          if (ampmMatch) {
+            let hours = parseInt(ampmMatch[1], 10);
+            const minutes = parseInt(ampmMatch[2], 10) || 0;
+            const meridian = ampmMatch[3];
+            if (meridian === 'PM' && hours < 12) hours += 12;
+            if (meridian === 'AM' && hours === 12) hours = 0;
+            if (!event.endTime) hours += 2; // buffer for event duration
+            const eventTime = new Date(y, m - 1, d, hours, minutes);
+            return eventTime.getTime() < now.getTime();
+          }
+        }
+        return false;
+      }
+      return new Date(event.date).getTime() < Date.now();
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Sort: upcoming events first (soonest first), ended/past events at the bottom (most recently ended first)
+  const sortedEvents = useMemo(() => {
+    if (!Array.isArray(events)) return [];
+    return [...events].sort((a, b) => {
+      const aPast = checkIsPast(a);
+      const bPast = checkIsPast(b);
+
+      // Upcoming first, ended at bottom
+      if (!aPast && bPast) return -1;
+      if (aPast && !bPast) return 1;
+
+      // Both upcoming: soonest first (ascending by date)
+      if (!aPast && !bPast) {
+        return (a.date || '').localeCompare(b.date || '');
+      }
+
+      // Both ended: most recently ended first (descending by date)
+      return (b.date || '').localeCompare(a.date || '');
+    });
+  }, [events, checkIsPast]);
+
+  const upcomingCount = useMemo(() => sortedEvents.filter((e) => !checkIsPast(e)).length, [sortedEvents, checkIsPast]);
+  const pastCount = useMemo(() => sortedEvents.filter((e) => checkIsPast(e)).length, [sortedEvents, checkIsPast]);
+
   const formatDate = (dateStr) => {
     if (!dateStr) return 'Date TBA';
     try {
@@ -185,11 +255,16 @@ export default function StudentEventFeed({
           </div>
 
           {/* Filter Status & Results Summary Bar */}
-          <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 pt-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span>Found </span>
-              <strong className="text-[#14213D] font-extrabold">{events.length}</strong>
-              <span> {events.length === 1 ? 'event' : 'events'}</span>
+              <strong className="text-[#14213D] font-extrabold">{sortedEvents.length}</strong>
+              <span> {sortedEvents.length === 1 ? 'event' : 'events'}</span>
+              {upcomingCount > 0 && pastCount > 0 && (
+                <span className="text-[11px] font-semibold text-slate-400">
+                  ({upcomingCount} Upcoming, {pastCount} Concluded)
+                </span>
+              )}
               {selectedClub !== 'all' && (
                 <span>
                   {' '}
@@ -207,7 +282,7 @@ export default function StudentEventFeed({
             {(selectedClub !== 'all' || searchTerm) && (
               <button
                 onClick={handleClearFilters}
-                className="text-[#14213D] hover:text-[#FCA311] font-bold flex items-center gap-1 hover:underline transition"
+                className="text-[#14213D] hover:text-[#FCA311] font-bold flex items-center gap-1 hover:underline transition self-start sm:self-auto"
               >
                 <span>Reset Filters</span>
               </button>
@@ -265,9 +340,9 @@ export default function StudentEventFeed({
       )}
 
       {/* Event Cards Grid */}
-      {!loading && !error && events.length > 0 && (
+      {!loading && !error && sortedEvents.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => {
+          {sortedEvents.map((event, idx) => {
             const ticketPrice =
               event.ticketPrice !== undefined
                 ? Number(event.ticketPrice)
@@ -279,15 +354,28 @@ export default function StudentEventFeed({
             const registeredCount = Number(event.registeredCount) || 0;
             const capacity = Number(event.capacity) || 100;
             const percentFilled = Math.min(Math.round((registeredCount / capacity) * 100), 100);
-            const isPast = event.date ? new Date(event.date) < new Date() : false;
+            const isPast = checkIsPast(event);
+
+            const prevEvent = idx > 0 ? sortedEvents[idx - 1] : null;
+            const isFirstPastEvent = isPast && prevEvent && !checkIsPast(prevEvent);
 
             const hostingClub =
               event.clubName || event.clubAffiliation || 'BAUST Student Organization';
 
             return (
-              <div
-                key={event.id}
-                className={`bg-white rounded-2xl shadow-xs border border-[#E5E5E5] hover:border-[#FCA311] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group ${
+              <React.Fragment key={event.id}>
+                {isFirstPastEvent && (
+                  <div className="col-span-full my-3 pt-4 border-t-2 border-dashed border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200 flex items-center gap-1.5 shadow-2xs">
+                        <span>🏁</span> Past & Concluded Events ({pastCount})
+                      </span>
+                      <div className="h-px bg-slate-200 flex-1" />
+                    </div>
+                  </div>
+                )}
+                <div
+                  className={`bg-white rounded-2xl shadow-xs border border-[#E5E5E5] hover:border-[#FCA311] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden group ${
                   isPast ? 'opacity-80' : ''
                 }`}
               >
@@ -451,9 +539,10 @@ export default function StudentEventFeed({
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
       )}
     </div>
   );

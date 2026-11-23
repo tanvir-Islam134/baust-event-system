@@ -66,15 +66,39 @@ export default function OrganizerManageEvents({
     return { total, pending, approved, rejected };
   }, [events]);
 
-  // Filtered list
+  // Filtered and sorted list: upcoming events first, past/ended events at the bottom
   const filteredEvents = useMemo(() => {
-    return events.filter((ev) => {
+    const list = events.filter((ev) => {
       const matchesStatus = statusFilter === 'all' || ev.status === statusFilter;
       const title = (ev.title || ev.eventName || '').toLowerCase();
       const venue = (ev.venue || '').toLowerCase();
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch = !query || title.includes(query) || venue.includes(query);
       return matchesStatus && matchesSearch;
+    });
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isPast = (ev) => {
+      if (!ev) return false;
+      if (ev.status === 'completed') return true;
+      const d = (ev.date || '').slice(0, 10);
+      if (!d) return false;
+      return d < todayStr;
+    };
+
+    return list.sort((a, b) => {
+      const aPast = isPast(a);
+      const bPast = isPast(b);
+      // Upcoming events come first
+      if (!aPast && bPast) return -1;
+      if (aPast && !bPast) return 1;
+      // Both are upcoming: earliest date first (ascending)
+      if (!aPast && !bPast) {
+        return (a.date || '').localeCompare(b.date || '');
+      }
+      // Both are past: most recently ended first (descending)
+      return (b.date || '').localeCompare(a.date || '');
     });
   }, [events, statusFilter, searchQuery]);
 

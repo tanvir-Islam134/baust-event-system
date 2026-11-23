@@ -81,8 +81,31 @@ export class EventRepository extends BaseRepository {
       });
     }
 
-    // Sort by date ascending
-    return events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    // Sort: upcoming events first (soonest date first), past/ended events at the bottom (most recently ended first)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const isPast = (ev) => {
+      if (!ev) return false;
+      if (ev.status === 'completed') return true;
+      const d = (ev.date || '').slice(0, 10);
+      if (!d) return false;
+      return d < todayStr;
+    };
+
+    return events.sort((a, b) => {
+      const aPast = isPast(a);
+      const bPast = isPast(b);
+      // Upcoming events come first
+      if (!aPast && bPast) return -1;
+      if (aPast && !bPast) return 1;
+      // Both are upcoming: earliest date first (ascending) so soonest event is at the top
+      if (!aPast && !bPast) {
+        return (a.date || '').localeCompare(b.date || '');
+      }
+      // Both are past: most recently ended first (descending)
+      return (b.date || '').localeCompare(a.date || '');
+    });
   }
 
   /**
