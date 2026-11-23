@@ -9,8 +9,7 @@ import { AppError } from '../middlewares/errorHandler.js';
  * Only these designated accounts receive the 'admin' role automatically.
  */
 export const FIXED_ADMIN_EMAILS = [
-  '0802420405101134@baust.edu.bd',
-  'admin@baust.edu.bd',
+  'tanvirbaust134@gmail.com',
   ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()) : []),
 ];
 
