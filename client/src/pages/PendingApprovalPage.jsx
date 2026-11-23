@@ -21,9 +21,9 @@ export default function PendingApprovalPage() {
     );
   }
 
-  // If not logged in, redirect to login
+  // If not logged in, redirect to home page
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Check if user is pending or rejected
@@ -72,7 +72,7 @@ export default function PendingApprovalPage() {
     try {
       await logout();
     } finally {
-      navigate('/login');
+      navigate('/');
     }
   };
 

@@ -193,6 +193,7 @@ export const AuthProvider = ({ children }) => {
   /**
    * Logout flow:
    * Cleans up Firebase Auth session, localStorage custom JWT, and React state.
+   * Directs user immediately to the 1st interface page (Home Page '/').
    */
   const logout = async () => {
     try {
@@ -203,6 +204,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       setUser(null);
       setToken(null);
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
     }
   };
 
@@ -223,6 +227,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       setUser(null);
       setToken(null);
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
     }
   };
 

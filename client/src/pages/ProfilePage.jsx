@@ -480,7 +480,7 @@ export default function ProfilePage() {
     try {
       setDeletingAccount(true);
       await deleteAccount();
-      navigate('/login', {
+      navigate('/', {
         replace: true,
         state: { successMessage: 'Account deleted successfully' },
       });

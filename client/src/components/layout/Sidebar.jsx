@@ -261,7 +261,8 @@ export default function Sidebar({
           </div>
         ) : (
           <NavLink
-            to="/login"
+            to="/"
+            onClick={onClose}
             className="flex items-center justify-center gap-2 w-full py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] font-bold rounded-lg text-xs shadow-sm transition"
           >
             <span>Sign In</span>

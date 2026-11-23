@@ -24,7 +24,7 @@ export default function ProtectedRoute({ allowedRoles, children }) {
   }
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Completely block dashboard and protected access for pending organizers
