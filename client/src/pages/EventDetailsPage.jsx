@@ -3,8 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import eventService from '../services/eventService.js';
 import registrationService from '../services/registrationService.js';
+import paymentService from '../services/paymentService.js';
 import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
 import LiveQRScannerModal from '../components/events/LiveQRScannerModal.jsx';
+import BkashCheckoutModal from '../components/payments/BkashCheckoutModal.jsx';
 
 export default function EventDetailsPage() {
   const { id } = useParams();
@@ -28,13 +30,17 @@ export default function EventDetailsPage() {
   const [loadingTicket, setLoadingTicket] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
 
+  // bKash PGW Checkout state
+  const [showBkashModal, setShowBkashModal] = useState(false);
+  const [bkashSession, setBkashSession] = useState(null);
+
   const initialFormState = {
     guestName: '',
     guestEmail: '',
     guestPhone: '',
     tshirtSize: 'M',
     foodType: 'standard',
-    paymentMethod: 'cash',
+    paymentMethod: 'bkash_gateway',
     trxId: '',
   };
 
@@ -122,11 +128,42 @@ export default function EventDetailsPage() {
       setRegistering(true);
       setRegError(null);
 
+      // Handle Instant bKash Payment Gateway for paid events
+      if (!isFree && formData.paymentMethod === 'bkash_gateway') {
+        const checkoutPayload = {
+          eventId: id,
+          tshirtSize: event.items?.tshirt ? formData.tshirtSize : null,
+          foodType: event.items?.food ? formData.foodType : null,
+        };
+
+        if (!user) {
+          if (!formData.guestName.trim() || !formData.guestEmail.trim() || !formData.guestPhone.trim()) {
+            throw new Error('Please fill in your name, email, and phone number to register as a guest.');
+          }
+          checkoutPayload.guest = {
+            name: formData.guestName.trim(),
+            email: formData.guestEmail.trim().toLowerCase(),
+            phone: formData.guestPhone.trim(),
+          };
+        } else {
+          checkoutPayload.batch = user.batch || null;
+          checkoutPayload.section = user.section || null;
+          checkoutPayload.level = user.level || null;
+          checkoutPayload.term = user.term || null;
+        }
+
+        const session = await paymentService.createBkashPayment(checkoutPayload);
+        setIsModalOpen(false);
+        setBkashSession(session);
+        setShowBkashModal(true);
+        return;
+      }
+
       const payload = {
         eventId: id,
         tshirtSize: event.items?.tshirt ? formData.tshirtSize : null,
         foodType: event.items?.food ? formData.foodType : null,
-        paymentMethod: formData.paymentMethod,
+        paymentMethod: formData.paymentMethod === 'bkash_gateway' ? 'cash' : formData.paymentMethod,
         trxId: formData.paymentMethod === 'bkash' ? formData.trxId.trim() : null,
       };
 
@@ -646,53 +683,113 @@ export default function EventDetailsPage() {
                 </div>
               )}
 
-              {/* Payment Method */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Payment Method
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label
-                    className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-medium cursor-pointer transition ${
-                      formData.paymentMethod === 'cash'
-                        ? 'border-[#14213D] bg-[#14213D]/10 text-[#14213D] font-bold'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cash"
-                      checked={formData.paymentMethod === 'cash'}
-                      onChange={handleInputChange}
-                      className="hidden"
-                    />
-                    <span>💵 Cash on Arrival</span>
+              {/* Payment Method (for paid events only) */}
+              {!isFree && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Select Payment Method *
                   </label>
 
-                  <label
-                    className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-medium cursor-pointer transition ${
-                      formData.paymentMethod === 'bkash'
-                        ? 'border-pink-600 bg-pink-50 text-pink-900 font-bold'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bkash"
-                      checked={formData.paymentMethod === 'bkash'}
-                      onChange={handleInputChange}
-                      className="hidden"
-                    />
-                    <span>📱 bKash Payment</span>
-                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* Option 1: bKash PGW Gateway (Instant) */}
+                    <label
+                      className={`relative flex flex-col p-3 rounded-xl border text-xs cursor-pointer transition ${
+                        formData.paymentMethod === 'bkash_gateway'
+                          ? 'border-[#E2136E] bg-pink-50/80 text-pink-900 shadow-sm ring-2 ring-[#E2136E]'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="bkash_gateway"
+                        checked={formData.paymentMethod === 'bkash_gateway'}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-[#E2136E] flex items-center gap-1.5">
+                          <span>📱</span>
+                          <span>bKash Online</span>
+                        </span>
+                        <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#E2136E] text-white">
+                          Instant
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 mt-1">
+                        Auto-approved pass via bKash Checkout
+                      </span>
+                    </label>
+
+                    {/* Option 2: bKash Manual TrxID */}
+                    <label
+                      className={`relative flex flex-col p-3 rounded-xl border text-xs cursor-pointer transition ${
+                        formData.paymentMethod === 'bkash'
+                          ? 'border-pink-500 bg-pink-50/50 text-pink-900 shadow-sm ring-1 ring-pink-500'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="bkash"
+                        checked={formData.paymentMethod === 'bkash'}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>📝</span>
+                        <span>Manual TrxID</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 mt-1">
+                        Send Money & submit transaction ID
+                      </span>
+                    </label>
+
+                    {/* Option 3: Cash on Arrival */}
+                    <label
+                      className={`relative flex flex-col p-3 rounded-xl border text-xs cursor-pointer transition ${
+                        formData.paymentMethod === 'cash'
+                          ? 'border-[#14213D] bg-slate-100 text-[#14213D] shadow-sm ring-1 ring-[#14213D]'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cash"
+                        checked={formData.paymentMethod === 'cash'}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <span>💵</span>
+                        <span>Cash at Gate</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 mt-1">
+                        Pay in cash upon physical arrival
+                      </span>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* bKash Transaction ID */}
-              {formData.paymentMethod === 'bkash' && (
-                <div className="p-3 bg-pink-50/60 border border-pink-200 rounded-lg space-y-2">
+              {/* bKash Gateway Info Banner */}
+              {!isFree && formData.paymentMethod === 'bkash_gateway' && (
+                <div className="p-3 rounded-xl bg-pink-50/90 border border-pink-200 text-xs text-pink-900 flex items-start gap-2.5 animate-fade-in">
+                  <span className="text-base flex-shrink-0">⚡</span>
+                  <div>
+                    <div className="font-bold text-[#E2136E]">Instant Verification & Automated Pass</div>
+                    <p className="text-[11px] text-pink-800 mt-0.5">
+                      You will pay <strong>৳ {event.fee}</strong> via the secure official bKash Checkout window. As soon as you confirm, your seat is confirmed and your QR ticket is generated immediately!
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* bKash Transaction ID (for manual bKash) */}
+              {!isFree && formData.paymentMethod === 'bkash' && (
+                <div className="p-3 bg-pink-50/60 border border-pink-200 rounded-lg space-y-2 animate-fade-in">
                   <label className="block text-xs font-semibold text-pink-900">
                     bKash Transaction ID (TrxID) *
                   </label>
@@ -706,7 +803,7 @@ export default function EventDetailsPage() {
                     className="w-full px-3 py-1.5 border border-pink-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 uppercase font-mono"
                   />
                   <p className="text-[11px] text-pink-800">
-                    Send fee (৳ {event.fee}) to merchant bKash number 01700-000000 and enter the TrxID.
+                    Send fee (৳ {event.fee}) to merchant bKash number 01700-000000 and enter the TrxID. Requires organizer review.
                   </p>
                 </div>
               )}
@@ -723,14 +820,53 @@ export default function EventDetailsPage() {
                 <button
                   type="submit"
                   disabled={registering}
-                  className="px-5 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-lg text-sm font-black shadow-md shadow-[#FCA311]/20 transition disabled:opacity-50"
+                  className={`px-5 py-2 rounded-lg text-sm font-black shadow-md transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer ${
+                    !isFree && formData.paymentMethod === 'bkash_gateway'
+                      ? 'bg-[#E2136E] hover:bg-[#c70f5e] text-white shadow-[#E2136E]/20'
+                      : 'bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] shadow-[#FCA311]/20'
+                  }`}
                 >
-                  {registering ? 'Processing...' : 'Confirm Registration'}
+                  {registering ? (
+                    'Processing...'
+                  ) : !isFree && formData.paymentMethod === 'bkash_gateway' ? (
+                    <>
+                      <span>Pay ৳ {event.fee} with bKash</span>
+                      <span>&rarr;</span>
+                    </>
+                  ) : (
+                    'Confirm Registration'
+                  )}
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {/* bKash PGW Checkout Modal */}
+      {showBkashModal && bkashSession && (
+        <BkashCheckoutModal
+          sessionData={bkashSession}
+          onClose={() => {
+            setShowBkashModal(false);
+            setBkashSession(null);
+          }}
+          onSuccess={(result) => {
+            setShowBkashModal(false);
+            setBkashSession(null);
+            if (result?.registration) {
+              setMyRegistration(result.registration);
+              setRegSuccess(result.registration);
+              setToastMessage(
+                `Payment verified! Ticket code: ${result.ticketCode}. Your pass is active!`
+              );
+              setTimeout(() => setToastMessage(null), 8000);
+              fetchEvent();
+              fetchUserRegistration();
+              handleOpenTicket(result.registration);
+            }
+          }}
+        />
       )}
 
       {/* Digital QR Ticket Modal */}

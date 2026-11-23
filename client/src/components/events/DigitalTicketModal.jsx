@@ -319,6 +319,19 @@ export default function DigitalTicketModal({ ticketData, onClose }) {
                 </div>
               </div>
             )}
+
+            {/* Payment Verification Badge if paid */}
+            {registration.trxId && (
+              <div className="mt-3 p-2 bg-pink-50/80 border border-pink-200/80 rounded-xl flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5 text-pink-900 font-medium">
+                  <span>📱</span>
+                  <span>bKash Payment Verified</span>
+                </div>
+                <div className="font-mono font-bold text-[11px] text-[#E2136E] bg-white px-2 py-0.5 rounded border border-pink-200">
+                  TrxID: {registration.trxId}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

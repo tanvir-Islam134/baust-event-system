@@ -43,6 +43,7 @@ export const RegistrationSchema = z
     paymentMethod: PaymentMethodEnum.default('cash'),
     paymentStatus: PaymentStatusEnum.default('pending'),
     trxId: z.string().trim().nullable().default(null),
+    paymentDetails: z.any().optional().nullable().default(null),
     ticketCode: z.string().min(1, 'Ticket code is required'),
     qrToken: z.string().nullable().optional().default(null),
     attended: z.boolean().default(false),
@@ -74,6 +75,7 @@ export const CreateRegistrationInputSchema = z
     foodType: FoodTypeEnum.optional().default(null),
     paymentMethod: PaymentMethodEnum.default('cash'),
     trxId: z.string().trim().nullable().optional().default(null),
+    paymentDetails: z.any().optional().nullable().default(null),
   })
   .refine((data) => data.userId || (data.guest && data.guest.email), {
     message: 'Either userId or guest details must be provided',
