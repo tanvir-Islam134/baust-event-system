@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import eventService from '../../services/eventService.js';
+import { BAUST_CLUBS } from '../ClubOrganizersDirectory.jsx';
 
 export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
   const { user } = useAuth();
 
   const isOrganizer = user?.role === 'organizer';
   const isAdmin = user?.role === 'admin';
-  const clubName = user?.clubAffiliation || (isAdmin ? 'Central BAUST Event Management' : null);
+  const [adminSelectedClub, setAdminSelectedClub] = useState('Central BAUST Event Management');
+  const clubName = isOrganizer ? (user?.clubAffiliation || null) : adminSelectedClub;
 
   const isApproved =
     isAdmin ||
@@ -217,6 +219,77 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Basic Event Information
             </h3>
+
+            {/* Host Organization / Campus Club (Locked for Organizers, Selectable for Admin) */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Hosting Organization / Campus Club <span className="text-rose-500">*</span>
+                </label>
+                {isOrganizer ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-xs">
+                    <span>🔒</span>
+                    <span>Locked to Assigned Club</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#14213D] text-[#FCA311] border border-[#FCA311]/40 shadow-xs">
+                    <span>🛡️</span>
+                    <span>Admin Club Selector</span>
+                  </span>
+                )}
+              </div>
+
+              {isOrganizer ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-300 shadow-xs">
+                    <div className="w-9 h-9 rounded-lg bg-[#14213D] text-[#FCA311] ring-1 ring-[#FCA311]/30 flex items-center justify-center text-lg flex-shrink-0">
+                      🏛️
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-extrabold text-sm text-slate-900 truncate">
+                        {user?.clubAffiliation || 'No Club Affiliation Assigned'}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {user?.clubAffiliation ? (
+                          <>
+                            Official Organizer Account: You are authorized to create and manage events exclusively for{' '}
+                            <strong className="text-slate-800">{user.clubAffiliation}</strong>.
+                          </>
+                        ) : (
+                          <span className="text-rose-600 font-semibold">
+                            ⚠️ No campus club is assigned to your account. You cannot create events until an admin assigns you to a club.
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-slate-400 text-xs font-semibold flex items-center gap-1 pr-2 select-none">
+                      <span>🔒 Fixed</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 italic">
+                    Note: Organizers cannot publish events on behalf of any other campus club or society.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <select
+                    value={adminSelectedClub}
+                    onChange={(e) => setAdminSelectedClub(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs sm:text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#FCA311]/25 focus:border-[#FCA311] transition"
+                  >
+                    <option value="Central BAUST Event Management">Central BAUST Event Management</option>
+                    {BAUST_CLUBS.map((club) => (
+                      <option key={club} value={club}>
+                        {club}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-500">
+                    Administrator privilege: Select which official campus club or university department is hosting this event.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Event Name & Category */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -527,7 +600,7 @@ export default function OrganizerCreateEvent({ onEventCreated, onCancel }) {
 
             <button
               type="submit"
-              disabled={submitting || !isApproved}
+              disabled={submitting || !isApproved || (isOrganizer && !user?.clubAffiliation)}
               className="w-full sm:w-auto px-6 py-2.5 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs sm:text-sm font-black shadow-md shadow-[#FCA311]/20 hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {submitting ? (

@@ -63,6 +63,26 @@ export const createEvent = async (creatorUid, rawEventData) => {
         400
       );
     }
+
+    // STRICT CLUB ISOLATION:
+    // Organizers are strictly forbidden from creating events for any club other than their assigned club
+    const requestedClub =
+      validatedInput.clubName ||
+      validatedInput.clubAffiliation ||
+      validatedInput.clubId ||
+      rawEventData?.clubName ||
+      rawEventData?.clubAffiliation ||
+      rawEventData?.clubId;
+
+    if (
+      requestedClub &&
+      requestedClub.trim().toLowerCase() !== creator.clubAffiliation.trim().toLowerCase()
+    ) {
+      throw new AppError(
+        `Forbidden: You are an appointed organizer for "${creator.clubAffiliation}". You are strictly prohibited from creating events for "${requestedClub}".`,
+        403
+      );
+    }
   }
 
   // Strictly link the event to the organizer's assigned club
@@ -72,7 +92,7 @@ export const createEvent = async (creatorUid, rawEventData) => {
        validatedInput.clubAffiliation ||
        validatedInput.clubId ||
        creator.clubAffiliation ||
-       'Central BAUST Event');
+       'Central BAUST Event Management');
 
   const eventPayload = {
     ...validatedInput,
@@ -265,9 +285,35 @@ export const updateEvent = async (eventId, updateData, requestingUser) => {
     throw new AppError('Forbidden: You are not authorized to update this event', 403);
   }
 
+  // Strict club isolation for organizers during update
+  if (!isAdmin && requestingUser?.role === 'organizer') {
+    const userClub = requestingUser?.clubAffiliation;
+    if (userClub && existingEvent.clubAffiliation && existingEvent.clubAffiliation.trim().toLowerCase() !== userClub.trim().toLowerCase()) {
+      throw new AppError(
+        `Forbidden: You can only manage events for your own assigned club ("${userClub}").`,
+        403
+      );
+    }
+
+    const requestedClub = updateData?.clubName || updateData?.clubAffiliation || updateData?.clubId;
+    if (requestedClub && userClub && requestedClub.trim().toLowerCase() !== userClub.trim().toLowerCase()) {
+      throw new AppError(
+        `Forbidden: You cannot change the club affiliation to "${requestedClub}". You only manage "${userClub}".`,
+        403
+      );
+    }
+  }
+
   const validated = UpdateEventSchema.parse(updateData);
 
   let payloadToUpdate = { ...validated };
+
+  // Ensure organizer cannot reassign club
+  if (!isAdmin && requestingUser?.role === 'organizer' && requestingUser?.clubAffiliation) {
+    payloadToUpdate.clubName = requestingUser.clubAffiliation;
+    payloadToUpdate.clubAffiliation = requestingUser.clubAffiliation;
+    payloadToUpdate.clubId = requestingUser.clubAffiliation;
+  }
 
   // Governance check: If an approved event has its critical schedule/venue/pricing altered by an organizer,
   // revert status to 'pending' so administrators can re-verify schedule conflicts before publishing changes.
@@ -309,6 +355,17 @@ export const deleteEvent = async (eventId, requestingUser) => {
 
   if (!isAdmin && !isOwner) {
     throw new AppError('Forbidden: You are not authorized to delete this event', 403);
+  }
+
+  // Strict club isolation for organizers during deletion
+  if (!isAdmin && requestingUser?.role === 'organizer') {
+    const userClub = requestingUser?.clubAffiliation;
+    if (userClub && existingEvent.clubAffiliation && existingEvent.clubAffiliation.trim().toLowerCase() !== userClub.trim().toLowerCase()) {
+      throw new AppError(
+        `Forbidden: You can only delete events belonging to your own assigned club ("${userClub}").`,
+        403
+      );
+    }
   }
 
   await eventRepository.delete(eventId);
