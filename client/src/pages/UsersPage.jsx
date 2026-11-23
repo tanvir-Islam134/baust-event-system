@@ -1,9 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import userService from '../services/userService.js';
 import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
 
 export default function UsersPage() {
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'requests'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  
+  // Active tab synchronized with URL: 'all' | 'requests' | 'organizers'
+  const activeTab = tabFromUrl === 'requests' || tabFromUrl === 'organizers' ? tabFromUrl : 'all';
+
+  const setActiveTab = (newTab) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (newTab === 'all') {
+      nextParams.delete('tab');
+    } else {
+      nextParams.set('tab', newTab);
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
   const [users, setUsers] = useState([]);
   const [roleRequests, setRoleRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +66,17 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  // Auto-open application dossier modal if requested via notification link with userId
+  useEffect(() => {
+    const targetUserId = searchParams.get('userId');
+    if (targetUserId && roleRequests.length > 0) {
+      const targetReq = roleRequests.find((r) => r.id === targetUserId);
+      if (targetReq) {
+        setViewingRequest(targetReq);
+      }
+    }
+  }, [searchParams, roleRequests]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });

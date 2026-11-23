@@ -234,7 +234,12 @@ export default function AdminNotificationBell() {
     if (notif.type === 'event_pending_approval') {
       navigate('/dashboard?tab=review-queue');
     } else {
-      navigate('/users?tab=requests');
+      const applicantId = notif.senderId || notif.data?.applicantId || notif.data?.userId || notif.userId;
+      if (applicantId) {
+        navigate(`/users?tab=requests&userId=${applicantId}`);
+      } else {
+        navigate('/users?tab=requests');
+      }
     }
   };
 
