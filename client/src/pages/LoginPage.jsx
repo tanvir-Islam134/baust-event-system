@@ -11,8 +11,13 @@ export default function LoginPage() {
   const { loginWithGoogle, logout, isAuthenticated, user } = useAuth();
 
   const from = location.state?.from?.pathname || '/dashboard';
+  
+  // Initialize portal based on query param (e.g., /login?portal=admin)
+  const initialPortal = new URLSearchParams(location.search).get('portal') === 'admin' ? 'admin' : 'participant';
+  const [selectedPortal, setSelectedPortal] = useState(initialPortal);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [adminEligibilityError, setAdminEligibilityError] = useState(null);
 
   // If already authenticated, display status & quick navigation
   if (isAuthenticated && user) {
@@ -85,12 +90,16 @@ export default function LoginPage() {
     );
   }
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (portalToUse = selectedPortal) => {
     try {
       setLoading(true);
       setErrorMsg(null);
-      const res = await loginWithGoogle();
+      setAdminEligibilityError(null);
+
+      // Pass portal identifier to backend for strict eligibility check
+      const res = await loginWithGoogle(portalToUse === 'admin' ? 'admin' : 'participant');
       const loggedUser = res?.user || user;
+      
       if (loggedUser?.role === 'participant' && !isParticipantProfileComplete(loggedUser)) {
         navigate('/onboarding', { replace: true });
       } else {
@@ -102,12 +111,27 @@ export default function LoginPage() {
       } catch {
         // ignore
       }
-      let message =
-        err.response?.data?.error?.message ||
-        err.response?.data?.message ||
-        err.message ||
-        'Google Authentication failed';
 
+      const status = err.response?.status;
+      const errorData = err.response?.data?.error;
+      const serverMessage = errorData?.message || err.response?.data?.message || err.message || '';
+      const attemptedEmail = errorData?.details?.email || errorData?.details?.attemptedEmail || '';
+
+      // Check if user was rejected because they are not eligible for admin
+      if (
+        status === 403 ||
+        errorData?.details?.code === 'NOT_ELIGIBLE_FOR_ADMIN' ||
+        serverMessage.toLowerCase().includes('not eligible for admin')
+      ) {
+        setAdminEligibilityError({
+          message: 'You are not eligible for admin. Please sign in or sign up as a Participant.',
+          attemptedEmail,
+        });
+        setErrorMsg(null);
+        return;
+      }
+
+      let message = serverMessage || 'Google Authentication failed';
       if (err?.code === 'auth/unauthorized-domain' || (typeof message === 'string' && message.includes('unauthorized-domain'))) {
         message = `Firebase Unauthorized Domain: The current domain (${window.location.hostname}) must be added to your Firebase Console > Authentication > Settings > Authorized domains.`;
       }
@@ -116,6 +140,13 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSwitchToParticipantAndLogin = async () => {
+    setSelectedPortal('participant');
+    setAdminEligibilityError(null);
+    setErrorMsg(null);
+    await handleGoogleLogin('participant');
   };
 
   return (
@@ -129,7 +160,7 @@ export default function LoginPage() {
       <div className="relative z-10 max-w-md w-full bg-[#0d162a]/85 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/10 p-6 sm:p-8 ring-1 ring-white/5 text-center">
         
         {/* Header Branding */}
-        <div className="mb-6">
+        <div className="mb-5">
           <div className="w-20 h-20 rounded-full bg-white p-1.5 mx-auto mb-3.5 flex items-center justify-center ring-4 ring-[#FCA311]/30 shadow-xl shadow-[#FCA311]/15">
             <img
               src="/baust-logo.png"
@@ -145,13 +176,105 @@ export default function LoginPage() {
             <span className="text-white font-medium">Saidpur</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Portal Sign In</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            {selectedPortal === 'admin' ? 'Administration Portal' : 'Portal Sign In'}
+          </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-1 font-normal">
-            Sign in with your Google or BAUST institutional account
+            {selectedPortal === 'admin'
+              ? 'Restricted to authorized university administration accounts'
+              : 'Sign in with your Google or BAUST institutional account'}
           </p>
         </div>
 
-        {errorMsg && (
+        {/* Portal Switcher Tabs: Participant vs Admin */}
+        <div className="flex p-1 bg-[#070E1E] rounded-2xl border border-white/10 mb-6 shadow-inner">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedPortal('participant');
+              setErrorMsg(null);
+              setAdminEligibilityError(null);
+            }}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              selectedPortal === 'participant'
+                ? 'bg-[#FCA311] text-[#14213D] shadow-md shadow-[#FCA311]/25 font-black'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>🎓</span>
+            <span>Participant / Student</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedPortal('admin');
+              setErrorMsg(null);
+              setAdminEligibilityError(null);
+            }}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              selectedPortal === 'admin'
+                ? 'bg-[#14213D] text-[#FCA311] border border-[#FCA311]/60 shadow-md font-black'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>🏛️</span>
+            <span>University Admin</span>
+          </button>
+        </div>
+
+        {/* Dedicated Admin Eligibility Rejection Banner */}
+        {adminEligibilityError && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-500/15 border-2 border-[#FCA311] text-left animate-in fade-in slide-in-from-top-2 duration-200 shadow-xl">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl flex-shrink-0">⚠️</span>
+              <div className="flex-1">
+                <h4 className="text-sm font-black text-[#FCA311] uppercase tracking-wide">
+                  You are not eligible for admin
+                </h4>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                  Only selected institutional email addresses are authorized for Admin login.{' '}
+                  {adminEligibilityError.attemptedEmail ? (
+                    <span>
+                      Account <span className="font-bold text-white">({adminEligibilityError.attemptedEmail})</span> is not eligible.
+                    </span>
+                  ) : (
+                    'This Google account is not eligible for administrative privileges.'
+                  )}
+                </p>
+                
+                {/* Instant CTA to continue as Participant */}
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSwitchToParticipantAndLogin}
+                    disabled={loading}
+                    className="px-4 py-2 bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] rounded-xl text-xs font-black shadow-md shadow-[#FCA311]/25 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>🎓</span>
+                    <span>Sign in / Sign up as Participant</span>
+                    <span>&rarr;</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPortal('participant');
+                      setAdminEligibilityError(null);
+                      setErrorMsg(null);
+                    }}
+                    className="px-3 py-2 bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+                  >
+                    Switch to Participant
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* General Error Banner */}
+        {errorMsg && !adminEligibilityError && (
           <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-200 text-xs sm:text-sm flex items-start gap-2.5 backdrop-blur-md text-left">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -162,12 +285,18 @@ export default function LoginPage() {
 
         {/* Google Sign In Action Button */}
         <button
-          onClick={handleGoogleLogin}
+          onClick={() => handleGoogleLogin(selectedPortal)}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] transition transform hover:-translate-y-0.5 active:translate-y-0 font-black text-sm sm:text-base shadow-xl shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40 disabled:opacity-50 cursor-pointer mb-6"
+          className={`w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl transition transform hover:-translate-y-0.5 active:translate-y-0 font-black text-sm sm:text-base shadow-xl disabled:opacity-50 cursor-pointer mb-6 ${
+            selectedPortal === 'admin'
+              ? 'bg-[#14213D] hover:bg-black text-[#FCA311] border-2 border-[#FCA311] shadow-[#FCA311]/20'
+              : 'bg-[#FCA311] hover:bg-[#e5920d] text-[#14213D] shadow-[#FCA311]/25 hover:shadow-[#FCA311]/40'
+          }`}
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-[#14213D] border-t-transparent rounded-full animate-spin"></div>
+            <div className={`w-5 h-5 border-2 border-t-transparent rounded-full animate-spin ${
+              selectedPortal === 'admin' ? 'border-[#FCA311]' : 'border-[#14213D]'
+            }`} />
           ) : (
             <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-xs p-1">
               <svg className="w-full h-full" viewBox="0 0 24 24">
@@ -190,28 +319,43 @@ export default function LoginPage() {
               </svg>
             </div>
           )}
-          <span>{loading ? 'Authenticating...' : 'Sign In with Google'}</span>
+          <span>
+            {loading
+              ? 'Authenticating with Google...'
+              : selectedPortal === 'admin'
+              ? 'Sign In with Google as Admin'
+              : 'Sign In with Google as Participant'}
+          </span>
         </button>
 
         {/* Real-world Academic Governance Guidelines Card */}
         <div className="p-4 bg-white/[0.03] backdrop-blur-sm rounded-2xl border border-white/10 text-left space-y-2.5">
           <p className="text-[11px] font-black text-[#FCA311] uppercase tracking-wider flex items-center gap-1.5">
-            <span>ℹ️</span> Role Architecture & Access:
+            <span>ℹ️</span> {selectedPortal === 'admin' ? 'Admin Access Rules:' : 'Participant & Club Roles:'}
           </p>
-          <ul className="text-[11px] text-slate-300 space-y-2 leading-relaxed">
-            <li className="flex items-start gap-2">
-              <span className="text-[#FCA311] font-bold">🏛️</span>
-              <span><strong>Administration:</strong> Fixed university authority email is automatically recognized with full administrative governance.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-amber-300 font-bold">🎓</span>
-              <span><strong>Participants:</strong> All new accounts join as participants to register for events, complete onboarding, and download digital tickets.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-emerald-400 font-bold">🛡️</span>
-              <span><strong>Club Organizers:</strong> Any participant can submit an Organizer application with their chosen BAUST club from their Profile for admin approval.</span>
-            </li>
-          </ul>
+          {selectedPortal === 'admin' ? (
+            <ul className="text-[11px] text-slate-300 space-y-2 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <span className="text-[#FCA311] font-bold">🏛️</span>
+                <span><strong>Designated Administrators Only:</strong> Fixed authorized university authority email is verified by the server.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-300 font-bold">⚠️</span>
+                <span><strong>Unauthorized Accounts:</strong> Attempting to log in as Admin with a personal or unauthorized student email will be blocked.</span>
+              </li>
+            </ul>
+          ) : (
+            <ul className="text-[11px] text-slate-300 space-y-2 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <span className="text-amber-300 font-bold">🎓</span>
+                <span><strong>All BAUST Accounts:</strong> Any Google or BAUST email can sign in as a Participant to browse events and download digital QR passes.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold">🛡️</span>
+                <span><strong>Become a Club Organizer:</strong> Once signed in as a participant, submit an Organizer application with your club from your Profile.</span>
+              </li>
+            </ul>
+          )}
         </div>
 
         <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">

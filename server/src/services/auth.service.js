@@ -69,6 +69,19 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
   const normalizedEmail = email.trim().toLowerCase();
   const isAdminEmail = FIXED_ADMIN_EMAILS.includes(normalizedEmail);
 
+  // If client is attempting to log in through the Admin portal:
+  const requestedRole = options.targetRole ? String(options.targetRole).trim().toLowerCase() : null;
+  if (requestedRole === 'admin' && !isAdminEmail) {
+    throw new AppError(
+      'You are not eligible for admin. Please sign in or sign up as a Participant.',
+      403,
+      {
+        code: 'NOT_ELIGIBLE_FOR_ADMIN',
+        attemptedEmail: normalizedEmail,
+      }
+    );
+  }
+
   // Check if user already exists in Firestore
   let user = await userRepository.findById(uid);
 
@@ -99,6 +112,12 @@ export const verifyFirebaseTokenAndLogin = async (firebaseToken, options = {}) =
     // Ensure fixed admin email always has admin role in database
     if (isAdminEmail && user.role !== 'admin') {
       updates.role = 'admin';
+      user.role = 'admin';
+    }
+    // Demote any non-admin email that previously had admin role
+    if (!isAdminEmail && user.role === 'admin') {
+      updates.role = 'participant';
+      user.role = 'participant';
     }
     // If user doesn't have a photoURL yet, populate with Google profile picture
     if (!user.photoURL && tokenPicture) {

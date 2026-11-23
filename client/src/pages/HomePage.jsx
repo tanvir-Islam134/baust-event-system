@@ -513,10 +513,8 @@ export default function HomePage() {
             {!isAuthenticated && (
               <button
                 type="button"
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  setRoleMenuOpen(true);
-                }}
+                onClick={handleSignIn}
+                disabled={authLoading}
                 className="px-6 py-3.5 bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/20 hover:border-[#FCA311]/50 rounded-xl text-sm font-bold transition cursor-pointer"
               >
                 Sign In with Google
@@ -539,7 +537,12 @@ export default function HomePage() {
             </Link>
             <span>•</span>
             <Link to="/login" className="hover:text-[#FCA311] font-semibold transition">
-              Portal Sign In
+              Participant Login
+            </Link>
+            <span>•</span>
+            <Link to="/login?portal=admin" className="hover:text-[#FCA311] font-semibold transition flex items-center gap-1">
+              <span>🏛️</span>
+              <span>Admin Portal</span>
             </Link>
             <span>•</span>
             <span className="text-slate-500">Saidpur Cantonment</span>
