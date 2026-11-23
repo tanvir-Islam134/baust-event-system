@@ -1133,15 +1133,23 @@ export default function DashboardPage({ defaultTab = null }) {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={fetchMyRegistrations}
-                  disabled={loadingMyRegistrations}
-                  className="self-start sm:self-auto px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <span className={loadingMyRegistrations ? 'animate-spin' : ''}>🔄</span>
-                  <span>Refresh Passes</span>
-                </button>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <Link
+                    to="/my-events"
+                    className="px-3 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                  >
+                    <span>My Events &rarr;</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={fetchMyRegistrations}
+                    disabled={loadingMyRegistrations}
+                    className="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <span className={loadingMyRegistrations ? 'animate-spin' : ''}>🔄</span>
+                    <span>Refresh Passes</span>
+                  </button>
+                </div>
               </div>
 
               {loadingMyRegistrations ? (
@@ -1240,15 +1248,25 @@ export default function DashboardPage({ defaultTab = null }) {
                             </span>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleViewTicketPass(reg)}
-                            disabled={loadingTicketPassId === reg.id}
-                            className="px-3.5 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50"
-                          >
-                            <span>🎟️</span>
-                            <span>{loadingTicketPassId === reg.id ? 'Loading...' : 'View Pass'}</span>
-                          </button>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <Link
+                              to={`/events/${reg.eventId}`}
+                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-[#14213D] hover:text-[#FCA311] text-[#14213D] border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                              title="View Event Details"
+                            >
+                              <span>Details &rarr;</span>
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() => handleViewTicketPass(reg)}
+                              disabled={loadingTicketPassId === reg.id}
+                              className="px-3 py-1.5 bg-[#14213D] hover:bg-black text-[#FCA311] border border-[#FCA311]/40 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              <span>🎟️</span>
+                              <span>{loadingTicketPassId === reg.id ? '...' : 'Pass'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );

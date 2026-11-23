@@ -7,6 +7,7 @@ import RegisterPage from '../pages/RegisterPage.jsx';
 import OnboardingPage from '../pages/OnboardingPage.jsx';
 import PendingApprovalPage from '../pages/PendingApprovalPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
+import MyEventsPage from '../pages/MyEventsPage.jsx';
 import EventsPage from '../pages/EventsPage.jsx';
 import CalendarPage from '../pages/CalendarPage.jsx';
 import EventDetailsPage from '../pages/EventDetailsPage.jsx';
@@ -72,6 +73,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/my-events',
+        element: (
+          <ProtectedRoute>
+            <MyEventsPage />
           </ProtectedRoute>
         ),
       },
