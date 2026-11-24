@@ -10,6 +10,9 @@ import { AppError } from '../middlewares/errorHandler.js';
  */
 export const FIXED_ADMIN_EMAILS = [
   'tanvirbaust134@gmail.com',
+  'mdtanjimulislamtamim79@gmail.com',
+  'muntaseratabassumlopa@gmail.com',
+  'sanzid243@gmail.com',
   ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase()) : []),
 ];
 
