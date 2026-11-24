@@ -5,7 +5,7 @@
  * All application data reads and writes must pass through the Express REST API backend.
  */
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, setPersistence, browserSessionPersistence } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'dummy_api_key',
@@ -21,7 +21,13 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 
 // Export Auth instance and Google Auth Provider
 export const auth = getAuth(app);
+
+// Configure session-only persistence so sessions don't permanently linger across browser tabs
+setPersistence(auth, browserSessionPersistence).catch(() => {});
+
 export const googleAuthProvider = new GoogleAuthProvider();
+// Force Google account chooser so user can select which Google account to sign in with
+googleAuthProvider.setCustomParameters({ prompt: 'select_account' });
 
 export default app;
 

@@ -213,6 +213,19 @@ export default function HomePage() {
 
                     <button
                       type="button"
+                      onClick={handleSignIn}
+                      disabled={authLoading}
+                      className="px-4 py-3.5 bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white border border-white/20 hover:border-[#FCA311]/50 rounded-xl text-sm font-bold shadow-sm transition transform hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
+                      title="Switch to another Google account"
+                    >
+                      <svg className="w-4 h-4 text-[#FCA311]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                      <span>Switch Account</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={async () => {
                         try {
                           await logout();

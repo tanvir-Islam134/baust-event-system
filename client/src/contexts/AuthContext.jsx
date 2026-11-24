@@ -7,7 +7,14 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
+  const [token, setToken] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      // Clear legacy localStorage token so past sessions do not auto-reconnect
+      localStorage.removeItem('token');
+    } catch (e) {}
+    return sessionStorage.getItem('token') || null;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -26,7 +33,12 @@ export const AuthProvider = ({ children }) => {
   // Initialize and verify stored session on app load
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
+      // Purge any stale legacy localStorage token
+      try {
+        localStorage.removeItem('token');
+      } catch (e) {}
+
+      const storedToken = sessionStorage.getItem('token');
       if (storedToken) {
         try {
           const res = await api.get('/auth/me');
@@ -34,10 +46,17 @@ export const AuthProvider = ({ children }) => {
           setToken(storedToken);
         } catch (err) {
           console.warn('[AuthContext] Session expired or invalid:', err.message);
-          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
           setUser(null);
           setToken(null);
         }
+      } else {
+        // No active tab session: ensure user is null and clear lingering Firebase Auth
+        setUser(null);
+        setToken(null);
+        try {
+          await signOut(auth);
+        } catch (e) {}
       }
       setLoading(false);
     };
@@ -48,6 +67,7 @@ export const AuthProvider = ({ children }) => {
     const handleUnauthorized = () => {
       setUser(null);
       setToken(null);
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
     };
 
@@ -60,7 +80,7 @@ export const AuthProvider = ({ children }) => {
    * 1. Trigger Firebase Web SDK Google Auth popup
    * 2. Obtain Firebase ID token
    * 3. Exchange with backend /api/v1/auth/login for custom JWT and user profile
-   * 4. Persist custom JWT to localStorage and state
+   * 4. Persist custom JWT to sessionStorage and state
    */
   const loginWithGoogle = async (targetRole = null, targetClub = null) => {
     try {
@@ -77,7 +97,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', payload);
       const { token: customToken, user: userProfile } = response.data.data;
 
-      localStorage.setItem('token', customToken);
+      sessionStorage.setItem('token', customToken);
+      localStorage.removeItem('token');
       setToken(customToken);
       setUser(userProfile);
 
@@ -89,6 +110,7 @@ export const AuthProvider = ({ children }) => {
       } catch (signOutErr) {
         // ignore
       }
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
@@ -110,7 +132,7 @@ export const AuthProvider = ({ children }) => {
    * 1. Trigger Firebase Web SDK Google Auth popup
    * 2. Obtain Firebase ID token
    * 3. Call backend /api/v1/auth/register to create user in database
-   * 4. Persist custom JWT to localStorage and state
+   * 4. Persist custom JWT to sessionStorage and state
    */
   const registerWithGoogle = async () => {
     try {
@@ -123,7 +145,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/register', { firebaseToken });
       const { token: customToken, user: userProfile } = response.data.data;
 
-      localStorage.setItem('token', customToken);
+      sessionStorage.setItem('token', customToken);
+      localStorage.removeItem('token');
       setToken(customToken);
       setUser(userProfile);
 
@@ -134,6 +157,7 @@ export const AuthProvider = ({ children }) => {
       } catch (signOutErr) {
         // ignore
       }
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
@@ -163,7 +187,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/register', registrationPayload);
       const { token: customToken, user: userProfile } = response.data.data;
 
-      localStorage.setItem('token', customToken);
+      sessionStorage.setItem('token', customToken);
+      localStorage.removeItem('token');
       setToken(customToken);
       setUser(userProfile);
 
@@ -174,6 +199,7 @@ export const AuthProvider = ({ children }) => {
       } catch (signOutErr) {
         // ignore
       }
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
@@ -192,7 +218,7 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Logout flow:
-   * Cleans up Firebase Auth session, localStorage custom JWT, and React state.
+   * Cleans up Firebase Auth session, sessionStorage/localStorage custom JWT, and React state.
    * Directs user immediately to the 1st interface page (Home Page '/').
    */
   const logout = async () => {
@@ -201,6 +227,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn('[AuthContext] Firebase signOut warning:', err.message);
     } finally {
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
       setUser(null);
       setToken(null);
@@ -213,7 +240,7 @@ export const AuthProvider = ({ children }) => {
   /**
    * Account Deletion flow:
    * Calls backend DELETE /users/me, cleans up Firebase Auth session,
-   * removes localStorage custom JWT, and clears React state.
+   * removes sessionStorage/localStorage custom JWT, and clears React state.
    */
   const deleteAccount = async () => {
     try {
@@ -224,6 +251,7 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.warn('[AuthContext] Firebase signOut warning after delete:', err.message);
       }
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
       setUser(null);
       setToken(null);
@@ -246,7 +274,8 @@ export const AuthProvider = ({ children }) => {
       });
       const { token: customToken, user: userProfile } = res.data.data;
 
-      localStorage.setItem('token', customToken);
+      sessionStorage.setItem('token', customToken);
+      localStorage.removeItem('token');
       setToken(customToken);
       setUser(userProfile);
       return { success: true, user: userProfile };

@@ -77,12 +77,13 @@ export default function LoginPage() {
               Continue to {from === '/dashboard' ? 'Dashboard' : 'Page'} &rarr;
             </button>
             <button
+              type="button"
               onClick={async () => {
                 await logout();
               }}
               className="w-full py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition cursor-pointer"
             >
-              Sign out
+              Sign out & Switch Account
             </button>
           </div>
         </div>

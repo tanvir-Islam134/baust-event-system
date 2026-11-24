@@ -12,11 +12,14 @@ const api = axios.create({
 });
 
 /**
- * Request Interceptor: Attach JWT bearer token from localStorage if present.
+ * Request Interceptor: Attach JWT bearer token from sessionStorage if present.
  */
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('token')
+        : null;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -39,7 +42,10 @@ api.interceptors.response.use(
       const { status } = error.response;
       // Handle expired session or unauthorized token
       if (status === 401) {
-        localStorage.removeItem('token');
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('token');
+          localStorage.removeItem('token');
+        }
         // Dispatch custom event for UI or router to handle if required
         window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       }
