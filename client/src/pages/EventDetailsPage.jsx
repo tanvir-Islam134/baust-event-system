@@ -8,6 +8,7 @@ import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
 import LiveQRScannerModal from '../components/events/LiveQRScannerModal.jsx';
 import BkashCheckoutModal from '../components/payments/BkashCheckoutModal.jsx';
 import EventFeedbackSection from '../components/events/EventFeedbackSection.jsx';
+import { isEventConcluded } from '../utils/dateUtils.js';
 
 export default function EventDetailsPage() {
   const { id } = useParams();
@@ -263,17 +264,11 @@ export default function EventDetailsPage() {
   const capacityPercent = Math.min(100, Math.round((regCount / capacity) * 100));
   const eventFee = Number(event.ticketPrice ?? event.fee ?? 0) || 0;
   const isFree = eventFee === 0;
-  const isPastEvent = (() => {
-    if (event.status === 'completed') return true;
-    if (!event?.date) return false;
-    const cleanDate = String(event.date).trim().slice(0, 10);
-    const endOfDay = new Date(`${cleanDate}T23:59:59`);
-    if (!isNaN(endOfDay.getTime())) {
-      return endOfDay < new Date();
-    }
-    const fallback = new Date(cleanDate);
-    return !isNaN(fallback.getTime()) && fallback < new Date();
-  })();
+  const isPastEvent = isEventConcluded(event);
+  const hasActiveRegistration =
+    Boolean(myRegistration) &&
+    myRegistration.status !== 'rejected' &&
+    myRegistration.status !== 'cancelled';
 
   const isOrganizerForEvent =
     user?.role === 'organizer' &&
@@ -518,10 +513,15 @@ export default function EventDetailsPage() {
             {/* Registration Action */}
             <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
               <div className="text-xs text-slate-500">
-                {myRegistration ? (
+                {hasActiveRegistration ? (
                   <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                     You hold an active pass for this event.
+                  </span>
+                ) : myRegistration?.status === 'rejected' ? (
+                  <span className="text-rose-600 font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    Previous registration was declined. You may submit a corrected registration.
                   </span>
                 ) : isPastEvent ? (
                   <span className="text-slate-500 font-semibold flex items-center gap-1.5">
@@ -537,7 +537,7 @@ export default function EventDetailsPage() {
                 )}
               </div>
 
-              {myRegistration ? (
+              {hasActiveRegistration ? (
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 flex items-center gap-1.5 shadow-xs">
                     <span>✓</span>

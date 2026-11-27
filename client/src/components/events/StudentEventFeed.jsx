@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import eventService from '../../services/eventService.js';
+import { isEventConcluded } from '../../utils/dateUtils.js';
 
 export default function StudentEventFeed({
   title = 'Student Event Feed',
@@ -77,51 +78,7 @@ export default function StudentEventFeed({
     setSelectedClub('all');
   };
 
-  const checkIsPast = useCallback((event) => {
-    if (!event) return false;
-    if (event.status === 'completed') return true;
-    if (!event.date) return false;
-    try {
-      const dateStr = String(event.date).slice(0, 10);
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        const y = parseInt(parts[0], 10);
-        const m = parseInt(parts[1], 10);
-        const d = parseInt(parts[2], 10);
-        const now = new Date();
-        const todayY = now.getFullYear();
-        const todayM = now.getMonth() + 1;
-        const todayD = now.getDate();
-        if (y < todayY) return true;
-        if (y > todayY) return false;
-        if (m < todayM) return true;
-        if (m > todayM) return false;
-        if (d < todayD) return true;
-        if (d > todayD) return false;
-
-        // Same day: check event end time if specified
-        const timeStr = event.endTime || event.time || event.startTime;
-        if (timeStr && typeof timeStr === 'string') {
-          const clean = timeStr.trim().toUpperCase();
-          const ampmMatch = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-          if (ampmMatch) {
-            let hours = parseInt(ampmMatch[1], 10);
-            const minutes = parseInt(ampmMatch[2], 10) || 0;
-            const meridian = ampmMatch[3];
-            if (meridian === 'PM' && hours < 12) hours += 12;
-            if (meridian === 'AM' && hours === 12) hours = 0;
-            if (!event.endTime) hours += 2; // buffer for event duration
-            const eventTime = new Date(y, m - 1, d, hours, minutes);
-            return eventTime.getTime() < now.getTime();
-          }
-        }
-        return false;
-      }
-      return new Date(event.date).getTime() < Date.now();
-    } catch {
-      return false;
-    }
-  }, []);
+  const checkIsPast = useCallback((event) => isEventConcluded(event), []);
 
   // Sort: upcoming events first (soonest first), ended/past events at the bottom (most recently ended first)
   const sortedEvents = useMemo(() => {

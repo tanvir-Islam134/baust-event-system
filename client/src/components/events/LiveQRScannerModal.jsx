@@ -13,6 +13,8 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
 
   const html5QrCodeRef = useRef(null);
   const isComponentMounted = useRef(true);
+  const processingRef = useRef(false);
+  const lastScanRef = useRef({ code: null, timestamp: 0 });
 
   // Synthesize clean audio chimes using Web Audio API
   const playSound = (type = 'success') => {
@@ -132,9 +134,20 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
     };
   }, []);
 
-  // Process detected QR code payload
+  // Process detected QR code payload with stale-closure & duplicate-scan guard
   const handleDetectedCode = async (codeString) => {
-    if (processing) return;
+    const trimmed = String(codeString || '').trim();
+    if (!trimmed) return;
+    const now = Date.now();
+    if (
+      processingRef.current ||
+      (lastScanRef.current.code === trimmed && now - lastScanRef.current.timestamp < 3000)
+    ) {
+      return;
+    }
+
+    processingRef.current = true;
+    lastScanRef.current = { code: trimmed, timestamp: now };
     try {
       setProcessing(true);
 
@@ -142,11 +155,21 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
         eventId: event?.id,
       };
 
-      // Check if code is JWT token string or ticketCode format
-      if (codeString.startsWith('eyJ') || codeString.includes('.')) {
-        payload.qrToken = codeString;
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed.qrToken) payload.qrToken = parsed.qrToken;
+          else if (parsed.ticketCode || parsed.ticketId) {
+            payload.ticketCode = parsed.ticketCode || parsed.ticketId;
+          }
+          if (parsed.eventId && !payload.eventId) payload.eventId = parsed.eventId;
+        } catch {
+          payload.ticketCode = trimmed;
+        }
+      } else if (trimmed.startsWith('eyJ') || trimmed.split('.').length === 3) {
+        payload.qrToken = trimmed;
       } else {
-        payload.ticketCode = codeString.trim();
+        payload.ticketCode = trimmed;
       }
 
       const res = await registrationService.checkInAttendee(payload);
@@ -174,7 +197,10 @@ export default function LiveQRScannerModal({ event, onClose, onCheckInComplete }
           'Check-in failed: Invalid or counterfeit ticket.',
       });
     } finally {
-      setProcessing(false);
+      processingRef.current = false;
+      if (isComponentMounted.current) {
+        setProcessing(false);
+      }
     }
   };
 

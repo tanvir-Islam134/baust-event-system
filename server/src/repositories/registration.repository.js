@@ -91,10 +91,14 @@ export class RegistrationRepository extends BaseRepository {
         throw new Error(`Registration failed: Event capacity (${eventData.capacity}) has been reached.`);
       }
 
-      // 4. Ensure no existing registration exists with this deterministic ID
+      // Ensure no active registration exists with this deterministic ID
+      // Allow re-registration only if prior attempt was rejected or cancelled
       const existingReg = await transaction.get(regRef);
       if (existingReg.exists) {
-        throw new Error('Duplicate registration: This user or guest is already registered for this event.');
+        const existingStatus = existingReg.data()?.status;
+        if (existingStatus !== 'rejected' && existingStatus !== 'cancelled') {
+          throw new Error('Duplicate registration: This user or guest is already registered for this event.');
+        }
       }
 
       const hasManualBkashTrx = payload.paymentMethod === 'bkash' || Boolean(payload.trxId);
