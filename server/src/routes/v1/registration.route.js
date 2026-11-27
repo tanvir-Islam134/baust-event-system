@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import * as registrationController from '../../controllers/registration.controller.js';
 import { requireAuth, requireRole, optionalAuth } from '../../middlewares/auth.middleware.js';
+import { validate } from '../../middlewares/validate.js';
+import { RejectRegistrationInputSchema } from '../../schemas/registration.schema.js';
 
 const router = Router();
 
@@ -50,6 +52,7 @@ router.post(
   '/:id/reject',
   requireAuth,
   requireRole(['organizer']),
+  validate(RejectRegistrationInputSchema),
   registrationController.reject
 );
 

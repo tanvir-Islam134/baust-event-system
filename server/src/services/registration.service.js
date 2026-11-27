@@ -77,40 +77,52 @@ export const getEventRegistrations = async (eventId, paymentStatus = null, calle
 };
 
 /**
- * Fetch all pending registrations for events created by the caller's assigned club/society exclusively.
+ * Fetch all pending registrations for events owned by the authenticated Organizer.
+ * Enforces strict event ownership (createdBy / organizerId === organizerUid).
  * @param {string} organizerUid
  */
 export const getOrganizerPendingRegistrations = async (organizerUid) => {
-  const organizer = await userRepository.findById(organizerUid);
-  if (!organizer || !organizer.clubAffiliation) {
+  if (!organizerUid) {
+    throw new AppError('Organizer UID is required', 400);
+  }
+
+  const ownedEvents = await eventRepository.findByCreator(organizerUid);
+  if (!ownedEvents.length) {
     return [];
   }
 
-  const pendingList = await registrationRepository.findPendingByClub(organizer.clubAffiliation);
+  const eventMap = new Map(ownedEvents.map((ev) => [ev.id, ev]));
+  const ownedEventIds = ownedEvents.map((ev) => ev.id);
+
+  const pendingList = await registrationRepository.findPendingByEventIds(ownedEventIds);
   if (!pendingList.length) {
     return [];
   }
 
-  // Hydrate each registration with event & participant cohort details
+  // Hydrate each registration with event & student cohort details
   const hydrated = await Promise.all(
     pendingList.map(async (reg) => {
-      const [event, user] = await Promise.all([
-        eventRepository.findById(reg.eventId).catch(() => null),
-        reg.userId ? userRepository.findById(reg.userId).catch(() => null) : null,
-      ]);
+      const event = eventMap.get(reg.eventId) || (await eventRepository.findById(reg.eventId).catch(() => null));
+      const user = reg.userId ? await userRepository.findById(reg.userId).catch(() => null) : null;
 
       return {
         ...reg,
-        eventTitle: event?.title || 'Unknown Event',
+        eventName: event?.title || event?.eventName || 'Unknown Event',
+        eventTitle: event?.title || event?.eventName || 'Unknown Event',
         eventDate: event?.date || null,
         eventVenue: event?.venue || null,
-        eventFee: event?.fee ?? 0,
-        participantName: user?.name || reg.guest?.name || 'Unknown Attendee',
+        eventFee: event?.ticketPrice ?? event?.fee ?? 0,
+        studentName: user?.name || reg.guest?.name || 'Unknown Student',
+        participantName: user?.name || reg.guest?.name || 'Unknown Student',
         participantEmail: user?.email || reg.guest?.email || 'N/A',
         participantPhone: user?.mobileNumber || reg.guest?.phone || 'N/A',
         participantPhotoURL: user?.photoURL || null,
         department: user?.department || null,
         studentId: user?.studentId || null,
+        batch: reg.batch || user?.batch || null,
+        section: reg.section || user?.section || null,
+        level: reg.level ?? user?.level ?? null,
+        term: reg.term ?? user?.term ?? null,
         isGuest: !reg.userId,
       };
     })
@@ -120,8 +132,9 @@ export const getOrganizerPendingRegistrations = async (organizerUid) => {
 };
 
 /**
- * Approve or reject an event registration by the club organizer.
- * Validates that the event registration belongs to the organizer's assigned club.
+ * Approve or reject an event registration by the event's owning Organizer.
+ * Enforces event ownership (createdBy / organizerId === organizerUid) and prevents
+ * repeated status modifications on already-processed registrations.
  * @param {string} organizerUid
  * @param {string} registrationId
  * @param {'approved' | 'rejected'} status
@@ -137,9 +150,8 @@ export const updateRegistrationStatusByOrganizer = async (
     throw new AppError('Invalid status. Must be approved or rejected.', 400);
   }
 
-  const organizer = await userRepository.findById(organizerUid);
-  if (!organizer || !organizer.clubAffiliation) {
-    throw new AppError('Unauthorized: You do not have an active club affiliation.', 403);
+  if (!registrationId) {
+    throw new AppError('Registration ID is required.', 400);
   }
 
   const registration = await registrationRepository.findById(registrationId);
@@ -147,22 +159,41 @@ export const updateRegistrationStatusByOrganizer = async (
     throw new AppError(`Registration with ID '${registrationId}' not found`, 404);
   }
 
-  // If clubId was not explicitly set on registration, fallback to event clubId
-  let regClub = registration.clubId;
-  if (!regClub && registration.eventId) {
-    const event = await eventRepository.findById(registration.eventId);
-    regClub = event?.clubId || event?.clubAffiliation || null;
+  if (registration.status !== 'pending') {
+    throw new AppError(
+      `Registration has already been ${registration.status} and cannot be modified again.`,
+      409
+    );
   }
 
-  if (regClub && regClub !== organizer.clubAffiliation) {
-    throw new AppError('Unauthorized: You can only approve/reject registrations for your assigned club/society.', 403);
+  const event = await eventRepository.findById(registration.eventId);
+  if (!event) {
+    throw new AppError(`Associated event '${registration.eventId}' not found`, 404);
   }
 
-  return registrationRepository.updateStatusTransactional(registrationId, {
-    status,
-    rejectionReason: status === 'rejected' ? rejectionReason || 'Rejected by club organizer' : null,
-    reviewedBy: organizerUid,
-  });
+  const isEventOwner = event.createdBy === organizerUid || event.organizerId === organizerUid;
+  if (!isEventOwner) {
+    throw new AppError(
+      'Unauthorized: Only the organizer who created or owns this event can manage its registrations.',
+      403
+    );
+  }
+
+  try {
+    return await registrationRepository.updateStatusTransactional(registrationId, {
+      status,
+      rejectionReason: status === 'rejected' ? rejectionReason || 'Rejected by event organizer' : null,
+      reviewedBy: organizerUid,
+    });
+  } catch (error) {
+    if (error.code === 'ALREADY_PROCESSED') {
+      throw new AppError(error.message, 409);
+    }
+    if (error.code === 'NOT_FOUND') {
+      throw new AppError(error.message, 404);
+    }
+    throw error;
+  }
 };
 
 /**

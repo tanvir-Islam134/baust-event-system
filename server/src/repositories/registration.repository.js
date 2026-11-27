@@ -267,7 +267,37 @@ export class RegistrationRepository extends BaseRepository {
   }
 
   /**
+   * Find all pending registrations for a list of owned event IDs.
+   * Handles Firestore 'in' query limit (max 10 items per batch).
+   * @param {string[]} eventIds
+   */
+  async findPendingByEventIds(eventIds = []) {
+    const uniqueIds = [...new Set((eventIds || []).filter(Boolean))];
+    if (!uniqueIds.length) return [];
+
+    const results = [];
+    for (let i = 0; i < uniqueIds.length; i += 10) {
+      const chunk = uniqueIds.slice(i, i + 10);
+      const snapshot = await this.collection
+        .where('eventId', 'in', chunk)
+        .where('status', '==', 'pending')
+        .get();
+
+      snapshot.forEach((doc) => {
+        results.push({ id: doc.id, ...doc.data() });
+      });
+    }
+
+    return results.sort((a, b) => {
+      const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+      const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+  }
+
+  /**
    * Atomically approve or reject a registration.
+   * Prevents duplicate/repeated status modifications by requiring status === 'pending'.
    * If rejected, decrements event registeredCount to free up the seat.
    * @param {string} registrationId
    * @param {{ status: 'approved' | 'rejected', rejectionReason?: string|null, reviewedBy?: string|null }} data
@@ -279,14 +309,24 @@ export class RegistrationRepository extends BaseRepository {
       const regDoc = await transaction.get(regRef);
 
       if (!regDoc.exists) {
-        throw new Error(`Registration '${registrationId}' does not exist.`);
+        const notFoundErr = new Error(`Registration '${registrationId}' does not exist.`);
+        notFoundErr.code = 'NOT_FOUND';
+        throw notFoundErr;
       }
 
       const regData = regDoc.data();
+      if (regData.status !== 'pending') {
+        const conflictErr = new Error(
+          `Registration '${registrationId}' has already been ${regData.status} and cannot be modified.`
+        );
+        conflictErr.code = 'ALREADY_PROCESSED';
+        throw conflictErr;
+      }
+
       const eventRef = this.db.collection('events').doc(regData.eventId);
 
       // If rejected, decrement event registeredCount
-      if (status === 'rejected' && regData.status !== 'rejected') {
+      if (status === 'rejected') {
         const eventDoc = await transaction.get(eventRef);
         if (eventDoc.exists) {
           const currentCount = eventDoc.data().registeredCount || 0;
@@ -299,7 +339,7 @@ export class RegistrationRepository extends BaseRepository {
 
       const updateData = {
         status,
-        rejectionReason: rejectionReason || null,
+        rejectionReason: status === 'rejected' ? rejectionReason || null : null,
         reviewedBy: reviewedBy || null,
         reviewedAt: timestamp,
         updatedAt: timestamp,

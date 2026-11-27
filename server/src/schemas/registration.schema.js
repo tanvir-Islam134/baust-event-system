@@ -87,3 +87,8 @@ export const UpdateRegistrationStatusSchema = z.object({
   rejectionReason: z.string().trim().nullable().optional().default(null),
 });
 
+export const RejectRegistrationInputSchema = z.object({
+  rejectionReason: z.string().trim().max(500, 'Rejection reason must be under 500 characters').nullable().optional(),
+  reason: z.string().trim().max(500, 'Rejection reason must be under 500 characters').nullable().optional(),
+});
+
