@@ -62,6 +62,7 @@ export default function DashboardPage({ defaultTab = null }) {
   const [loadingMyRegistrations, setLoadingMyRegistrations] = useState(false);
   const [activeTicketData, setActiveTicketData] = useState(null);
   const [loadingTicketPassId, setLoadingTicketPassId] = useState(null);
+  const [downloadingCertId, setDownloadingCertId] = useState(null);
 
   // Rejection modal state for participant registrations
   const [rejectingReg, setRejectingReg] = useState(null);
@@ -197,6 +198,19 @@ export default function DashboardPage({ defaultTab = null }) {
       });
     } finally {
       setLoadingTicketPassId(null);
+    }
+  };
+
+  const handleDownloadCertificate = async (reg) => {
+    if (!reg?.id || downloadingCertId === reg.id) return;
+    try {
+      setDownloadingCertId(reg.id);
+      await registrationService.downloadCertificate(reg.id, reg.eventTitle || 'Event');
+      showToast('Participation certificate downloaded!', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to download certificate', 'error');
+    } finally {
+      setDownloadingCertId(null);
     }
   };
 
@@ -1025,6 +1039,7 @@ export default function DashboardPage({ defaultTab = null }) {
                   {myRegistrations.map((reg) => {
                     const isPast = Boolean(reg.isPastEvent) || isEventPast(reg.eventDate, reg.eventTime);
                     const isAttended = Boolean(reg.attended);
+                    const canDownloadCertificate = reg.status === 'approved' && isAttended && isPast;
 
                     return (
                       <div
@@ -1121,6 +1136,22 @@ export default function DashboardPage({ defaultTab = null }) {
                             </button>
                           </div>
                         </div>
+
+                        {canDownloadCertificate && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadCertificate(reg)}
+                            disabled={downloadingCertId === reg.id}
+                            className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <span>🎓</span>
+                            <span>
+                              {downloadingCertId === reg.id
+                                ? 'Generating Certificate...'
+                                : 'Download Certificate'}
+                            </span>
+                          </button>
+                        )}
                       </div>
                     );
                   })}

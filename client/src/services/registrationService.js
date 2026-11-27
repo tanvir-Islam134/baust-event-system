@@ -96,6 +96,50 @@ export const registrationService = {
     const response = await api.post(`/registrations/${registrationId}/items/${itemType}`);
     return response.data?.data || response.data;
   },
+
+  /**
+   * Download PDF participation certificate for an eligible registration.
+   * Server validates approved status, Checked In attendance, and event conclusion.
+   * @param {string} registrationId
+   * @param {string} [fallbackTitle='BAUST_Event']
+   */
+  downloadCertificate: async (registrationId, fallbackTitle = 'BAUST_Event') => {
+    try {
+      const response = await api.get(`/registrations/${registrationId}/certificate`, {
+        responseType: 'blob',
+      });
+
+      const disposition = response.headers?.['content-disposition'] || '';
+      const match = disposition.match(/filename="?([^"]+)"?/i);
+      const safeTitle = String(fallbackTitle).replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 35) || 'Event';
+      const filename = match?.[1] || `BAUST_Certificate_${safeTitle}.pdf`;
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      return { filename };
+    } catch (err) {
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          throw new Error(parsed?.error?.message || parsed?.message || 'Certificate download failed');
+        } catch (parseErr) {
+          if (parseErr.message && parseErr.message !== 'Unexpected token') {
+            throw parseErr;
+          }
+        }
+      }
+      throw err;
+    }
+  },
 };
 
 export default registrationService;
