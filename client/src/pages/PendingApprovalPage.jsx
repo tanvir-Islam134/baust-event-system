@@ -9,6 +9,50 @@ export default function PendingApprovalPage() {
   const [checking, setChecking] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
+  const isPending =
+    Boolean(user) &&
+    (user.organizerRequestStatus === 'pending' || user.organizerStatus === 'pending') &&
+    user.role !== 'organizer' &&
+    user.role !== 'admin';
+
+  const isRejected =
+    Boolean(user) &&
+    (user.organizerRequestStatus === 'rejected' || user.organizerStatus === 'rejected') &&
+    user.role !== 'organizer' &&
+    user.role !== 'admin';
+
+  // Real-time socket listener so approval or rejection reflects instantly
+  useEffect(() => {
+    if (!user || (!isPending && !isRejected)) return;
+    let socket = null;
+    let isMounted = true;
+
+    const shouldConnectSocket =
+      typeof window !== 'undefined' &&
+      (window.location.hostname.includes('localhost') || Boolean(import.meta.env.VITE_SERVER_URL));
+
+    if (shouldConnectSocket) {
+      import('socket.io-client')
+        .then(({ io }) => {
+          if (!isMounted || !io) return;
+          const socketUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+          socket = io(socketUrl, { withCredentials: true, autoConnect: true });
+          socket.emit('join_user_room', user);
+
+          socket.on('organizer_status_updated', async () => {
+            if (!isMounted) return;
+            if (refreshUser) await refreshUser();
+          });
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      isMounted = false;
+      if (socket) socket.disconnect();
+    };
+  }, [user, isPending, isRejected, refreshUser]);
+
   // If session is still loading, show a clean spinner
   if (loading) {
     return (
@@ -26,47 +70,10 @@ export default function PendingApprovalPage() {
     return <Navigate to="/" replace />;
   }
 
-  // Check if user is pending or rejected
-  const isPending =
-    (user.organizerRequestStatus === 'pending' || user.organizerStatus === 'pending') &&
-    user.role !== 'organizer' &&
-    user.role !== 'admin';
-
-  const isRejected =
-    (user.organizerRequestStatus === 'rejected' || user.organizerStatus === 'rejected') &&
-    user.role !== 'organizer' &&
-    user.role !== 'admin';
-
   // If already approved as organizer (or admin, or regular student without any request), route to dashboard
   if (!isPending && !isRejected) {
     return <Navigate to="/dashboard" replace />;
   }
-
-  // Real-time socket listener so approval or rejection reflects instantly
-  useEffect(() => {
-    if (!user) return;
-    let socket = null;
-    let isMounted = true;
-
-    import('socket.io-client')
-      .then(({ io }) => {
-        if (!isMounted || !io) return;
-        const socketUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
-        socket = io(socketUrl, { withCredentials: true, autoConnect: true });
-        socket.emit('join_user_room', user);
-
-        socket.on('organizer_status_updated', async () => {
-          if (!isMounted) return;
-          if (refreshUser) await refreshUser();
-        });
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
-      if (socket) socket.disconnect();
-    };
-  }, [user, refreshUser]);
 
   const handleLogout = async () => {
     try {

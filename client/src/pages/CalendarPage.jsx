@@ -70,6 +70,13 @@ export default function CalendarPage() {
     import('socket.io-client')
       .then(({ io }) => {
         if (!isMounted || !io) return;
+        if (
+          typeof window !== 'undefined' &&
+          !window.location.hostname.includes('localhost') &&
+          !import.meta.env.VITE_SERVER_URL
+        ) {
+          return;
+        }
         const socketUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
         socket = io(socketUrl, { withCredentials: true, autoConnect: true });
 

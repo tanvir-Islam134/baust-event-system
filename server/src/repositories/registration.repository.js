@@ -283,15 +283,8 @@ export class RegistrationRepository extends BaseRepository {
    */
   async findPendingByClub(clubId) {
     if (!clubId) return [];
-    const snapshot = await this.collection
-      .where('clubId', '==', clubId)
-      .where('status', 'in', PENDING_REGISTRATION_STATUSES)
-      .get();
-
-    const results = [];
-    snapshot.forEach((doc) => {
-      results.push({ id: doc.id, ...doc.data() });
-    });
+    const clubRegs = await this.find([['clubId', '==', clubId]]);
+    const results = clubRegs.filter((r) => PENDING_REGISTRATION_STATUSES.includes(r.status));
 
     return results.sort((a, b) => {
       const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
