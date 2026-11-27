@@ -7,6 +7,7 @@ import paymentService from '../services/paymentService.js';
 import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
 import LiveQRScannerModal from '../components/events/LiveQRScannerModal.jsx';
 import BkashCheckoutModal from '../components/payments/BkashCheckoutModal.jsx';
+import EventFeedbackSection from '../components/events/EventFeedbackSection.jsx';
 
 export default function EventDetailsPage() {
   const { id } = useParams();
@@ -578,6 +579,13 @@ export default function EventDetailsPage() {
               ) : null}
             </div>
           </div>
+
+          {/* Verified Attendee Ratings & Feedback */}
+          <EventFeedbackSection
+            eventId={id}
+            myRegistration={myRegistration}
+            isPastEvent={isPastEvent}
+          />
         </div>
       </div>
 

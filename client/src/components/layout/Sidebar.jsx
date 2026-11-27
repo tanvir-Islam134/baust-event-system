@@ -41,7 +41,8 @@ export default function Sidebar({
         !location.search.includes('tab=review-queue') &&
         !location.search.includes('tab=pending-registrations') &&
         !location.search.includes('tab=budget') &&
-        !location.search.includes('tab=gate-scanner')));
+        !location.search.includes('tab=gate-scanner') &&
+        !location.search.includes('tab=analytics')));
 
   const linkBaseClasses =
     'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all';
@@ -192,20 +193,36 @@ export default function Sidebar({
           </>
         )}
 
-        {/* Admin: Pending Events Review Queue */}
+        {/* Admin: Pending Events Review Queue & University Analytics */}
         {isAdmin && (
-          <Link
-            to="/dashboard?tab=review-queue"
-            className={`${linkBaseClasses} ${isTabActive('review-queue') ? activeClasses : inactiveClasses}`}
-            onClick={() => {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="truncate">Review Queue</span>
-          </Link>
+          <>
+            <Link
+              to="/dashboard?tab=review-queue"
+              className={`${linkBaseClasses} ${isTabActive('review-queue') ? activeClasses : inactiveClasses}`}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="truncate">Review Queue</span>
+            </Link>
+
+            <Link
+              to="/dashboard?tab=analytics"
+              className={`${linkBaseClasses} ${isTabActive('analytics') ? activeClasses : inactiveClasses}`}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+              </svg>
+              <span className="truncate">Analytics</span>
+            </Link>
+          </>
         )}
 
         {/* Events Catalog */}

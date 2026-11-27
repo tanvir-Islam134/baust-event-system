@@ -2,13 +2,27 @@ import { notificationRepository } from '../repositories/notification.repository.
 import NotificationModel from '../models/Notification.model.js';
 
 /**
- * Service to handle system notifications across MongoDB (Mongoose) and Firestore repository.
+ * Shared persistence helper for saving notification records across Firestore & optional Mongoose.
  */
+const saveNotificationRecord = async (notifData) => {
+  try {
+    if (NotificationModel && NotificationModel.db?.readyState === 1) {
+      await NotificationModel.create(notifData);
+    }
+  } catch (err) {
+    console.warn('[NotificationService] Mongoose create warning:', err.message);
+  }
+
+  try {
+    return await notificationRepository.create(notifData);
+  } catch (err) {
+    console.warn('[NotificationService] Repository create warning:', err.message);
+    return notifData;
+  }
+};
 
 /**
  * Create a new notification for administrators.
- * Saves to MongoDB if Mongoose is connected, and stores in notificationRepository.
- * @param {object} payload
  */
 export const createAdminNotification = async ({
   senderId,
@@ -19,43 +33,24 @@ export const createAdminNotification = async ({
   message,
   data = {},
 }) => {
-  const notifData = {
+  return saveNotificationRecord({
     recipientRole: 'admin',
     recipientId: null,
-    senderId,
-    senderName,
-    senderEmail,
+    senderId: senderId || 'system',
+    senderName: senderName || 'BAUST User',
+    senderEmail: senderEmail || 'system@baust.edu.bd',
     type,
     title,
     message,
     data,
     isRead: false,
+    readBy: [],
     createdAt: new Date().toISOString(),
-  };
-
-  // Try saving with Mongoose if connected
-  try {
-    if (NotificationModel && NotificationModel.db?.readyState === 1) {
-      await NotificationModel.create(notifData);
-    }
-  } catch (err) {
-    console.warn('[NotificationService] Mongoose create warning:', err.message);
-  }
-
-  // Also store in repository
-  try {
-    const saved = await notificationRepository.create(notifData);
-    return saved;
-  } catch (err) {
-    console.warn('[NotificationService] Repository create warning:', err.message);
-    return notifData;
-  }
+  });
 };
 
 /**
- * Create a new notification for an Organizer or specific user.
- * Saves to MongoDB if Mongoose is connected, and stores in notificationRepository.
- * @param {object} payload
+ * Create a new notification for an Organizer.
  */
 export const createOrganizerNotification = async ({
   recipientId,
@@ -67,7 +62,8 @@ export const createOrganizerNotification = async ({
   message,
   data = {},
 }) => {
-  const notifData = {
+  if (!recipientId) return null;
+  return saveNotificationRecord({
     recipientRole: 'organizer',
     recipientId,
     senderId,
@@ -78,132 +74,109 @@ export const createOrganizerNotification = async ({
     message,
     data,
     isRead: false,
+    readBy: [],
     createdAt: new Date().toISOString(),
-  };
-
-  // Try saving with Mongoose if connected
-  try {
-    if (NotificationModel && NotificationModel.db?.readyState === 1) {
-      await NotificationModel.create(notifData);
-    }
-  } catch (err) {
-    console.warn('[NotificationService] Mongoose create warning:', err.message);
-  }
-
-  // Also store in repository
-  try {
-    const saved = await notificationRepository.create(notifData);
-    return saved;
-  } catch (err) {
-    console.warn('[NotificationService] Repository create warning:', err.message);
-    return notifData;
-  }
+  });
 };
 
 /**
- * Get all notifications for admin
- * @param {{ unreadOnly?: boolean }} options
+ * Create a targeted notification for a specific student/participant.
  */
+export const createParticipantNotification = async ({
+  recipientId,
+  senderId = 'system',
+  senderName = 'BAUST Event System',
+  senderEmail = 'noreply@baust.edu.bd',
+  type = 'registration_approved',
+  title = 'Registration Update',
+  message,
+  data = {},
+}) => {
+  if (!recipientId) return null;
+  return saveNotificationRecord({
+    recipientRole: 'participant',
+    recipientId,
+    senderId,
+    senderName,
+    senderEmail,
+    type,
+    title,
+    message,
+    data,
+    isRead: false,
+    readBy: [],
+    createdAt: new Date().toISOString(),
+  });
+};
+
+/**
+ * Broadcast an event announcement/new-event notification to all students.
+ */
+export const createParticipantBroadcastNotification = async ({
+  senderId = 'admin',
+  senderName = 'BAUST Administration',
+  senderEmail = 'admin@baust.edu.bd',
+  type = 'new_event_published',
+  title = 'New Campus Event Published',
+  message,
+  data = {},
+}) => {
+  return saveNotificationRecord({
+    recipientRole: 'participant',
+    recipientId: null,
+    senderId,
+    senderName,
+    senderEmail,
+    type,
+    title,
+    message,
+    data,
+    isRead: false,
+    readBy: [],
+    createdAt: new Date().toISOString(),
+  });
+};
+
+/**
+ * Get role-scoped notifications for any authenticated user (admin, organizer, participant).
+ */
+export const getUserNotifications = async ({ uid, role, unreadOnly = false } = {}) => {
+  const notifications = await notificationRepository.findUserNotifications({
+    uid,
+    role,
+    unreadOnly,
+  });
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  return { notifications, unreadCount };
+};
+
 export const getAdminNotifications = async ({ unreadOnly = false } = {}) => {
-  // If Mongoose is active, query via Mongoose
-  try {
-    if (NotificationModel && NotificationModel.db?.readyState === 1) {
-      const query = { recipientRole: 'admin' };
-      if (unreadOnly) query.isRead = false;
-      const list = await NotificationModel.find(query).sort({ createdAt: -1 }).limit(50);
-      const unreadCount = await NotificationModel.countDocuments({
-        recipientRole: 'admin',
-        isRead: false,
-      });
-      return { notifications: list, unreadCount };
-    }
-  } catch {
-    // fallback to repository
-  }
-
-  const list = await notificationRepository.findAdminNotifications({ unreadOnly });
-  const unreadCount = list.filter((n) => !n.isRead).length;
-  return { notifications: list, unreadCount };
+  return getUserNotifications({ uid: null, role: 'admin', unreadOnly });
 };
 
 /**
- * Mark a single notification as read
- * @param {string} id
+ * Mark a single notification as read for the requesting user.
  */
-export const markNotificationAsRead = async (id) => {
+export const markNotificationAsRead = async (id, uid = null, role = null) => {
   if (!id || typeof id !== 'string' || id.startsWith('temp_')) {
     return { id, isRead: true };
   }
-  try {
-    if (NotificationModel && NotificationModel.db?.readyState === 1) {
-      await NotificationModel.findByIdAndUpdate(id, { isRead: true });
-    }
-  } catch {
-    // ignore
-  }
-
-  return notificationRepository.markAsRead(id);
+  return notificationRepository.markAsRead(id, uid, role);
 };
 
-/**
- * Mark all organizer request notifications for an applicant as read
- * @param {string} senderId
- */
 export const markOrganizerRequestsAsRead = async (senderId) => {
   if (!senderId) return false;
-  try {
-    if (NotificationModel && NotificationModel.db?.readyState === 1) {
-      await NotificationModel.updateMany(
-        {
-          type: 'new_organizer_request',
-          $or: [{ senderId }, { 'data.userId': senderId }, { 'data.applicantId': senderId }],
-          isRead: false,
-        },
-        { isRead: true }
-      );
-    }
-  } catch (err) {
-    console.warn('[NotificationService] Mongoose markOrganizerRequestsAsRead warning:', err.message);
-  }
-
   return notificationRepository.markOrganizerRequestsAsRead(senderId);
 };
 
-/**
- * Mark all event approval notifications for an event as read
- * @param {string} eventId
- */
 export const markEventRequestsAsRead = async (eventId) => {
   if (!eventId) return false;
-  try {
-    if (NotificationModel && NotificationModel.db?.readyState === 1) {
-      await NotificationModel.updateMany(
-        {
-          type: 'event_pending_approval',
-          $or: [{ 'data.eventId': eventId }, { eventId }],
-          isRead: false,
-        },
-        { isRead: true }
-      );
-    }
-  } catch (err) {
-    console.warn('[NotificationService] Mongoose markEventRequestsAsRead warning:', err.message);
-  }
-
   return notificationRepository.markEventRequestsAsRead(eventId);
 };
 
 /**
- * Mark all admin notifications as read
+ * Mark all notifications as read for the requesting user.
  */
-export const markAllNotificationsAsRead = async () => {
-  try {
-    if (NotificationModel && NotificationModel.db?.readyState === 1) {
-      await NotificationModel.updateMany({ recipientRole: 'admin', isRead: false }, { isRead: true });
-    }
-  } catch {
-    // ignore
-  }
-
-  return notificationRepository.markAllAdminAsRead();
+export const markAllNotificationsAsRead = async ({ uid = null, role = 'admin' } = {}) => {
+  return notificationRepository.markAllForUserAsRead({ uid, role });
 };

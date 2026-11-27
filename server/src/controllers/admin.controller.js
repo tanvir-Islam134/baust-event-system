@@ -36,3 +36,19 @@ export const demoteOrganizer = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/v1/admin/analytics
+ * Admin-only: Aggregate university-wide performance, attendance, and financial analytics.
+ */
+export const getAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await adminService.getUniversityAnalytics();
+    res.status(200).json({
+      success: true,
+      data: analytics,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

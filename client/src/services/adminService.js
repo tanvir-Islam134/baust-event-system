@@ -20,6 +20,14 @@ export const adminService = {
     const response = await api.post(`/admin/organizers/${userId}/demote`);
     return response.data?.data || response.data;
   },
+
+  /**
+   * Fetch university-wide analytics datasets (Admin only).
+   */
+  getAnalytics: async () => {
+    const response = await api.get('/admin/analytics');
+    return response.data?.data || response.data;
+  },
 };
 
 export default adminService;

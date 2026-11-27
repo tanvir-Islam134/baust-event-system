@@ -14,6 +14,10 @@ import {
   sendRegistrationConfirmationEmail,
   sendPaymentApprovalEmail,
 } from './email.service.js';
+import {
+  createOrganizerNotification,
+  createParticipantNotification,
+} from './notification.service.js';
 
 /**
  * Service handling attendee event registration and cancellation.
@@ -37,37 +41,60 @@ export const createRegistration = async (authUserId, rawData) => {
   try {
     const created = await registrationRepository.createRegistrationTransactional(validated);
 
-    // Trigger registration confirmation email only after DB transaction succeeds
-    if (created && !created.confirmationEmailSentAt) {
+    // Trigger registration confirmation email & Organizer notification after DB transaction succeeds
+    if (created) {
       try {
         const [event, student] = await Promise.all([
           eventRepository.findById(created.eventId).catch(() => null),
           created.userId ? userRepository.findById(created.userId).catch(() => null) : null,
         ]);
 
-        const recipientEmail = student?.email || created.guest?.email || null;
-        if (recipientEmail) {
-          const emailRes = await sendRegistrationConfirmationEmail({
-            to: recipientEmail,
-            studentName: student?.name || created.guest?.name || 'BAUST Student',
-            eventName: event?.title || event?.eventName || 'BAUST Campus Event',
-            eventDate: event?.date || 'TBA',
-            eventTime: event?.time || event?.startTime || '',
-            eventVenue: event?.venue || 'TBA',
-            clubName: event?.clubName || event?.clubAffiliation || null,
-            ticketCode: created.ticketCode,
-            paymentMethod: created.paymentMethod,
-            trxId: created.trxId,
-            amount: event?.ticketPrice ?? event?.fee ?? 0,
-          });
-          if (emailRes?.sent) {
-            await registrationRepository
-              .update(created.id, { confirmationEmailSentAt: new Date() })
-              .catch(() => {});
+        const studentName = student?.name || created.guest?.name || 'BAUST Student';
+        const eventName = event?.title || event?.eventName || 'BAUST Campus Event';
+
+        const ownerUid = event?.createdBy || event?.organizerId || null;
+        if (ownerUid) {
+          await createOrganizerNotification({
+            recipientId: ownerUid,
+            senderId: created.userId || 'guest',
+            senderName: studentName,
+            senderEmail: student?.email || created.guest?.email || 'student@baust.edu.bd',
+            type: 'registration_submitted',
+            title: 'New Event Registration',
+            message: `${studentName} registered for "${eventName}"${created.trxId ? ` (bKash TrxID: ${created.trxId})` : ''}.`,
+            data: {
+              eventId: created.eventId,
+              registrationId: created.id,
+              trxId: created.trxId || null,
+            },
+          }).catch(() => {});
+        }
+
+        if (!created.confirmationEmailSentAt) {
+          const recipientEmail = student?.email || created.guest?.email || null;
+          if (recipientEmail) {
+            const emailRes = await sendRegistrationConfirmationEmail({
+              to: recipientEmail,
+              studentName,
+              eventName,
+              eventDate: event?.date || 'TBA',
+              eventTime: event?.time || event?.startTime || '',
+              eventVenue: event?.venue || 'TBA',
+              clubName: event?.clubName || event?.clubAffiliation || null,
+              ticketCode: created.ticketCode,
+              paymentMethod: created.paymentMethod,
+              trxId: created.trxId,
+              amount: event?.ticketPrice ?? event?.fee ?? 0,
+            });
+            if (emailRes?.sent) {
+              await registrationRepository
+                .update(created.id, { confirmationEmailSentAt: new Date() })
+                .catch(() => {});
+            }
           }
         }
-      } catch (emailErr) {
-        console.warn(`[RegistrationService] Confirmation email error for ${created.id}: ${emailErr.message}`);
+      } catch (notifyErr) {
+        console.warn(`[RegistrationService] Post-registration hook error for ${created.id}: ${notifyErr.message}`);
       }
     }
 
@@ -231,7 +258,28 @@ export const updateRegistrationStatusByOrganizer = async (
       reviewedBy: organizerUid,
     });
 
-    // Trigger payment approval email (with Ticket ID & QR code) only after DB approval succeeds
+    // Trigger Student in-app notification + payment approval email after DB update succeeds
+    if (updated?.userId) {
+      const evTitle = event.title || event.eventName || 'BAUST Campus Event';
+      await createParticipantNotification({
+        recipientId: updated.userId,
+        senderId: organizerUid,
+        senderName: event.clubName || 'Event Organizer',
+        senderEmail: 'noreply@baust.edu.bd',
+        type: status === 'approved' ? 'registration_approved' : 'registration_rejected',
+        title: status === 'approved' ? 'Registration Approved! Ticket Ready' : 'Registration Declined',
+        message:
+          status === 'approved'
+            ? `Your registration for "${evTitle}" has been approved! Ticket ID: ${updated.ticketCode}`
+            : `Your registration for "${evTitle}" was declined.${updated.rejectionReason ? ` Reason: ${updated.rejectionReason}` : ''}`,
+        data: {
+          eventId: updated.eventId,
+          registrationId: updated.id,
+          ticketCode: updated.ticketCode,
+        },
+      }).catch(() => {});
+    }
+
     if (status === 'approved' && updated && !updated.approvalEmailSentAt) {
       try {
         const student = updated.userId

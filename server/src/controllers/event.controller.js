@@ -237,6 +237,27 @@ export const updateStatus = async (req, res, next) => {
       }
     }
 
+    // 1b. If approved, notify students about the newly published campus event
+    if (isApproved) {
+      try {
+        await notifService.createParticipantBroadcastNotification({
+          senderId: req.user?.uid || 'admin',
+          senderName: req.user?.name || 'BAUST Administration',
+          senderEmail: req.user?.email || 'admin@baust.edu.bd',
+          type: 'new_event_published',
+          title: 'New Campus Event Published',
+          message: `"${eventTitle}" by ${existingEvent.clubName || existingEvent.clubAffiliation || 'BAUST Club'} is now open for registration (${existingEvent.date || 'TBA'}).`,
+          data: {
+            eventId,
+            title: eventTitle,
+            date: existingEvent.date || null,
+          },
+        });
+      } catch (broadcastErr) {
+        console.warn('[EventController] Participant broadcast error:', broadcastErr.message);
+      }
+    }
+
     // 2. Emit real-time Socket.io event to notify the Organizer and update admin queue
     const io = req.app.get('io');
     if (io) {
@@ -256,6 +277,7 @@ export const updateStatus = async (req, res, next) => {
         io.to('organizer_room').emit('event_status_updated', socketPayload);
         io.to('admin_room').emit('event_request_processed', { eventId, status: updated.status });
         io.emit('event_status_updated', socketPayload);
+        io.emit('notification_created', { eventId, status: updated.status });
       } catch (socketErr) {
         console.warn('[EventController] Socket emit error:', socketErr.message);
       }

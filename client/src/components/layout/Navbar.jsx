@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
-import AdminNotificationBell from '../admin/AdminNotificationBell.jsx';
+import NotificationBell from './NotificationBell.jsx';
 import { isParticipantProfileComplete } from '../../utils/userUtils.js';
 
 export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
@@ -112,8 +112,8 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen = true }) {
               )}
             </div>
 
-            {/* Real-time Admin Notifications */}
-            {user.role === 'admin' && <AdminNotificationBell />}
+            {/* Real-time Role-Aware Notifications (Admin, Organizer & Student) */}
+            <NotificationBell />
 
             <Link
               to="/profile"

@@ -35,13 +35,18 @@ const NotificationSchema = new mongoose.Schema(
         'event_approved',
         'event_declined',
         'event_rejected',
+        'new_event_published',
+        'event_updated',
+        'registration_submitted',
+        'registration_approved',
+        'registration_rejected',
       ],
       default: 'new_organizer_request',
     },
     title: {
       type: String,
       required: true,
-      default: 'New Organizer Request',
+      default: 'Notification',
     },
     message: {
       type: String,
@@ -55,6 +60,10 @@ const NotificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       index: true,
+    },
+    readBy: {
+      type: [String],
+      default: [],
     },
   },
   {

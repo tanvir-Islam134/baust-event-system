@@ -17,5 +17,8 @@ router.post('/organizers/:id/demote', adminController.demoteOrganizer);
 // DELETE /api/v1/admin/organizers/:id - Delete / Demote organizer role alias
 router.delete('/organizers/:id', adminController.demoteOrganizer);
 
+// GET /api/v1/admin/analytics - University-wide analytics charts dataset
+router.get('/analytics', adminController.getAnalytics);
+
 export default router;
 
