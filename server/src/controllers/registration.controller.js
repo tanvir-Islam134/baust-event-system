@@ -1,31 +1,27 @@
 import * as registrationService from '../services/registration.service.js';
 import * as eventService from '../services/event.service.js';
+import { isEventInPast } from '../utils/conflictDetector.js';
 
 /**
- * POST /api/v1/registrations
+ * POST /api/v1/registrations (and POST /api/v1/register)
  * Register for an event (authenticated participant or guest).
- * Validates that event is not in the past before registering.
+ * Validates that event has not concluded before registering.
  */
 export const create = async (req, res, next) => {
   try {
     const { eventId } = req.body;
 
-    // Check if event date has passed
+    // Check if event has already concluded using timezone/end-time aware helper
     if (eventId) {
       const event = await eventService.getEventById(eventId);
-      if (event && event.date) {
-        const eventDate = new Date(event.date);
-        const now = new Date();
-
-        if (eventDate < now) {
-          return res.status(400).json({
-            success: false,
-            error: {
-              message: 'Registration is closed for past events.',
-            },
+      if (event && isEventInPast(event)) {
+        return res.status(400).json({
+          success: false,
+          error: {
             message: 'Registration is closed for past events.',
-          });
-        }
+          },
+          message: 'Registration is closed for past events.',
+        });
       }
     }
 

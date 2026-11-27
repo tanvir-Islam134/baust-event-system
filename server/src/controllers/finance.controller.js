@@ -27,7 +27,12 @@ export const createExpense = async (req, res, next) => {
  */
 export const getExpenses = async (req, res, next) => {
   try {
-    const data = await financeService.getEventExpenses(req.params.eventId, req.query.category || null);
+    const data = await financeService.getEventExpenses(
+      req.params.eventId,
+      req.query.category || null,
+      req.user.uid,
+      req.user
+    );
     res.status(200).json({
       success: true,
       data,
@@ -60,7 +65,12 @@ export const createIncome = async (req, res, next) => {
  */
 export const getIncomes = async (req, res, next) => {
   try {
-    const data = await financeService.getEventIncomes(req.params.eventId, req.query.type || null);
+    const data = await financeService.getEventIncomes(
+      req.params.eventId,
+      req.query.type || null,
+      req.user.uid,
+      req.user
+    );
     res.status(200).json({
       success: true,
       data,
@@ -76,7 +86,7 @@ export const getIncomes = async (req, res, next) => {
  */
 export const getRevenue = async (req, res, next) => {
   try {
-    const result = await financeService.getEventRevenue(req.params.eventId);
+    const result = await financeService.getEventRevenue(req.params.eventId, req.user.uid, req.user);
     res.status(200).json({
       success: true,
       data: result,
@@ -92,7 +102,7 @@ export const getRevenue = async (req, res, next) => {
  */
 export const getSummary = async (req, res, next) => {
   try {
-    const result = await financeService.getEventBudgetSummary(req.params.eventId);
+    const result = await financeService.getEventBudgetSummary(req.params.eventId, req.user.uid, req.user);
     res.status(200).json({
       success: true,
       data: result,

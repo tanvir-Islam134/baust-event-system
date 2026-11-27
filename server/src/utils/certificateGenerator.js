@@ -1,10 +1,17 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 /**
+ * Strip non-WinAnsi characters so pdf-lib standard fonts never throw on Unicode/emoji.
+ */
+const sanitizePdfText = (value) => {
+  return String(value ?? '').replace(/[^\x20-\x7E]/g, ' ').replace(/\s+/g, ' ').trim();
+};
+
+/**
  * Center-align helper for pdf-lib text drawing.
  */
 const drawCenteredText = (page, text, y, font, size, color) => {
-  const safeText = String(text || '').replace(/[^\x20-\x7E]/g, ' ');
+  const safeText = sanitizePdfText(text);
   const textWidth = font.widthOfTextAtSize(safeText, size);
   const { width } = page.getSize();
   page.drawText(safeText, {
@@ -17,22 +24,37 @@ const drawCenteredText = (page, text, y, font, size, color) => {
 };
 
 /**
- * Format YYYY-MM-DD or Date into readable certificate date string.
+ * Format YYYY-MM-DD, Date, or Firestore Timestamp into readable certificate date string.
  */
 const formatCertificateDate = (rawDate) => {
   if (!rawDate) return 'Date N/A';
   try {
+    if (typeof rawDate?.toDate === 'function') {
+      return rawDate.toDate().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+    if (typeof rawDate?._seconds === 'number' || typeof rawDate?.seconds === 'number') {
+      const sec = rawDate._seconds ?? rawDate.seconds;
+      return new Date(sec * 1000).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
     let clean = String(rawDate).trim();
     if (clean.startsWith('26444-')) clean = clean.replace('26444-', '2026-');
     const parsed = new Date(clean);
-    if (isNaN(parsed.getTime())) return clean;
+    if (isNaN(parsed.getTime())) return sanitizePdfText(clean);
     return parsed.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
   } catch {
-    return String(rawDate);
+    return sanitizePdfText(rawDate);
   }
 };
 
@@ -203,7 +225,7 @@ export const generateCertificatePdf = async ({
     thickness: 1,
     color: navy,
   });
-  page.drawText(organizerName || clubName || 'Event Organizer', {
+  page.drawText(sanitizePdfText(organizerName || clubName || 'Event Organizer') || 'Event Organizer', {
     x: 90,
     y: sigY - 16,
     size: 10,
@@ -232,7 +254,7 @@ export const generateCertificatePdf = async ({
     font: fontSansBold,
     color: navy,
   });
-  page.drawText(`Issued: ${formatCertificateDate(issuedAt)}`, {
+  page.drawText(sanitizePdfText(`Issued: ${formatCertificateDate(issuedAt)}`), {
     x: width - 290,
     y: sigY - 30,
     size: 9,
@@ -243,7 +265,7 @@ export const generateCertificatePdf = async ({
   // Footer Certificate ID
   drawCenteredText(
     page,
-    `Certificate ID: ${certificateId}   •   Verified Attendance Record`,
+    `Certificate ID: ${certificateId}  |  Verified Attendance Record`,
     48,
     fontSansBold,
     9,

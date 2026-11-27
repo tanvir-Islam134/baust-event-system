@@ -91,7 +91,7 @@ export const deleteExpense = async (expenseId, userId, requestingUser = null) =>
  * Calculate total ticket revenue for an event based on approved registrations.
  * Revenue = ticketPrice * number of approved registrations.
  */
-export const getEventRevenue = async (eventId) => {
+export const getEventRevenue = async (eventId, userId = null, requestingUser = null) => {
   if (!eventId) {
     throw new AppError('Event ID is required', 400);
   }
@@ -99,6 +99,10 @@ export const getEventRevenue = async (eventId) => {
   const event = await eventRepository.findById(eventId);
   if (!event) {
     throw new AppError(`Event with ID '${eventId}' not found`, 404);
+  }
+
+  if (userId) {
+    await assertEventFinanceAccess(userId, event, requestingUser);
   }
 
   const registrations = await registrationRepository.findByEvent(eventId);
@@ -120,7 +124,7 @@ export const getEventRevenue = async (eventId) => {
  * ticket revenue (approved registrations) vs logged expenses & other incomes.
  * @param {string} eventId
  */
-export const getEventBudgetSummary = async (eventId) => {
+export const getEventBudgetSummary = async (eventId, userId = null, requestingUser = null) => {
   if (!eventId) {
     throw new AppError('Event ID is required', 400);
   }
@@ -128,6 +132,10 @@ export const getEventBudgetSummary = async (eventId) => {
   const event = await eventRepository.findById(eventId);
   if (!event) {
     throw new AppError(`Event with ID '${eventId}' not found`, 404);
+  }
+
+  if (userId) {
+    await assertEventFinanceAccess(userId, event, requestingUser);
   }
 
   const [registrations, expenses, incomes] = await Promise.all([
@@ -179,9 +187,17 @@ export const getEventBudgetSummary = async (eventId) => {
  * @param {string} eventId
  * @param {string|null} [category=null]
  */
-export const getEventExpenses = async (eventId, category = null) => {
+export const getEventExpenses = async (eventId, category = null, userId = null, requestingUser = null) => {
   if (!eventId) {
     throw new AppError('Event ID is required', 400);
+  }
+
+  if (userId) {
+    const event = await eventRepository.findById(eventId);
+    if (!event) {
+      throw new AppError(`Event with ID '${eventId}' not found`, 404);
+    }
+    await assertEventFinanceAccess(userId, event, requestingUser);
   }
 
   const items = await expenseRepository.findByEvent(eventId, category);
@@ -220,9 +236,17 @@ export const createIncome = async (userId, rawData) => {
  * @param {string} eventId
  * @param {'sponsor'|'alumni'|null} [type=null]
  */
-export const getEventIncomes = async (eventId, type = null) => {
+export const getEventIncomes = async (eventId, type = null, userId = null, requestingUser = null) => {
   if (!eventId) {
     throw new AppError('Event ID is required', 400);
+  }
+
+  if (userId) {
+    const event = await eventRepository.findById(eventId);
+    if (!event) {
+      throw new AppError(`Event with ID '${eventId}' not found`, 404);
+    }
+    await assertEventFinanceAccess(userId, event, requestingUser);
   }
 
   const items = await incomeRepository.findByEvent(eventId, type);

@@ -317,28 +317,13 @@ export const getMyRegistrations = async (userId) => {
   }
 
   // Hydrate with event details and sign QR
-  const now = new Date();
   const hydrated = await Promise.all(
     registrations.map(async (reg) => {
       const event = await eventRepository.findById(reg.eventId).catch(() => null);
       const qrToken = signTicketQr(reg, event || {});
 
-      // Calculate whether the event has already taken place
-      let isPastEvent = false;
-      if (event?.date) {
-        try {
-          const dateStr = String(event.date).slice(0, 10);
-          const eventDateObj = new Date(`${dateStr}T${event.endTime || '23:59:59'}`);
-          if (!isNaN(eventDateObj.getTime())) {
-            isPastEvent = eventDateObj < now;
-          } else {
-            const fallbackDate = new Date(dateStr);
-            isPastEvent = !isNaN(fallbackDate.getTime()) && fallbackDate < now;
-          }
-        } catch {
-          // ignore
-        }
-      }
+      // Calculate whether the event has already concluded (handles AM/PM times & status)
+      const isPastEvent = event ? isEventInPast(event) : false;
 
       // If an event has ended and registration remained pending, mark status as expired
       let status = reg.status || 'pending';
@@ -403,21 +388,7 @@ export const getTicketDetails = async (registrationId, callerUid, callerRole) =>
   const user = reg.userId ? await userRepository.findById(reg.userId) : null;
   const qrToken = signTicketQr(reg, event);
 
-  let isPastEvent = false;
-  if (event?.date) {
-    try {
-      const dateStr = String(event.date).slice(0, 10);
-      const eventDateObj = new Date(`${dateStr}T${event.endTime || '23:59:59'}`);
-      if (!isNaN(eventDateObj.getTime())) {
-        isPastEvent = eventDateObj < new Date();
-      } else {
-        const fallbackDate = new Date(dateStr);
-        isPastEvent = !isNaN(fallbackDate.getTime()) && fallbackDate < new Date();
-      }
-    } catch {
-      // ignore
-    }
-  }
+  const isPastEvent = event ? isEventInPast(event) : false;
 
   let status = reg.status || 'pending';
   if (isPastEvent && PENDING_REGISTRATION_STATUSES.includes(status) && !reg.attended) {

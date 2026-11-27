@@ -260,8 +260,19 @@ export default function EventDetailsPage() {
   const isFull = regCount >= capacity;
   const isApproved = event.status === 'approved';
   const capacityPercent = Math.min(100, Math.round((regCount / capacity) * 100));
-  const isFree = Number(event.fee) === 0;
-  const isPastEvent = event?.date ? new Date(event.date) < new Date() : false;
+  const eventFee = Number(event.ticketPrice ?? event.fee ?? 0) || 0;
+  const isFree = eventFee === 0;
+  const isPastEvent = (() => {
+    if (event.status === 'completed') return true;
+    if (!event?.date) return false;
+    const cleanDate = String(event.date).trim().slice(0, 10);
+    const endOfDay = new Date(`${cleanDate}T23:59:59`);
+    if (!isNaN(endOfDay.getTime())) {
+      return endOfDay < new Date();
+    }
+    const fallback = new Date(cleanDate);
+    return !isNaN(fallback.getTime()) && fallback < new Date();
+  })();
 
   const isOrganizerForEvent =
     user?.role === 'organizer' &&
@@ -788,7 +799,7 @@ export default function EventDetailsPage() {
                   <div>
                     <div className="font-bold text-[#E2136E]">Instant Verification & Automated Pass</div>
                     <p className="text-[11px] text-pink-800 mt-0.5">
-                      You will pay <strong>৳ {event.fee}</strong> via the secure official bKash Checkout window. As soon as you confirm, your seat is confirmed and your QR ticket is generated immediately!
+                      You will pay <strong>৳ {eventFee}</strong> via the secure official bKash Checkout window. As soon as you confirm, your seat is confirmed and your QR ticket is generated immediately!
                     </p>
                   </div>
                 </div>
@@ -810,7 +821,7 @@ export default function EventDetailsPage() {
                     className="w-full px-3 py-1.5 border border-pink-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 uppercase font-mono"
                   />
                   <p className="text-[11px] text-pink-800">
-                    Send fee (৳ {event.fee}) to merchant bKash number 01700-000000 and enter the TrxID. Requires organizer review.
+                    Send fee (৳ {eventFee}) to merchant bKash number 01700-000000 and enter the TrxID. Requires organizer review.
                   </p>
                 </div>
               )}
@@ -837,7 +848,7 @@ export default function EventDetailsPage() {
                     'Processing...'
                   ) : !isFree && formData.paymentMethod === 'bkash_gateway' ? (
                     <>
-                      <span>Pay ৳ {event.fee} with bKash</span>
+                      <span>Pay ৳ {eventFee} with bKash</span>
                       <span>&rarr;</span>
                     </>
                   ) : (

@@ -53,7 +53,6 @@ export default function DashboardPage({ defaultTab = null }) {
   // Organizer: Pending Event Registrations state
   const [pendingRegistrations, setPendingRegistrations] = useState([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
-  const [processingRegId, setProcessingRegId] = useState(null);
 
   // Toast feedback state
   const [toast, setToast] = useState(null); // { message: string, type: 'success' | 'error' }
@@ -64,10 +63,6 @@ export default function DashboardPage({ defaultTab = null }) {
   const [activeTicketData, setActiveTicketData] = useState(null);
   const [loadingTicketPassId, setLoadingTicketPassId] = useState(null);
   const [downloadingCertId, setDownloadingCertId] = useState(null);
-
-  // Rejection modal state for participant registrations
-  const [rejectingReg, setRejectingReg] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -264,6 +259,13 @@ export default function DashboardPage({ defaultTab = null }) {
     import('socket.io-client')
       .then(({ io }) => {
         if (!isMounted || !io) return;
+        if (
+          typeof window !== 'undefined' &&
+          !window.location.hostname.includes('localhost') &&
+          !import.meta.env.VITE_SERVER_URL
+        ) {
+          return;
+        }
         const socketUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
         socket = io(socketUrl, { withCredentials: true, autoConnect: true });
 
@@ -310,35 +312,6 @@ export default function DashboardPage({ defaultTab = null }) {
     showToast('Event created successfully! It is now pending administrative approval.', 'success');
     fetchMyEvents();
     handleTabChange('manage-events');
-  };
-
-  const handleApproveRegistration = async (regId) => {
-    try {
-      setProcessingRegId(regId);
-      await registrationService.approveRegistration(regId);
-      showToast('Registration accepted successfully!');
-      await fetchPendingRegistrations();
-    } catch (err) {
-      showToast(err.response?.data?.error?.message || err.message || 'Failed to approve registration', 'error');
-    } finally {
-      setProcessingRegId(null);
-    }
-  };
-
-  const handleConfirmReject = async () => {
-    if (!rejectingReg) return;
-    try {
-      setProcessingRegId(rejectingReg.id);
-      await registrationService.rejectRegistration(rejectingReg.id, rejectReason);
-      showToast('Registration rejected.');
-      setRejectingReg(null);
-      setRejectReason('');
-      await fetchPendingRegistrations();
-    } catch (err) {
-      showToast(err.response?.data?.error?.message || err.message || 'Failed to reject registration', 'error');
-    } finally {
-      setProcessingRegId(null);
-    }
   };
 
   return (
@@ -529,6 +502,7 @@ export default function DashboardPage({ defaultTab = null }) {
             loading={loadingRegistrations}
             onRefresh={fetchPendingRegistrations}
             onNotify={showToast}
+            onStatusUpdated={() => fetchMyEvents()}
           />
         </div>
       )}
@@ -1278,58 +1252,6 @@ export default function DashboardPage({ defaultTab = null }) {
         </div>
       )}
 
-      {/* Organizer Rejection Reason Modal */}
-      {rejectingReg && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
-            <div>
-              <div className="flex items-center gap-2 text-rose-600 font-bold text-base">
-                <span>⚠️</span>
-                <h3>Reject Event Registration</h3>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Are you sure you want to reject the registration of{' '}
-                <span className="font-semibold text-slate-800">{rejectingReg.participantName}</span> for{' '}
-                <span className="font-semibold text-slate-800">{rejectingReg.eventTitle}</span>?
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Reason for rejection (optional)
-              </label>
-              <textarea
-                rows={3}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="e.g. bKash transaction ID invalid, duplicate ticket application..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500 transition"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setRejectingReg(null);
-                  setRejectReason('');
-                }}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={processingRegId === rejectingReg.id}
-                onClick={handleConfirmReject}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
-              >
-                {processingRegId === rejectingReg.id ? 'Rejecting...' : 'Confirm Rejection'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Student Digital Pass / Ticket Modal */}
       {activeTicketData && (
         <DigitalTicketModal
