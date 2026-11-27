@@ -10,6 +10,7 @@ import OrganizerCreateEvent from '../components/organizer/OrganizerCreateEvent.j
 import OrganizerManageEvents from '../components/organizer/OrganizerManageEvents.jsx';
 import OrganizerBudgetTracker from '../components/organizer/OrganizerBudgetTracker.jsx';
 import OrganizerRegistrationQueue from '../components/organizer/OrganizerRegistrationQueue.jsx';
+import OrganizerGateScanner from '../components/organizer/OrganizerGateScanner.jsx';
 import StudentEventFeed from '../components/events/StudentEventFeed.jsx';
 import AdminEventReviewQueue from '../components/admin/AdminEventReviewQueue.jsx';
 import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
@@ -570,6 +571,37 @@ export default function DashboardPage({ defaultTab = null }) {
         </div>
       )}
 
+      {/* 4C. ORGANIZER VIEW: GATE ENTRY QR SCANNER */}
+      {canManageEvents && activeTab === 'gate-scanner' && (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-[#E5E5E5] shadow-xs">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleTabChange('overview')}
+                className="px-3 py-1.5 bg-[#E5E5E5]/60 hover:bg-[#E5E5E5] text-[#14213D] rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>&larr;</span>
+                <span>Back to Dashboard</span>
+              </button>
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('overview')}
+                  className="hover:text-[#14213D] transition cursor-pointer"
+                >
+                  Dashboard
+                </button>
+                <span>/</span>
+                <span className="text-[#14213D] font-bold">Gate QR Scanner</span>
+              </div>
+            </div>
+          </div>
+
+          <OrganizerGateScanner onNotify={showToast} />
+        </div>
+      )}
+
       {/* 5. DEFAULT VIEW: CLEAN DASHBOARD OVERVIEW (Rendered when on /dashboard with no tab) */}
       {(!canManageEvents || activeTab === 'overview') && (
         <div className="space-y-6 animate-in fade-in">
@@ -679,6 +711,14 @@ export default function DashboardPage({ defaultTab = null }) {
                     >
                       <span>💰</span>
                       <span>Budget &amp; Expenses</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('gate-scanner')}
+                      className="px-4 py-2 bg-[#14213D]/80 hover:bg-[#14213D] backdrop-blur-md text-[#FCA311] font-bold rounded-lg text-sm transition border border-[#FCA311]/40 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>📷</span>
+                      <span>Gate QR Scanner</span>
                     </button>
                   </>
                 ) : (
