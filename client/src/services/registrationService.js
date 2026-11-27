@@ -5,11 +5,12 @@ import api from './api.js';
  */
 export const registrationService = {
   /**
-   * Register for an event (authenticated participant or guest).
+   * Register for an event via POST /api/v1/register (authenticated participant or guest).
+   * Supports manual bKash TrxID ('Pending Payment Verification').
    * @param {object} registrationData
    */
   createRegistration: async (registrationData) => {
-    const response = await api.post('/registrations', registrationData);
+    const response = await api.post('/register', registrationData);
     return response.data?.data || response.data;
   },
 

@@ -116,7 +116,7 @@ export default function MyEventsPage() {
         upcoming++;
       }
       if (r.status === 'approved') confirmed++;
-      if (r.status === 'pending') pending++;
+      if (r.status === 'pending' || r.status === 'Pending Payment Verification') pending++;
     });
 
     return { total, upcoming, past, confirmed, pending };
@@ -133,7 +133,13 @@ export default function MyEventsPage() {
       if (statusFilter === 'upcoming' && past) return false;
       if (statusFilter === 'past' && !past) return false;
       if (statusFilter === 'confirmed' && reg.status !== 'approved') return false;
-      if (statusFilter === 'pending' && reg.status !== 'pending') return false;
+      if (
+        statusFilter === 'pending' &&
+        reg.status !== 'pending' &&
+        reg.status !== 'Pending Payment Verification'
+      ) {
+        return false;
+      }
 
       // Search query
       if (query) {
@@ -426,7 +432,9 @@ export default function MyEventsPage() {
                         </span>
                       ) : (
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-[#14213D] shadow-xs">
-                          Pending Review
+                          {reg.status === 'Pending Payment Verification'
+                            ? 'Pending Payment Verification'
+                            : 'Pending Review'}
                         </span>
                       )}
                     </div>

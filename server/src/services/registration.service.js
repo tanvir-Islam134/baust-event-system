@@ -2,7 +2,10 @@ import crypto from 'node:crypto';
 import { registrationRepository } from '../repositories/registration.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { eventRepository } from '../repositories/event.repository.js';
-import { CreateRegistrationInputSchema } from '../schemas/registration.schema.js';
+import {
+  CreateRegistrationInputSchema,
+  PENDING_REGISTRATION_STATUSES,
+} from '../schemas/registration.schema.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { signTicketQr, verifyTicketQr } from '../utils/qr.js';
 import { isEventInPast } from '../utils/conflictDetector.js';
@@ -201,7 +204,7 @@ export const updateRegistrationStatusByOrganizer = async (
     throw new AppError(`Registration with ID '${registrationId}' not found`, 404);
   }
 
-  if (registration.status !== 'pending') {
+  if (!PENDING_REGISTRATION_STATUSES.includes(registration.status)) {
     throw new AppError(
       `Registration has already been ${registration.status} and cannot be modified again.`,
       409
@@ -237,12 +240,7 @@ export const updateRegistrationStatusByOrganizer = async (
         const recipientEmail = student?.email || updated.guest?.email || null;
 
         if (recipientEmail) {
-          const qrValue = signTicketQr({
-            registrationId: updated.id,
-            eventId: updated.eventId,
-            ticketCode: updated.ticketCode,
-            userId: updated.userId || null,
-          });
+          const qrValue = signTicketQr(updated, event);
 
           const emailRes = await sendPaymentApprovalEmail({
             to: recipientEmail,
@@ -344,7 +342,7 @@ export const getMyRegistrations = async (userId) => {
 
       // If an event has ended and registration remained pending, mark status as expired
       let status = reg.status || 'pending';
-      if (isPastEvent && status === 'pending' && !reg.attended) {
+      if (isPastEvent && PENDING_REGISTRATION_STATUSES.includes(status) && !reg.attended) {
         status = 'expired';
       }
 
@@ -422,7 +420,7 @@ export const getTicketDetails = async (registrationId, callerUid, callerRole) =>
   }
 
   let status = reg.status || 'pending';
-  if (isPastEvent && status === 'pending' && !reg.attended) {
+  if (isPastEvent && PENDING_REGISTRATION_STATUSES.includes(status) && !reg.attended) {
     status = 'expired';
   }
 

@@ -9,8 +9,13 @@ import pollRouter from './v1/poll.route.js';
 import adminRouter from './v1/admin.route.js';
 import notificationRouter from './v1/notification.route.js';
 import paymentRouter from './v1/payment.route.js';
+import * as registrationController from '../controllers/registration.controller.js';
+import { optionalAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
+
+// Direct registration endpoint: POST /api/v1/register (supports manual bKash TrxID)
+router.post('/v1/register', optionalAuth, registrationController.create);
 
 // API v1 routes
 router.use('/v1/health', healthRouter);

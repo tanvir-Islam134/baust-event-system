@@ -22,7 +22,15 @@ export const ReceivedItemsSchema = z.object({
   tshirt: ItemReceivedSchema.default({ done: false, at: null, by: null }),
 });
 
-export const RegistrationStatusEnum = z.enum(['pending', 'approved', 'rejected', 'cancelled']);
+export const RegistrationStatusEnum = z.enum([
+  'pending',
+  'Pending Payment Verification',
+  'approved',
+  'rejected',
+  'cancelled',
+]);
+
+export const PENDING_REGISTRATION_STATUSES = ['pending', 'Pending Payment Verification'];
 
 export const RegistrationSchema = z
   .object({
@@ -74,13 +82,26 @@ export const CreateRegistrationInputSchema = z
     tshirtSize: TshirtSizeEnum.optional().default(null),
     foodType: FoodTypeEnum.optional().default(null),
     paymentMethod: PaymentMethodEnum.default('cash'),
-    trxId: z.string().trim().nullable().optional().default(null),
+    trxId: z
+      .string()
+      .trim()
+      .transform((val) => (val ? val.toUpperCase() : val))
+      .nullable()
+      .optional()
+      .default(null),
     paymentDetails: z.any().optional().nullable().default(null),
   })
   .refine((data) => data.userId || (data.guest && data.guest.email), {
     message: 'Either userId or guest details must be provided',
     path: ['userId'],
-  });
+  })
+  .refine(
+    (data) => data.paymentMethod !== 'bkash' || (typeof data.trxId === 'string' && data.trxId.trim().length >= 4),
+    {
+      message: 'A valid bKash Transaction ID (TrxID) is required for manual bKash payment',
+      path: ['trxId'],
+    }
+  );
 
 export const UpdateRegistrationStatusSchema = z.object({
   status: z.enum(['approved', 'rejected']),

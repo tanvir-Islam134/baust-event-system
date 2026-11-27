@@ -1,6 +1,9 @@
 import crypto from 'node:crypto';
 import { BaseRepository } from './base.repository.js';
-import { RegistrationSchema } from '../schemas/registration.schema.js';
+import {
+  RegistrationSchema,
+  PENDING_REGISTRATION_STATUSES,
+} from '../schemas/registration.schema.js';
 import { isEventInPast } from '../utils/conflictDetector.js';
 
 export class RegistrationRepository extends BaseRepository {
@@ -94,10 +97,12 @@ export class RegistrationRepository extends BaseRepository {
         throw new Error('Duplicate registration: This user or guest is already registered for this event.');
       }
 
+      const hasManualBkashTrx = payload.paymentMethod === 'bkash' || Boolean(payload.trxId);
       const finalPayload = {
         ...payload,
         clubId: clubId || null,
-        status: 'pending',
+        trxId: payload.trxId ? payload.trxId.trim().toUpperCase() : null,
+        status: hasManualBkashTrx ? 'Pending Payment Verification' : 'pending',
       };
 
       // 5. Write registration document
@@ -280,7 +285,7 @@ export class RegistrationRepository extends BaseRepository {
     if (!clubId) return [];
     const snapshot = await this.collection
       .where('clubId', '==', clubId)
-      .where('status', '==', 'pending')
+      .where('status', 'in', PENDING_REGISTRATION_STATUSES)
       .get();
 
     const results = [];
@@ -297,7 +302,8 @@ export class RegistrationRepository extends BaseRepository {
 
   /**
    * Find all pending registrations for a list of owned event IDs.
-   * Handles Firestore 'in' query limit (max 10 items per batch).
+   * Queries by eventId chunk and filters pending statuses in-memory
+   * (supports both 'pending' and 'Pending Payment Verification').
    * @param {string[]} eventIds
    */
   async findPendingByEventIds(eventIds = []) {
@@ -309,11 +315,13 @@ export class RegistrationRepository extends BaseRepository {
       const chunk = uniqueIds.slice(i, i + 10);
       const snapshot = await this.collection
         .where('eventId', 'in', chunk)
-        .where('status', '==', 'pending')
         .get();
 
       snapshot.forEach((doc) => {
-        results.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (PENDING_REGISTRATION_STATUSES.includes(data.status)) {
+          results.push({ id: doc.id, ...data });
+        }
       });
     }
 
@@ -326,7 +334,7 @@ export class RegistrationRepository extends BaseRepository {
 
   /**
    * Atomically approve or reject a registration.
-   * Prevents duplicate/repeated status modifications by requiring status === 'pending'.
+   * Prevents duplicate/repeated status modifications by requiring a pending review status.
    * If rejected, decrements event registeredCount to free up the seat.
    * @param {string} registrationId
    * @param {{ status: 'approved' | 'rejected', rejectionReason?: string|null, reviewedBy?: string|null }} data
@@ -344,7 +352,7 @@ export class RegistrationRepository extends BaseRepository {
       }
 
       const regData = regDoc.data();
-      if (regData.status !== 'pending') {
+      if (!PENDING_REGISTRATION_STATUSES.includes(regData.status)) {
         const conflictErr = new Error(
           `Registration '${registrationId}' has already been ${regData.status} and cannot be modified.`
         );
@@ -368,6 +376,9 @@ export class RegistrationRepository extends BaseRepository {
 
       const updateData = {
         status,
+        ...(status === 'approved' && (regData.paymentMethod === 'bkash' || regData.trxId)
+          ? { paymentStatus: 'paid' }
+          : {}),
         rejectionReason: status === 'rejected' ? rejectionReason || null : null,
         reviewedBy: reviewedBy || null,
         reviewedAt: timestamp,

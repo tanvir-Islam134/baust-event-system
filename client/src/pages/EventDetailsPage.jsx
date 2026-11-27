@@ -159,12 +159,19 @@ export default function EventDetailsPage() {
         return;
       }
 
+      if (!isFree && formData.paymentMethod === 'bkash') {
+        const cleanedTrx = formData.trxId.trim().toUpperCase();
+        if (cleanedTrx.length < 4) {
+          throw new Error('Please enter a valid bKash Transaction ID (TrxID, at least 4 characters).');
+        }
+      }
+
       const payload = {
         eventId: id,
         tshirtSize: event.items?.tshirt ? formData.tshirtSize : null,
         foodType: event.items?.food ? formData.foodType : null,
         paymentMethod: formData.paymentMethod === 'bkash_gateway' ? 'cash' : formData.paymentMethod,
-        trxId: formData.paymentMethod === 'bkash' ? formData.trxId.trim() : null,
+        trxId: formData.paymentMethod === 'bkash' ? formData.trxId.trim().toUpperCase() : null,
       };
 
       if (!user) {
@@ -191,7 +198,7 @@ export default function EventDetailsPage() {
       setRegSuccess(createdReg);
       setMyRegistration(createdReg);
       setToastMessage(
-        `Registration submitted! Status: Pending Club Organizer Approval (Ticket Code: ${createdReg?.ticketCode || 'Generated'})`
+        `Registration submitted! Status: ${createdReg?.status || 'Pending Organizer Approval'} (Ticket Code: ${createdReg?.ticketCode || 'Generated'})`
       );
       setTimeout(() => setToastMessage(null), 8000);
 

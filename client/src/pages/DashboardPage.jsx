@@ -1106,7 +1106,9 @@ export default function DashboardPage({ defaultTab = null }) {
                                 className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-300"
                                 title="Event date has passed"
                               >
-                                {reg.status === 'pending' || reg.status === 'expired'
+                                {reg.status === 'pending' ||
+                                reg.status === 'Pending Payment Verification' ||
+                                reg.status === 'expired'
                                   ? 'Expired (Event Ended)'
                                   : 'Event Ended'}
                               </span>
@@ -1116,7 +1118,9 @@ export default function DashboardPage({ defaultTab = null }) {
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
-                                Pending Review
+                                {reg.status === 'Pending Payment Verification'
+                                  ? 'Pending Payment Verification'
+                                  : 'Pending Review'}
                               </span>
                             )}
                           </div>
