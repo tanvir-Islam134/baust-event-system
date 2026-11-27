@@ -211,3 +211,24 @@ export const distributeItem = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/v1/registrations/:id/certificate
+ * Protected: Validate eligibility and download PDF participation certificate.
+ */
+export const downloadCertificate = async (req, res, next) => {
+  try {
+    const { pdfBytes, filename, certificateId } = await registrationService.generateParticipationCertificate(
+      req.params.id,
+      req.user.uid,
+      req.user.role
+    );
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Certificate-Id', certificateId);
+    res.status(200).send(Buffer.from(pdfBytes));
+  } catch (error) {
+    next(error);
+  }
+};
+

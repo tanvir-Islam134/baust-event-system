@@ -23,6 +23,14 @@ router.post(
 // GET /api/v1/registrations/:id/ticket - Protected: Get complete digital ticket and signed QR
 router.get('/:id/ticket', requireAuth, registrationController.getTicket);
 
+// GET /api/v1/registrations/:id/certificate - Protected: Download PDF participation certificate
+router.get(
+  '/:id/certificate',
+  requireAuth,
+  requireRole(['participant', 'organizer', 'admin']),
+  registrationController.downloadCertificate
+);
+
 // POST /api/v1/registrations/:id/items/:itemType - Protected (Organizer | Admin): Distribute food/tshirt voucher
 router.post(
   '/:id/items/:itemType',

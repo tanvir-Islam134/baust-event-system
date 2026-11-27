@@ -1,9 +1,12 @@
+import crypto from 'node:crypto';
 import { registrationRepository } from '../repositories/registration.repository.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { eventRepository } from '../repositories/event.repository.js';
 import { CreateRegistrationInputSchema } from '../schemas/registration.schema.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { signTicketQr, verifyTicketQr } from '../utils/qr.js';
+import { isEventInPast } from '../utils/conflictDetector.js';
+import { generateCertificatePdf } from '../utils/certificateGenerator.js';
 
 /**
  * Service handling attendee event registration and cancellation.
@@ -518,5 +521,87 @@ export const distributeItem = async (scannerUid, scannerRole, registrationId, it
 
   const updated = await registrationRepository.markItemReceived(registrationId, itemType, { by: scannerUid });
   return updated;
+};
+
+/**
+ * Validate eligibility and dynamically generate a PDF participation certificate
+ * using verified student and event records from the database.
+ * Prevents duplicate certificate IDs by persisting certificateId on the registration.
+ * @param {string} registrationId
+ * @param {string} callerUid
+ * @param {string} callerRole
+ */
+export const generateParticipationCertificate = async (registrationId, callerUid, callerRole) => {
+  if (!registrationId) {
+    throw new AppError('Registration ID is required', 400);
+  }
+
+  const registration = await registrationRepository.findById(registrationId);
+  if (!registration) {
+    throw new AppError(`Registration with ID '${registrationId}' not found`, 404);
+  }
+
+  if (callerRole !== 'admin' && registration.userId !== callerUid) {
+    throw new AppError('Unauthorized: You can only download certificates for your own registrations.', 403);
+  }
+
+  if (registration.status !== 'approved') {
+    throw new AppError('Certificate unavailable: Your registration must be approved first.', 403);
+  }
+
+  if (!registration.attended) {
+    throw new AppError('Certificate unavailable: Attendance check-in is required to earn a certificate.', 403);
+  }
+
+  const event = await eventRepository.findById(registration.eventId);
+  if (!event) {
+    throw new AppError(`Associated event '${registration.eventId}' not found`, 404);
+  }
+
+  if (!isEventInPast(event)) {
+    throw new AppError(
+      'Certificate unavailable: Certificates can only be downloaded after the event has officially concluded.',
+      403
+    );
+  }
+
+  // Prevent duplicate certificate records by reusing existing certificateId if already issued
+  let certificateId = registration.certificateId;
+  let issuedAt = registration.certificateIssuedAt || new Date();
+
+  if (!certificateId) {
+    certificateId = `CERT-BAUST-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    issuedAt = new Date();
+    await registrationRepository.update(registrationId, {
+      certificateId,
+      certificateIssuedAt: issuedAt,
+    });
+  }
+
+  const [student, organizer] = await Promise.all([
+    registration.userId ? userRepository.findById(registration.userId).catch(() => null) : null,
+    event.createdBy ? userRepository.findById(event.createdBy).catch(() => null) : null,
+  ]);
+
+  const studentName = student?.name || registration.guest?.name || 'BAUST Student';
+  const eventName = event.title || event.eventName || 'BAUST Campus Event';
+
+  const pdfBytes = await generateCertificatePdf({
+    certificateId,
+    studentName,
+    studentId: student?.studentId || null,
+    department: student?.department || null,
+    eventName,
+    eventDate: event.date,
+    eventVenue: event.venue || null,
+    clubName: event.clubName || event.clubAffiliation || null,
+    organizerName: organizer?.name || null,
+    issuedAt,
+  });
+
+  const safeSlug = eventName.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'Event';
+  const filename = `BAUST_Certificate_${safeSlug}_${certificateId}.pdf`;
+
+  return { pdfBytes, filename, certificateId };
 };
 
