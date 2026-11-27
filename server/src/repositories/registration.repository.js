@@ -192,20 +192,49 @@ export class RegistrationRepository extends BaseRepository {
   }
 
   /**
-   * Atomically mark attendance for a registered participant.
+   * Find a registration by ticket code across events (fallback for manual Ticket ID check-in).
+   * @param {string} ticketCode
+   */
+  async findByTicketCodeOnly(ticketCode) {
+    const results = await this.find([['ticketCode', '==', ticketCode]]);
+    return results.length ? results[0] : null;
+  }
+
+  /**
+   * Atomically mark attendance for a registered participant inside a Firestore transaction.
+   * Prevents concurrent duplicate check-ins for the same ticket.
    * @param {string} registrationId
    * @param {{ by: string }} metadata
    */
   async markAttended(registrationId, { by }) {
     const timestamp = new Date();
-    const docRef = this.collection.doc(registrationId);
-    await docRef.update({
-      attended: true,
-      attendedAt: timestamp,
-      attendedBy: by,
-      updatedAt: timestamp,
+    return this.runTransaction(async (transaction) => {
+      const docRef = this.collection.doc(registrationId);
+      const docSnap = await transaction.get(docRef);
+
+      if (!docSnap.exists) {
+        const notFound = new Error(`Registration '${registrationId}' does not exist.`);
+        notFound.code = 'NOT_FOUND';
+        throw notFound;
+      }
+
+      const regData = docSnap.data();
+      if (regData.attended === true) {
+        const already = new Error('Ticket has already been used for check-in.');
+        already.code = 'ALREADY_ATTENDED';
+        throw already;
+      }
+
+      const updates = {
+        attended: true,
+        attendedAt: timestamp,
+        attendedBy: by,
+        updatedAt: timestamp,
+      };
+
+      transaction.update(docRef, updates);
+      return { id: registrationId, ...regData, ...updates };
     });
-    return this.findById(registrationId);
   }
 
   /**

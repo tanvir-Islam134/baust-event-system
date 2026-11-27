@@ -486,6 +486,8 @@ export const checkInAttendee = async (scannerUid, scannerRole, checkInData) => {
     reg = await registrationRepository.findById(regId);
   } else if (targetEventId && targetTicketCode) {
     reg = await registrationRepository.findByTicketCode(targetEventId, targetTicketCode);
+  } else if (targetTicketCode) {
+    reg = await registrationRepository.findByTicketCodeOnly(targetTicketCode);
   }
 
   if (!reg) {
@@ -511,12 +513,18 @@ export const checkInAttendee = async (scannerUid, scannerRole, checkInData) => {
     }
   }
 
-  // 4. Validate registration status
+  // 4. Validate registration status (must be approved)
   if (reg.status === 'rejected') {
     throw new AppError('Entry Denied: This registration was previously rejected by the organizer.', 400);
   }
   if (reg.status === 'cancelled') {
     throw new AppError('Entry Denied: This registration was cancelled.', 400);
+  }
+  if (reg.status !== 'approved') {
+    throw new AppError(
+      `Entry Denied: Registration is currently '${reg.status}' and must be approved before gate check-in.`,
+      403
+    );
   }
 
   // Hydrate attendee info
@@ -562,7 +570,22 @@ export const checkInAttendee = async (scannerUid, scannerRole, checkInData) => {
   }
 
   // 6. Mark attendance atomically
-  const updatedReg = await registrationRepository.markAttended(reg.id, { by: scannerUid });
+  let updatedReg;
+  try {
+    updatedReg = await registrationRepository.markAttended(reg.id, { by: scannerUid });
+  } catch (err) {
+    if (err.code === 'ALREADY_ATTENDED') {
+      return {
+        success: true,
+        alreadyAttended: true,
+        message: '⚠️ Ticket was ALREADY checked in.',
+        attendee: attendeeInfo,
+        registration: reg,
+        event: eventInfo,
+      };
+    }
+    throw err;
+  }
 
   return {
     success: true,
