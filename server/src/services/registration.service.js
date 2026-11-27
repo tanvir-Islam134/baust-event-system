@@ -7,6 +7,10 @@ import { AppError } from '../middlewares/errorHandler.js';
 import { signTicketQr, verifyTicketQr } from '../utils/qr.js';
 import { isEventInPast } from '../utils/conflictDetector.js';
 import { generateCertificatePdf } from '../utils/certificateGenerator.js';
+import {
+  sendRegistrationConfirmationEmail,
+  sendPaymentApprovalEmail,
+} from './email.service.js';
 
 /**
  * Service handling attendee event registration and cancellation.
@@ -29,6 +33,41 @@ export const createRegistration = async (authUserId, rawData) => {
 
   try {
     const created = await registrationRepository.createRegistrationTransactional(validated);
+
+    // Trigger registration confirmation email only after DB transaction succeeds
+    if (created && !created.confirmationEmailSentAt) {
+      try {
+        const [event, student] = await Promise.all([
+          eventRepository.findById(created.eventId).catch(() => null),
+          created.userId ? userRepository.findById(created.userId).catch(() => null) : null,
+        ]);
+
+        const recipientEmail = student?.email || created.guest?.email || null;
+        if (recipientEmail) {
+          const emailRes = await sendRegistrationConfirmationEmail({
+            to: recipientEmail,
+            studentName: student?.name || created.guest?.name || 'BAUST Student',
+            eventName: event?.title || event?.eventName || 'BAUST Campus Event',
+            eventDate: event?.date || 'TBA',
+            eventTime: event?.time || event?.startTime || '',
+            eventVenue: event?.venue || 'TBA',
+            clubName: event?.clubName || event?.clubAffiliation || null,
+            ticketCode: created.ticketCode,
+            paymentMethod: created.paymentMethod,
+            trxId: created.trxId,
+            amount: event?.ticketPrice ?? event?.fee ?? 0,
+          });
+          if (emailRes?.sent) {
+            await registrationRepository
+              .update(created.id, { confirmationEmailSentAt: new Date() })
+              .catch(() => {});
+          }
+        }
+      } catch (emailErr) {
+        console.warn(`[RegistrationService] Confirmation email error for ${created.id}: ${emailErr.message}`);
+      }
+    }
+
     return created;
   } catch (error) {
     // If it's a domain/capacity/duplicate error, bubble it up with 400 status
@@ -183,11 +222,57 @@ export const updateRegistrationStatusByOrganizer = async (
   }
 
   try {
-    return await registrationRepository.updateStatusTransactional(registrationId, {
+    const updated = await registrationRepository.updateStatusTransactional(registrationId, {
       status,
       rejectionReason: status === 'rejected' ? rejectionReason || 'Rejected by event organizer' : null,
       reviewedBy: organizerUid,
     });
+
+    // Trigger payment approval email (with Ticket ID & QR code) only after DB approval succeeds
+    if (status === 'approved' && updated && !updated.approvalEmailSentAt) {
+      try {
+        const student = updated.userId
+          ? await userRepository.findById(updated.userId).catch(() => null)
+          : null;
+        const recipientEmail = student?.email || updated.guest?.email || null;
+
+        if (recipientEmail) {
+          const qrValue = signTicketQr({
+            registrationId: updated.id,
+            eventId: updated.eventId,
+            ticketCode: updated.ticketCode,
+            userId: updated.userId || null,
+          });
+
+          const emailRes = await sendPaymentApprovalEmail({
+            to: recipientEmail,
+            studentName: student?.name || updated.guest?.name || 'BAUST Student',
+            studentId: student?.studentId || null,
+            department: student?.department || null,
+            eventName: event.title || event.eventName || 'BAUST Campus Event',
+            eventDate: event.date || 'TBA',
+            eventTime: event.time || event.startTime || '',
+            eventVenue: event.venue || 'TBA',
+            clubName: event.clubName || event.clubAffiliation || null,
+            ticketCode: updated.ticketCode,
+            paymentMethod: updated.paymentMethod,
+            trxId: updated.trxId,
+            amount: event.ticketPrice ?? event.fee ?? 0,
+            qrValue,
+          });
+
+          if (emailRes?.sent) {
+            await registrationRepository
+              .update(updated.id, { approvalEmailSentAt: new Date() })
+              .catch(() => {});
+          }
+        }
+      } catch (emailErr) {
+        console.warn(`[RegistrationService] Approval email error for ${updated.id}: ${emailErr.message}`);
+      }
+    }
+
+    return updated;
   } catch (error) {
     if (error.code === 'ALREADY_PROCESSED') {
       throw new AppError(error.message, 409);
