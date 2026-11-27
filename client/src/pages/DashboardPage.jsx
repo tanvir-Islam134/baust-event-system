@@ -8,6 +8,7 @@ import userService from '../services/userService.js';
 import ClubOrganizersDirectory from '../components/ClubOrganizersDirectory.jsx';
 import OrganizerCreateEvent from '../components/organizer/OrganizerCreateEvent.jsx';
 import OrganizerManageEvents from '../components/organizer/OrganizerManageEvents.jsx';
+import OrganizerBudgetTracker from '../components/organizer/OrganizerBudgetTracker.jsx';
 import StudentEventFeed from '../components/events/StudentEventFeed.jsx';
 import AdminEventReviewQueue from '../components/admin/AdminEventReviewQueue.jsx';
 import DigitalTicketModal from '../components/events/DigitalTicketModal.jsx';
@@ -722,6 +723,44 @@ export default function DashboardPage({ defaultTab = null }) {
         </div>
       )}
 
+      {/* 4B. ORGANIZER VIEW: REAL-TIME BUDGET & EXPENSE TRACKER */}
+      {canManageEvents && activeTab === 'budget' && (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-[#E5E5E5] shadow-xs">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleTabChange('overview')}
+                className="px-3 py-1.5 bg-[#E5E5E5]/60 hover:bg-[#E5E5E5] text-[#14213D] rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>&larr;</span>
+                <span>Back to Dashboard</span>
+              </button>
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('overview')}
+                  className="hover:text-[#14213D] transition cursor-pointer"
+                >
+                  Dashboard
+                </button>
+                <span>/</span>
+                <span className="text-[#14213D] font-bold">Budget &amp; Expenses</span>
+              </div>
+            </div>
+
+            <Link
+              to="/finances"
+              className="px-3.5 py-2 bg-[#14213D] hover:bg-black text-[#FCA311] rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+            >
+              <span>Full Finance Ledger &rarr;</span>
+            </Link>
+          </div>
+
+          <OrganizerBudgetTracker />
+        </div>
+      )}
+
       {/* 5. DEFAULT VIEW: CLEAN DASHBOARD OVERVIEW (Rendered when on /dashboard with no tab) */}
       {(!canManageEvents || activeTab === 'overview') && (
         <div className="space-y-6 animate-in fade-in">
@@ -823,6 +862,14 @@ export default function DashboardPage({ defaultTab = null }) {
                     >
                       <span>🎫</span>
                       <span>Pending Registrations ({pendingRegistrations.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('budget')}
+                      className="px-4 py-2 bg-emerald-600/80 hover:bg-emerald-600 backdrop-blur-md text-white font-bold rounded-lg text-sm transition border border-emerald-400/40 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>💰</span>
+                      <span>Budget &amp; Expenses</span>
                     </button>
                   </>
                 ) : (
@@ -1094,13 +1141,24 @@ export default function DashboardPage({ defaultTab = null }) {
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-[#E5E5E5]">
-                <Link
-                  to={isAdmin || isOrganizer ? '/finances' : '/profile'}
-                  className="text-xs font-bold text-[#14213D] hover:text-[#FCA311] flex items-center gap-1 transition"
-                >
-                  <span>{isAdmin || isOrganizer ? 'Open finance portal' : 'Update cohort'}</span>
-                  <span>&rarr;</span>
-                </Link>
+                {isOrganizer ? (
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('budget')}
+                    className="text-xs font-bold text-[#14213D] hover:text-[#FCA311] flex items-center gap-1 transition cursor-pointer"
+                  >
+                    <span>Open budget tracker</span>
+                    <span>&rarr;</span>
+                  </button>
+                ) : (
+                  <Link
+                    to={isAdmin ? '/finances' : '/profile'}
+                    className="text-xs font-bold text-[#14213D] hover:text-[#FCA311] flex items-center gap-1 transition"
+                  >
+                    <span>{isAdmin ? 'Open finance portal' : 'Update cohort'}</span>
+                    <span>&rarr;</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

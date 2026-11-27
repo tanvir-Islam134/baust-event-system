@@ -40,5 +40,26 @@ router.get(
   financeController.getIncomes
 );
 
+// GET /api/v1/finances/revenue/event/:eventId - Protected (Organizer | Admin)
+router.get(
+  '/revenue/event/:eventId',
+  requireRole(['organizer', 'admin']),
+  financeController.getRevenue
+);
+
+// GET /api/v1/finances/summary/event/:eventId - Protected (Organizer | Admin)
+router.get(
+  '/summary/event/:eventId',
+  requireRole(['organizer', 'admin']),
+  financeController.getSummary
+);
+
+// DELETE /api/v1/finances/expenses/:expenseId - Protected (Organizer | Admin)
+router.delete(
+  '/expenses/:expenseId',
+  requireRole(['organizer', 'admin']),
+  financeController.deleteExpense
+);
+
 export default router;
 

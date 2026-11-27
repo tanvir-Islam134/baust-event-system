@@ -7,6 +7,10 @@ import * as financeService from '../services/finance.service.js';
 export const createExpense = async (req, res, next) => {
   try {
     const expense = await financeService.createExpense(req.user.uid, req.body, req.user);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('finance_updated', { eventId: expense.eventId, type: 'expense_created' });
+    }
     res.status(201).json({
       success: true,
       message: 'Expense recorded successfully',
@@ -60,6 +64,59 @@ export const getIncomes = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/finances/revenue/event/:eventId
+ * Return total ticket revenue for an event.
+ */
+export const getRevenue = async (req, res, next) => {
+  try {
+    const result = await financeService.getEventRevenue(req.params.eventId);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/finances/summary/event/:eventId
+ * Return full budget summary comparing ticket revenue vs logged expenses.
+ */
+export const getSummary = async (req, res, next) => {
+  try {
+    const result = await financeService.getEventBudgetSummary(req.params.eventId);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/finances/expenses/:expenseId
+ * Delete an expense entry (Organizer or Admin).
+ */
+export const deleteExpense = async (req, res, next) => {
+  try {
+    const result = await financeService.deleteExpense(req.params.expenseId, req.user.uid, req.user);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('finance_updated', { eventId: result.eventId, type: 'expense_deleted' });
+    }
+    res.status(200).json({
+      success: true,
+      message: 'Expense deleted successfully',
+      data: result,
     });
   } catch (error) {
     next(error);

@@ -41,6 +41,33 @@ export const financeService = {
     const response = await api.get(`/finances/incomes/event/${eventId}`, { params });
     return response.data?.data || response.data;
   },
+
+  /**
+   * Get calculated ticket revenue from approved registrations for an event.
+   * @param {string} eventId
+   */
+  getRevenueByEvent: async (eventId) => {
+    const response = await api.get(`/finances/revenue/event/${eventId}`);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Get comprehensive budget & financial summary for an event.
+   * @param {string} eventId
+   */
+  getBudgetSummaryByEvent: async (eventId) => {
+    const response = await api.get(`/finances/summary/event/${eventId}`);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Delete an expense entry by ID (Organizer or Admin).
+   * @param {string} expenseId
+   */
+  deleteExpense: async (expenseId) => {
+    const response = await api.delete(`/finances/expenses/${expenseId}`);
+    return response.data?.data || response.data;
+  },
 };
 
 export default financeService;

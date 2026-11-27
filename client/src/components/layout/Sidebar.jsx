@@ -39,7 +39,8 @@ export default function Sidebar({
       (!location.search.includes('tab=create-event') &&
         !location.search.includes('tab=manage-events') &&
         !location.search.includes('tab=review-queue') &&
-        !location.search.includes('tab=pending-registrations')));
+        !location.search.includes('tab=pending-registrations') &&
+        !location.search.includes('tab=budget')));
 
   const linkBaseClasses =
     'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all';
@@ -146,20 +147,35 @@ export default function Sidebar({
           </>
         )}
 
-        {/* Organizer: Club Registrations Review */}
+        {/* Organizer: Club Registrations Review & Budget Tracker */}
         {isOrganizer && (
-          <Link
-            to="/dashboard?tab=pending-registrations"
-            className={`${linkBaseClasses} ${isTabActive('pending-registrations') ? activeClasses : inactiveClasses}`}
-            onClick={() => {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-            </svg>
-            <span className="truncate">Review Registrations</span>
-          </Link>
+          <>
+            <Link
+              to="/dashboard?tab=pending-registrations"
+              className={`${linkBaseClasses} ${isTabActive('pending-registrations') ? activeClasses : inactiveClasses}`}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+              <span className="truncate">Review Registrations</span>
+            </Link>
+
+            <Link
+              to="/dashboard?tab=budget"
+              className={`${linkBaseClasses} ${isTabActive('budget') ? activeClasses : inactiveClasses}`}
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <svg className="w-5 h-5 opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="truncate">Budget &amp; Expenses</span>
+            </Link>
+          </>
         )}
 
         {/* Admin: Pending Events Review Queue */}
